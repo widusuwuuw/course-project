@@ -1,0 +1,548 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  Dimensions,
+  TouchableOpacity,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  GradientCard,
+} from '@/components/ui/ShadcnCard';
+import {
+  Button,
+  GradientButton,
+} from '@/components/ui/ShadcnButton';
+import {
+  Badge,
+  GradientBadge,
+  StatusBadge,
+} from '@/components/ui/ShadcnBadge';
+import {
+  Progress,
+  GradientProgress,
+  CircularProgress,
+} from '@/components/ui/ShadcnProgress';
+import ModernBackground from '@/components/ModernBackground';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
+
+const { width } = Dimensions.get('window');
+
+export default function ShadcnHealthDashboard({ navigation }: Props) {
+  const [healthData, setHealthData] = useState({
+    heartRate: 72,
+    steps: 8432,
+    sleep: 7.5,
+    water: 1.8,
+    calories: 1850,
+    weight: 65,
+    stress: 3,
+  });
+
+  const [goals] = useState({
+    steps: 10000,
+    water: 2.5,
+    calories: 2000,
+    sleep: 8,
+  });
+
+  const [weeklyData] = useState([
+    { day: '周一', steps: 8500, calories: 1900 },
+    { day: '周二', steps: 7200, calories: 2100 },
+    { day: '周三', steps: 9100, calories: 1850 },
+    { day: '周四', steps: 6800, calories: 2200 },
+    { day: '周五', steps: 10200, calories: 1750 },
+    { day: '周六', steps: 8900, calories: 2000 },
+    { day: '周日', steps: 8432, calories: 1850 },
+  ]);
+
+  useEffect(() => {
+    loadHealthData();
+  }, []);
+
+  const loadHealthData = async () => {
+    try {
+      const savedData = await AsyncStorage.getItem('healthData');
+      if (savedData) {
+        setHealthData(JSON.parse(savedData));
+      }
+    } catch (error) {
+      console.error('Failed to load health data:', error);
+    }
+  };
+
+  const getPercentage = (current: number, goal: number) => {
+    return Math.min((current / goal) * 100, 100);
+  };
+
+  const getStressLevel = (level: number) => {
+    if (level <= 3) return { status: 'success' as const, text: '低压力' };
+    if (level <= 6) return { status: 'warning' as const, text: '中等压力' };
+    return { status: 'error' as const, text: '高压力' };
+  };
+
+  const stressInfo = getStressLevel(healthData.stress);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ModernBackground variant="health">
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View>
+                <Text style={styles.greeting}>早上好 👋</Text>
+                <Text style={styles.title}>健康仪表盘</Text>
+              </View>
+              <View style={styles.headerBadges}>
+                <StatusBadge status="success">
+                  活跃
+                </StatusBadge>
+              </View>
+            </View>
+          </View>
+
+          {/* Quick Stats */}
+          <View style={styles.quickStatsSection}>
+            <Card style={styles.quickStatsCard}>
+              <CardContent style={styles.quickStatsContent}>
+                <View style={styles.statRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{healthData.heartRate}</Text>
+                    <Text style={styles.statLabel}>心率</Text>
+                    <Text style={styles.statUnit}>bpm</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{healthData.steps.toLocaleString()}</Text>
+                    <Text style={styles.statLabel}>步数</Text>
+                    <Text style={styles.statUnit}>步</Text>
+                  </View>
+                </View>
+                <View style={styles.statRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{healthData.sleep}</Text>
+                    <Text style={styles.statLabel}>睡眠</Text>
+                    <Text style={styles.statUnit}>小时</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{healthData.water}</Text>
+                    <Text style={styles.statLabel}>饮水</Text>
+                    <Text style={styles.statUnit}>升</Text>
+                  </View>
+                </View>
+              </CardContent>
+            </Card>
+          </View>
+
+          {/* Today's Goals Progress */}
+          <View style={styles.goalsSection}>
+            <Text style={styles.sectionTitle}>今日目标</Text>
+
+            <Card style={styles.goalCard}>
+              <CardContent style={styles.goalContent}>
+                <View style={styles.goalItem}>
+                  <View style={styles.goalHeader}>
+                    <Text style={styles.goalTitle}>步数目标</Text>
+                    <Badge variant="outline">
+                      {healthData.steps} / {goals.steps}
+                    </Badge>
+                  </View>
+                  <GradientProgress
+                    value={getPercentage(healthData.steps, goals.steps)}
+                    gradientColors={['#10B981', '#059669']}
+                    height={8}
+                  />
+                </View>
+
+                <View style={styles.goalItem}>
+                  <View style={styles.goalHeader}>
+                    <Text style={styles.goalTitle}>饮水目标</Text>
+                    <Badge variant="outline">
+                      {healthData.water}L / {goals.water}L
+                    </Badge>
+                  </View>
+                  <GradientProgress
+                    value={getPercentage(healthData.water, goals.water)}
+                    gradientColors={['#3B82F6', '#1D4ED8']}
+                    height={8}
+                  />
+                </View>
+
+                <View style={styles.goalItem}>
+                  <View style={styles.goalHeader}>
+                    <Text style={styles.goalTitle}>卡路里目标</Text>
+                    <Badge variant="outline">
+                      {healthData.calories} / {goals.calories}
+                    </Badge>
+                  </View>
+                  <GradientProgress
+                    value={getPercentage(healthData.calories, goals.calories)}
+                    gradientColors={['#F59E0B', '#D97706']}
+                    height={8}
+                  />
+                </View>
+              </CardContent>
+            </Card>
+          </View>
+
+          {/* Health Metrics Cards */}
+          <View style={styles.metricsSection}>
+            <Text style={styles.sectionTitle}>健康指标</Text>
+
+            <View style={styles.metricsRow}>
+              <GradientCard
+                gradientColors={['#EF4444', '#DC2626']}
+                style={styles.metricCard}
+              >
+                <View style={styles.metricContent}>
+                  <Text style={styles.metricTitle}>心率</Text>
+                  <Text style={styles.metricValue}>{healthData.heartRate}</Text>
+                  <Text style={styles.metricUnit}>bpm</Text>
+                  <StatusBadge status="success" style={styles.metricBadge}>
+                    正常
+                  </StatusBadge>
+                </View>
+              </GradientCard>
+
+              <GradientCard
+                gradientColors={['#8B5CF6', '#7C3AED']}
+                style={styles.metricCard}
+              >
+                <View style={styles.metricContent}>
+                  <Text style={styles.metricTitle}>睡眠</Text>
+                  <Text style={styles.metricValue}>{healthData.sleep}</Text>
+                  <Text style={styles.metricUnit}>小时</Text>
+                  <StatusBadge status="warning" style={styles.metricBadge}>
+                    待改善
+                  </StatusBadge>
+                </View>
+              </GradientCard>
+            </View>
+
+            <View style={styles.metricsRow}>
+              <GradientCard
+                gradientColors={['#10B981', '#059669']}
+                style={styles.metricCard}
+              >
+                <View style={styles.metricContent}>
+                  <Text style={styles.metricTitle}>体重</Text>
+                  <Text style={styles.metricValue}>{healthData.weight}</Text>
+                  <Text style={styles.metricUnit}>kg</Text>
+                  <StatusBadge status="success" style={styles.metricBadge}>
+                    稳定
+                  </StatusBadge>
+                </View>
+              </GradientCard>
+
+              <GradientCard
+                gradientColors={['#F59E0B', '#D97706']}
+                style={styles.metricCard}
+              >
+                <View style={styles.metricContent}>
+                  <Text style={styles.metricTitle}>压力</Text>
+                  <Text style={styles.metricValue}>{healthData.stress}</Text>
+                  <Text style={styles.metricUnit}>/10</Text>
+                  <StatusBadge status={stressInfo.status} style={styles.metricBadge}>
+                    {stressInfo.text}
+                  </StatusBadge>
+                </View>
+              </GradientCard>
+            </View>
+          </View>
+
+          {/* Weekly Overview */}
+          <View style={styles.weeklySection}>
+            <Text style={styles.sectionTitle}>本周概览</Text>
+
+            <Card style={styles.weeklyCard}>
+              <CardHeader>
+                <CardTitle>周平均数据</CardTitle>
+                <CardDescription>
+                  基于最近7天的健康数据
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <View style={styles.weeklyStats}>
+                  <View style={styles.weeklyStat}>
+                    <CircularProgress
+                      value={82}
+                      max={100}
+                      size={80}
+                      strokeWidth={6}
+                      color="#6366F1"
+                    />
+                    <Text style={styles.weeklyStatLabel}>活动目标</Text>
+                  </View>
+                  <View style={styles.weeklyStat}>
+                    <CircularProgress
+                      value={75}
+                      max={100}
+                      size={80}
+                      strokeWidth={6}
+                      color="#10B981"
+                    />
+                    <Text style={styles.weeklyStatLabel}>睡眠质量</Text>
+                  </View>
+                  <View style={styles.weeklyStat}>
+                    <CircularProgress
+                      value={90}
+                      max={100}
+                      size={80}
+                      strokeWidth={6}
+                      color="#F59E0B"
+                    />
+                    <Text style={styles.weeklyStatLabel}>营养均衡</Text>
+                  </View>
+                </View>
+              </CardContent>
+            </Card>
+          </View>
+
+          {/* Quick Actions */}
+          <View style={styles.actionsSection}>
+            <Text style={styles.sectionTitle}>快速操作</Text>
+
+            <View style={styles.actionButtons}>
+              <GradientButton
+                gradientColors={['#6366F1', '#8B5CF6']}
+                size="lg"
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Assistant')}
+              >
+                AI健康助手
+              </GradientButton>
+
+              <Button
+                variant="outline"
+                size="lg"
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('HealthLogs')}
+              >
+                健康日志
+              </Button>
+            </View>
+          </View>
+
+          {/* Health Tip */}
+          <Card style={styles.tipCard}>
+            <CardContent>
+              <View style={styles.tipHeader}>
+                <GradientBadge gradientColors={['#10B981', '#059669']}>
+                  今日提醒
+                </GradientBadge>
+              </View>
+              <Text style={styles.tipText}>
+                💡 记得每小时站立活动5分钟，这有助于改善血液循环，减少久坐带来的健康风险。
+              </Text>
+            </CardContent>
+          </Card>
+        </ScrollView>
+      </ModernBackground>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#F1F5F9',
+    letterSpacing: -1,
+  },
+  headerBadges: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickStatsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  quickStatsCard: {
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  quickStatsContent: {
+    paddingVertical: 20,
+  },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#F1F5F9',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  statUnit: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 16,
+    paddingHorizontal: 24,
+  },
+  goalsSection: {
+    marginBottom: 24,
+  },
+  goalCard: {
+    marginHorizontal: 24,
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  goalContent: {
+    gap: 16,
+  },
+  goalItem: {
+    gap: 8,
+  },
+  goalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F1F5F9',
+  },
+  metricsSection: {
+    marginBottom: 24,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 24,
+    marginBottom: 12,
+  },
+  metricCard: {
+    flex: 1,
+    height: 120,
+  },
+  metricContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: 4,
+  },
+  metricTitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
+  metricValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  metricUnit: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  metricBadge: {
+    alignSelf: 'flex-start',
+  },
+  weeklySection: {
+    marginBottom: 24,
+  },
+  weeklyCard: {
+    marginHorizontal: 24,
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  weeklyStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 16,
+  },
+  weeklyStat: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  weeklyStatLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  actionsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  actionButtons: {
+    gap: 12,
+  },
+  actionButton: {
+    borderRadius: 12,
+  },
+  tipCard: {
+    marginHorizontal: 24,
+    marginBottom: 24,
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  tipHeader: {
+    marginBottom: 12,
+  },
+  tipText: {
+    fontSize: 14,
+    color: '#CBD5E1',
+    lineHeight: 20,
+  },
+});

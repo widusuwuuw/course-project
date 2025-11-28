@@ -1,0 +1,168 @@
+import React from 'react';
+import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+interface Web3BadgeProps {
+  children: React.ReactNode;
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'neon' | 'glass';
+  size?: 'sm' | 'md' | 'lg';
+  style?: ViewStyle;
+  textStyle?: TextStyle;
+}
+
+export const Web3Badge: React.FC<Web3BadgeProps> = ({
+  children,
+  variant = 'default',
+  size = 'md',
+  style,
+  textStyle,
+}) => {
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'secondary':
+        return {
+          container: {
+            backgroundColor: 'rgba(107, 114, 128, 0.2)',
+            borderWidth: 1,
+            borderColor: 'rgba(107, 114, 128, 0.3)',
+          },
+          text: { color: '#9CA3AF' },
+        };
+      case 'destructive':
+        return {
+          container: {
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            borderWidth: 1,
+            borderColor: 'rgba(239, 68, 68, 0.3)',
+          },
+          text: { color: '#F87171' },
+        };
+      case 'outline':
+        return {
+          container: {
+            backgroundColor: 'transparent',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+          },
+          text: { color: '#E5E7EB' },
+        };
+      case 'neon':
+        return {
+          container: {
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            borderWidth: 1,
+            borderColor: 'rgba(139, 92, 246, 0.3)',
+            shadowColor: '#8B5CF6',
+            shadowOpacity: 0.5,
+            shadowRadius: 8,
+            elevation: 4,
+          },
+          text: { color: '#DDD6FE' },
+        };
+      case 'glass':
+        return {
+          container: {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            overflow: 'hidden',
+          },
+          text: { color: '#F3F4F6' },
+        };
+      default:
+        return {
+          container: {
+            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+            borderWidth: 1,
+            borderColor: 'rgba(139, 92, 246, 0.3)',
+          },
+          text: { color: '#DDD6FE' },
+        };
+    }
+  };
+
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'sm':
+        return {
+          container: {
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 12,
+          },
+          text: { fontSize: 11, fontWeight: '500' },
+        };
+      case 'lg':
+        return {
+          container: {
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+          },
+          text: { fontSize: 16, fontWeight: '600' },
+        };
+      default:
+        return {
+          container: {
+            paddingHorizontal: 12,
+            paddingVertical: 4,
+            borderRadius: 16,
+          },
+          text: { fontSize: 14, fontWeight: '500' },
+        };
+    }
+  };
+
+  const variantStyles = getVariantStyles();
+  const sizeStyles = getSizeStyles();
+
+  return (
+    <View
+      style={[
+        styles.container,
+        variantStyles.container,
+        sizeStyles.container,
+        style,
+      ]}
+    >
+      {variant === 'glass' && (
+        <LinearGradient
+          colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
+          style={styles.glassGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+      )}
+      <Text
+        style={[
+          styles.text,
+          variantStyles.text,
+          sizeStyles.text,
+          textStyle,
+        ]}
+      >
+        {children}
+      </Text>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    alignSelf: 'flex-start',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  glassGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  text: {
+    textAlign: 'center',
+  },
+});
+
+export default Web3Badge;

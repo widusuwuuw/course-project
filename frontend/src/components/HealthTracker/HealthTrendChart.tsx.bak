@@ -1,0 +1,262 @@
+import React from 'react';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
+import { useTheme } from '../../contexts/ThemeContext';
+
+interface HealthTrendChartProps {
+  data: Array<{
+    date: string;
+    value: number;
+  }>;
+  title: string;
+  unit: string;
+  color?: string;
+  height?: number;
+  showDots?: boolean;
+}
+
+const HealthTrendChart: React.FC<HealthTrendChartProps> = ({
+  data,
+  title,
+  unit,
+  color,
+  height = 200,
+  showDots = true,
+}) => {
+  const { colors } = useTheme();
+  const chartColor = color || colors.primary;
+
+  // 准备图表数据
+  const chartData = {
+    labels: data.map(item => {
+      const date = new Date(item.date);
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }),
+    datasets: [
+      {
+        data: data.map(item => item.value),
+        color: (opacity = 1) => `${chartColor}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`,
+        strokeWidth: 2,
+      },
+    ],
+  };
+
+  // 计算趋势
+  const calculateTrend = () => {
+    if (data.length < 2) return { trend: 'stable', change: 0 };
+
+    const recent = data.slice(-7); // 最近7天
+    const previous = data.slice(-14, -7); // 之前7天
+
+    if (previous.length === 0) return { trend: 'stable', change: 0 };
+
+    const recentAvg = recent.reduce((sum, item) => sum + item.value, 0) / recent.length;
+    const previousAvg = previous.reduce((sum, item) => sum + item.value, 0) / previous.length;
+
+    const change = ((recentAvg - previousAvg) / previousAvg) * 100;
+
+    let trend: 'up' | 'down' | 'stable';
+    if (Math.abs(change) < 2) trend = 'stable';
+    else trend = change > 0 ? 'up' : 'down';
+
+    return { trend, change };
+  };
+
+  const { trend, change } = calculateTrend();
+
+  const getTrendIcon = () => {
+    switch (trend) {
+      case 'up':
+        return '📈';
+      case 'down':
+        return '📉';
+      default:
+        return '➡️';
+    }
+  };
+
+  const getTrendText = () => {
+    switch (trend) {
+      case 'up':
+        return `上升 ${Math.abs(change).toFixed(1)}%`;
+      case 'down':
+        return `下降 ${Math.abs(change).toFixed(1)}%`;
+      default:
+        return '保持稳定';
+    }
+  };
+
+  const getTrendColor = () => {
+    switch (trend) {
+      case 'up':
+        return colors.warning; // 橙色表示上升（体重等）
+      case 'down':
+        return colors.success; // 绿色表示下降（体重等）
+      default:
+        return colors.textSecondary;
+    }
+  };
+
+  const screenWidth = Dimensions.get('window').width - 40; // 减去padding
+
+  const chartConfig = {
+    backgroundColor: 'transparent',
+    backgroundGradientFrom: 'transparent',
+    backgroundGradientTo: 'transparent',
+    decimalPlaces: 1,
+    color: (opacity = 1) => `${colors.text}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`,
+    labelColor: (opacity = 1) => `${colors.textSecondary}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: showDots ? {
+      r: '4',
+      strokeWidth: '2',
+      stroke: chartColor,
+    } : undefined,
+    propsForLabels: {
+      fontSize: 10,
+    },
+  };
+
+  if (data.length === 0) {
+    return (
+      <View style={[styles.container, { height }]}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            暂无数据
+          </Text>
+          <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
+            开始记录您的健康数据吧
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { height: height + 80 }]}>
+      {/* 头部信息 */}
+      <View style={styles.header}>
+        <View>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            最近 {data.length} 次记录
+          </Text>
+        </View>
+        <View style={styles.trendContainer}>
+          <Text style={styles.trendIcon}>{getTrendIcon()}</Text>
+          <Text style={[styles.trendText, { color: getTrendColor() }]}>
+            {getTrendText()}
+          </Text>
+        </View>
+      </View>
+
+      {/* 当前值 */}
+      {data.length > 0 && (
+        <View style={styles.currentValue}>
+          <Text style={[styles.value, { color: chartColor }]}>
+            {data[data.length - 1].value}
+          </Text>
+          <Text style={[styles.unit, { color: colors.textSecondary }]}>
+            {unit}
+          </Text>
+        </View>
+      )}
+
+      {/* 图表 */}
+      <LineChart
+        data={chartData}
+        width={screenWidth}
+        height={height}
+        chartConfig={chartConfig}
+        withDots={showDots}
+        withInnerLines={false}
+        withOuterLines={false}
+        withVerticalLines={false}
+        withHorizontalLines={true}
+        bezier
+        style={styles.chart}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  trendContainer: {
+    alignItems: 'flex-end',
+  },
+  trendIcon: {
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  trendText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  currentValue: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 16,
+  },
+  value: {
+    fontSize: 32,
+    fontWeight: '800',
+    marginRight: 8,
+  },
+  unit: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  chart: {
+    borderRadius: 16,
+    marginVertical: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
+});
+
+export default HealthTrendChart;

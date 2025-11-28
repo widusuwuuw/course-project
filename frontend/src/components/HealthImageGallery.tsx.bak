@@ -1,0 +1,219 @@
+import React, { useState } from 'react';
+import { View, Text, FlatList, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+interface HealthImage {
+  id: string;
+  url: string;
+  title: string;
+  category: 'exercise' | 'nutrition' | 'meditation' | 'sleep' | 'general';
+}
+
+const healthImages: HealthImage[] = [
+  {
+    id: '1',
+    url: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/500d8357eec0a58ab55c934bd9532b75.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763237036&Signature=9ItUdgXIijYzJF/ApTx4HLxNIO8%3D',
+    title: '运动追踪',
+    category: 'exercise'
+  },
+  {
+    id: '2',
+    url: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/7442949b36adaf1bd876c88f589c0198.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763237036&Signature=xawtofXvmr4IUNs/43PV1BmdvqA%3D',
+    title: '营养记录',
+    category: 'nutrition'
+  },
+  {
+    id: '3',
+    url: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/c11212285bd42688f743ca74924e0bc6.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763237036&Signature=e8IbayqlmZd4CeBo%2BCS/pIp/ZSY%3D',
+    title: '冥想放松',
+    category: 'meditation'
+  },
+  {
+    id: '4',
+    url: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/2c02796c3cc2b521566da0a00727c0d1.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763235137&Signature=X3di2FguYhlqW4fy%2B3fELxxg2xg%3D',
+    title: '睡眠监测',
+    category: 'sleep'
+  },
+  {
+    id: '5',
+    url: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/f76c2f008eabbdc5981873307dd9e456.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763235070&Signature=4OT%2BzBJhfDNw1nFNg1Ap2jJwko%3D',
+    title: '健身训练',
+    category: 'exercise'
+  },
+  {
+    id: '6',
+    url: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/51e6fb961a294259be6dee3da41f6104.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763237036&Signature=txb8A83yNO5onK7TOxcdaYPuUr8%3D',
+    title: '健康管理',
+    category: 'general'
+  }
+];
+
+interface HealthImageGalleryProps {
+  onImageSelect?: (image: HealthImage) => void;
+  category?: 'all' | 'exercise' | 'nutrition' | 'meditation' | 'sleep' | 'general';
+  showCategories?: boolean;
+}
+
+const HealthImageGallery: React.FC<HealthImageGalleryProps> = ({
+  onImageSelect,
+  category = 'all',
+  showCategories = true
+}) => {
+  const [selectedCategory, setSelectedCategory] = useState(category);
+
+  const categories = [
+    { key: 'all', label: '全部', emoji: '🌟' },
+    { key: 'exercise', label: '运动', emoji: '🏃' },
+    { key: 'nutrition', label: '营养', emoji: '🥗' },
+    { key: 'meditation', label: '冥想', emoji: '🧘' },
+    { key: 'sleep', label: '睡眠', emoji: '😴' }
+  ];
+
+  const filteredImages = selectedCategory === 'all'
+    ? healthImages
+    : healthImages.filter(img => img.category === selectedCategory);
+
+  const renderImageItem = ({ item }: { item: HealthImage }) => (
+    <TouchableOpacity
+      style={styles.imageContainer}
+      onPress={() => onImageSelect?.(item)}
+      activeOpacity={0.8}
+    >
+      <Image source={{ uri: item.url }} style={styles.image} />
+      <View style={styles.imageOverlay}>
+        <Text style={styles.imageTitle}>{item.title}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderCategoryChip = (cat: typeof categories[0]) => (
+    <TouchableOpacity
+      key={cat.key}
+      style={[
+        styles.categoryChip,
+        selectedCategory === cat.key && styles.categoryChipActive
+      ]}
+      onPress={() => setSelectedCategory(cat.key)}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+      <Text style={[
+        styles.categoryText,
+        selectedCategory === cat.key && styles.categoryTextActive
+      ]}>
+        {cat.label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.container}>
+      {showCategories && (
+        <View style={styles.categoriesContainer}>
+          <FlatList
+            data={categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => renderCategoryChip(item)}
+            keyExtractor={(item) => item.key}
+            contentContainerStyle={styles.categoriesList}
+          />
+        </View>
+      )}
+
+      <FlatList
+        data={filteredImages}
+        renderItem={renderImageItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.imagesList}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'rgba(249, 250, 251, 0.9)',
+  },
+  categoriesContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  categoriesList: {
+    paddingRight: 16,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  categoryChipActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  categoryEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
+  },
+  imagesList: {
+    padding: 16,
+  },
+  row: {
+    justifyContent: 'space-between',
+  },
+  imageContainer: {
+    width: (screenWidth - 48) / 2,
+    height: 150,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  imageTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
+
+export default HealthImageGallery;

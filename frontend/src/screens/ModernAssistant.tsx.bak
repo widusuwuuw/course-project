@@ -1,0 +1,465 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import {
+  Send,
+  Bot,
+  User,
+  ArrowLeft,
+  Sparkles,
+  Shield,
+  Clock,
+} from 'lucide-react-native';
+
+// 导入Web3组件
+import { Web3BackgroundSimple } from '@/components/Web3UI/Web3BackgroundSimple';
+import { GlassCard } from '@/components/Web3UI/GlassCard';
+import { Web3Badge } from '@/components/Web3UI/Web3Badge';
+
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+};
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Assistant'>;
+
+export default function ModernAssistant({ navigation }: Props) {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: '你好！我是你的AI健康助手。我可以帮助你解答健康相关问题，提供生活方式建议，但请记住我不能替代专业医疗诊断。有什么可以帮助你的吗？',
+      timestamp: new Date(),
+    },
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // 快速问题建议
+  const quickQuestions = [
+    '如何改善睡眠质量？',
+    '什么样的运动适合我？',
+    '健康饮食建议',
+    '如何缓解工作压力？',
+    '日常健康检查项目',
+  ];
+
+  const sendMessage = async (userMessage: string) => {
+    if (!userMessage.trim()) return;
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    setInputText('');
+    setIsTyping(true);
+
+    // 模拟AI响应
+    setTimeout(() => {
+      const aiResponse = getAIResponse(userMessage);
+      const assistantMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMsg]);
+      setIsTyping(false);
+    }, 1500);
+  };
+
+  const getAIResponse = (question: string): string => {
+    // 简单的响应逻辑
+    if (question.includes('睡眠')) {
+      return '良好的睡眠对健康至关重要。建议：\n1. 保持规律的作息时间\n2. 睡前避免咖啡因和电子设备\n3. 创造舒适的睡眠环境\n4. 适量运动但避免睡前剧烈运动\n\n如果持续存在睡眠问题，建议咨询专业医生。';
+    }
+    if (question.includes('运动')) {
+      return '适合大多数人的运动建议：\n\n🏃‍♂️ 有氧运动（每周150分钟）：\n- 快走、慢跑、游泳、骑行\n\n💪 力量训练（每周2-3次）：\n- 举重、俯卧撑、深蹲\n\n🧘‍♀️ 柔韧性训练：\n- 瑜伽、拉伸运动\n\n建议循序渐进，根据自身情况调整强度。如有慢性疾病，请先咨询医生。';
+    }
+    if (question.includes('饮食')) {
+      return '健康饮食的核心原则：\n\n🥗 均衡营养：\n- 蔬菜水果占餐盘的一半\n- 优质蛋白质（鱼、禽、豆类）\n- 全谷物食品\n\n💧 充足水分：\n- 每天饮水8杯\n\n🚫 限制：\n- 减少加工食品\n- 控制糖和盐的摄入\n- 适量饮酒\n\n个体需求可能有所不同，建议根据自身情况调整。';
+    }
+    return '感谢你的问题！基于我掌握的健康知识，我建议你保持均衡的生活方式，包括规律运动、健康饮食、充足睡眠和压力管理。如果有特定的健康问题，请咨询专业医生获得个性化建议。记住，预防胜于治疗！';
+  };
+
+  useEffect(() => {
+    // 自动滚动到底部
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages]);
+
+  return (
+    <Web3BackgroundSimple>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0B0D" />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* 顶部导航 */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <ArrowLeft size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Bot size={24} color="#8B5CF6" />
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerTitle}>AI健康助手</Text>
+              <Web3Badge variant="neon" size="sm" style={{ marginTop: 4 }}>
+                在线
+              </Web3Badge>
+            </View>
+          </View>
+          <View style={styles.headerRight}>
+            <Web3Badge variant="glass" size="sm">
+              <Shield size={12} color="#10B981" />
+            </Web3Badge>
+          </View>
+        </View>
+
+        {/* 聊天消息区域 */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+        >
+          {messages.map((message) => (
+            <View
+              key={message.id}
+              style={[
+                styles.messageContainer,
+                message.role === 'user' ? styles.userMessage : styles.assistantMessage,
+              ]}
+            >
+              <View style={styles.messageIcon}>
+                {message.role === 'user' ? (
+                  <View style={[styles.iconWrapper, { backgroundColor: '#3B82F6' }]}>
+                    <User size={16} color="#FFFFFF" />
+                  </View>
+                ) : (
+                  <View style={[styles.iconWrapper, { backgroundColor: '#8B5CF6' }]}>
+                    <Bot size={16} color="#FFFFFF" />
+                  </View>
+                )}
+              </View>
+
+              <GlassCard
+                style={[
+                  styles.messageBubble,
+                  message.role === 'user' ? styles.userBubble : styles.assistantBubble,
+                ]}
+                gradient={message.role === 'user' ? undefined : ['rgba(139, 92, 246, 0.1)', 'rgba(59, 130, 246, 0.1)']}
+              >
+                <Text style={[
+                  styles.messageText,
+                  message.role === 'user' ? styles.userText : styles.assistantText,
+                ]}>
+                  {message.content}
+                </Text>
+              </GlassCard>
+            </View>
+          ))}
+
+          {isTyping && (
+            <View style={[styles.messageContainer, styles.assistantMessage]}>
+              <View style={styles.messageIcon}>
+                <View style={[styles.iconWrapper, { backgroundColor: '#8B5CF6' }]}>
+                  <Bot size={16} color="#FFFFFF" />
+                </View>
+              </View>
+              <GlassCard style={[styles.messageBubble, styles.assistantBubble]}>
+                <View style={styles.typingIndicator}>
+                  <View style={styles.typingDot} />
+                  <View style={styles.typingDot} />
+                  <View style={styles.typingDot} />
+                </View>
+              </GlassCard>
+            </View>
+          )}
+
+          {/* 免责声明 */}
+          <GlassCard style={styles.disclaimerCard}>
+            <View style={styles.disclaimerContent}>
+              <Shield size={16} color="#F59E0B" />
+              <Text style={styles.disclaimerText}>
+                本AI助手仅提供健康科普建议，不能替代专业医疗诊断。如有严重健康问题，请立即就医。
+              </Text>
+            </View>
+          </GlassCard>
+        </ScrollView>
+
+        {/* 快速问题 */}
+        {messages.length === 1 && (
+          <View style={styles.quickQuestionsContainer}>
+            <Text style={styles.quickQuestionsTitle}>快速提问</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.quickQuestionsScroll}
+            >
+              {quickQuestions.map((question, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.quickQuestionButton}
+                  onPress={() => sendMessage(question)}
+                >
+                  <Sparkles size={14} color="#8B5CF6" />
+                  <Text style={styles.quickQuestionText}>{question}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* 输入区域 */}
+        <View style={styles.inputContainer}>
+          <GlassCard style={styles.inputCard}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="询问健康问题..."
+              placeholderTextColor="#6B7280"
+              value={inputText}
+              onChangeText={setInputText}
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, inputText.trim() ? styles.sendButtonActive : styles.sendButtonInactive]}
+              onPress={() => sendMessage(inputText)}
+              disabled={!inputText.trim()}
+            >
+              <Send size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </GlassCard>
+        </View>
+      </KeyboardAvoidingView>
+    </Web3BackgroundSimple>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+
+  // 顶部导航
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  headerTitleContainer: {
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  headerRight: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+  },
+
+  // 消息区域
+  messagesContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  messagesContent: {
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  messageContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  userMessage: {
+    justifyContent: 'flex-end',
+  },
+  assistantMessage: {
+    justifyContent: 'flex-start',
+  },
+  messageIcon: {
+    marginRight: 12,
+    marginTop: 4,
+  },
+  iconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageBubble: {
+    maxWidth: '75%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  userBubble: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  assistantBubble: {
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  userText: {
+    color: '#FFFFFF',
+  },
+  assistantText: {
+    color: '#E5E7EB',
+  },
+
+  // 输入指示器
+  typingIndicator: {
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#9CA3AF',
+    animation: 'typing 1.4s infinite ease-in-out',
+  },
+
+  // 免责声明
+  disclaimerCard: {
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  disclaimerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#9CA3AF',
+    lineHeight: 16,
+  },
+
+  // 快速问题
+  quickQuestionsContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  quickQuestionsTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9CA3AF',
+    marginBottom: 12,
+  },
+  quickQuestionsScroll: {
+    flexDirection: 'row',
+  },
+  quickQuestionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    marginRight: 12,
+  },
+  quickQuestionText: {
+    fontSize: 13,
+    color: '#D8B4FE',
+    fontWeight: '500',
+  },
+
+  // 输入区域
+  inputContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  inputCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+    padding: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#FFFFFF',
+    maxHeight: 100,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 4,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonActive: {
+    backgroundColor: '#8B5CF6',
+  },
+  sendButtonInactive: {
+    backgroundColor: 'rgba(107, 114, 128, 0.3)',
+  },
+});

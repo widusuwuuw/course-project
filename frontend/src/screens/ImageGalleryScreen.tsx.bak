@@ -1,0 +1,133 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import GradientBackground from '@/components/GradientBackground';
+import HealthImageGallery from '@/components/HealthImageGallery';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
+
+type HealthImage = {
+  id: string;
+  url: string;
+  title: string;
+  category: 'exercise' | 'nutrition' | 'meditation' | 'sleep' | 'general';
+};
+
+export default function ImageGalleryScreen({ navigation }: Props) {
+  const handleImageSelect = (image: HealthImage) => {
+    Alert.alert(
+      '图片选择',
+      `您选择了: ${image.title}\n类别: ${image.category}`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '设为背景',
+          onPress: () => {
+            // TODO: 实现设为背景的功能
+            Alert.alert('成功', '背景设置成功！');
+          }
+        }
+      ]
+    );
+  };
+
+  const goBack = () => {
+    navigation.goBack();
+  };
+
+  return (
+    <GradientBackground>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={goBack}>
+            <Text style={styles.backText}>← 返回</Text>
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>健康图片库</Text>
+            <Text style={styles.subtitle}>选择适合的健康图片</Text>
+          </View>
+        </View>
+
+        {/* Gallery */}
+        <HealthImageGallery
+          onImageSelect={handleImageSelect}
+          category="all"
+          showCategories={true}
+        />
+
+        {/* Tips */}
+        <View style={styles.tipsSection}>
+          <Text style={styles.tipsTitle}>💡 使用提示</Text>
+          <Text style={styles.tipsText}>• 点击图片可以设置为应用背景</Text>
+          <Text style={styles.tipsText}>• 选择分类查看不同类型的健康图片</Text>
+          <Text style={styles.tipsText}>• 图片都经过精心挑选，适合健康主题</Text>
+        </View>
+      </View>
+    </GradientBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'rgba(249,250,251,0.2)',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  backButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+  },
+  backText: {
+    color: '#6366F1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  tipsSection: {
+    backgroundColor: '#FFFFFF',
+    margin: 24,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  tipsText: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+});

@@ -1,0 +1,342 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+// Health Card variants similar to 丁香医生 and Keep
+export type HealthCardVariant =
+  | 'primary'     // Main action cards (like Keep's bright green)
+  | 'secondary'   // Secondary actions (light blue)
+  | 'tertiary'    // Supportive actions (purple gradient)
+  | 'success'     // Success states (emerald)
+  | 'warning'     // Warning states (amber)
+  | 'danger'      // Alert states (red)
+  | 'info';       // Information states (blue)
+
+export type HealthCardSize = 'small' | 'medium' | 'large';
+
+interface HealthCardV2Props {
+  title: string;
+  subtitle?: string;
+  description?: string;
+  icon?: React.ReactNode;
+  badge?: string;
+  variant?: HealthCardVariant;
+  size?: HealthCardSize;
+  onPress?: () => void;
+  disabled?: boolean;
+  style?: ViewStyle;
+  rightComponent?: React.ReactNode;
+  gradient?: boolean;
+}
+
+export const HealthCardV2: React.FC<HealthCardV2Props> = ({
+  title,
+  subtitle,
+  description,
+  icon,
+  badge,
+  variant = 'primary',
+  size = 'medium',
+  onPress,
+  disabled = false,
+  style,
+  rightComponent,
+  gradient = true,
+}) => {
+  const cardStyle = [
+    styles.card,
+    styles[size],
+    styles[variant],
+    disabled && styles.disabled,
+    style,
+  ];
+
+  const renderCard = () => (
+    <View style={cardStyle}>
+      {/* Background gradient for some variants */}
+      {gradient && (variant === 'primary' || variant === 'tertiary') && (
+        <LinearGradient
+          colors={getGradientColors(variant)}
+          style={StyleSheet.absoluteFillObject}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+      )}
+
+      {/* Card content */}
+      <View style={styles.content}>
+        {/* Left side: icon and text */}
+        <View style={styles.leftSection}>
+          {icon && <View style={styles.iconContainer}>{icon}</View>}
+          <View style={styles.textContainer}>
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, styles[`${variant}Title`]]}>
+                {title}
+              </Text>
+              {badge && (
+                <View style={[styles.badge, styles[`${variant}Badge`]]}>
+                  <Text style={[styles.badgeText, styles[`${variant}BadgeText`]]}>
+                    {badge}
+                  </Text>
+                </View>
+              )}
+            </View>
+            {subtitle && (
+              <Text style={[styles.subtitle, styles[`${variant}Subtitle`]]}>
+                {subtitle}
+              </Text>
+            )}
+            {description && (
+              <Text style={[styles.description, styles[`${variant}Description`]]}>
+                {description}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Right side: additional component */}
+        {rightComponent && (
+          <View style={styles.rightSection}>{rightComponent}</View>
+        )}
+      </View>
+
+      {/* Subtle border for some variants */}
+      {(variant === 'success' || variant === 'warning' || variant === 'danger') && (
+        <View style={[styles.borderLeft, styles[`${variant}Border`]]} />
+      )}
+    </View>
+  );
+
+  if (onPress && !disabled) {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPress}
+        style={styles.touchable}
+      >
+        {renderCard()}
+      </TouchableOpacity>
+    );
+  }
+
+  return renderCard();
+};
+
+// Color schemes inspired by 丁香医生 and Keep
+const getGradientColors = (variant: HealthCardVariant): string[] => {
+  switch (variant) {
+    case 'primary':
+      return ['#10B981', '#059669']; // Keep green gradient
+    case 'tertiary':
+      return ['#6366F1', '#8B5CF6']; // Purple gradient
+    default:
+      return [];
+  }
+};
+
+const styles = StyleSheet.create({
+  // Base card styles
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  touchable: {
+    marginHorizontal: 0,
+  },
+
+  // Size variants
+  small: {
+    padding: 16,
+    minHeight: 80,
+  },
+  medium: {
+    padding: 20,
+    minHeight: 100,
+  },
+  large: {
+    padding: 24,
+    minHeight: 120,
+  },
+
+  // Variant styles
+  primary: {
+    // Default white background, gradient overlay
+  },
+  secondary: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
+  },
+  tertiary: {
+    // Default white background, gradient overlay
+  },
+  success: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  warning: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  danger: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  info: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+
+  // Disabled state
+  disabled: {
+    opacity: 0.5,
+    shadowOpacity: 0,
+  },
+
+  // Content layout
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 1, // Ensure content is above gradient
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  rightSection: {
+    marginLeft: 16,
+  },
+
+  // Icon styling
+  iconContainer: {
+    marginRight: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+
+  // Text container
+  textContainer: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+
+  // Typography
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginRight: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  description: {
+    fontSize: 12,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+
+  // Title colors
+  primaryTitle: { color: '#FFFFFF' },
+  secondaryTitle: { color: '#0369A1' },
+  tertiaryTitle: { color: '#FFFFFF' },
+  successTitle: { color: '#065F46' },
+  warningTitle: { color: '#92400E' },
+  dangerTitle: { color: '#991B1B' },
+  infoTitle: { color: '#1E40AF' },
+
+  // Subtitle colors
+  primarySubtitle: { color: 'rgba(255, 255, 255, 0.9)' },
+  secondarySubtitle: { color: '#0284C7' },
+  tertiarySubtitle: { color: 'rgba(255, 255, 255, 0.9)' },
+  successSubtitle: { color: '#047857' },
+  warningSubtitle: { color: '#B45309' },
+  dangerSubtitle: { color: '#B91C1C' },
+  infoSubtitle: { color: '#1D4ED8' },
+
+  // Description colors
+  primaryDescription: { color: 'rgba(255, 255, 255, 0.8)' },
+  secondaryDescription: { color: '#0C4A6E' },
+  tertiaryDescription: { color: 'rgba(255, 255, 255, 0.8)' },
+  successDescription: { color: '#064E3B' },
+  warningDescription: { color: '#78350F' },
+  dangerDescription: { color: '#7F1D1D' },
+  infoDescription: { color: '#1E3A8A' },
+
+  // Badge styling
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  // Badge colors
+  primaryBadge: { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+  primaryBadgeText: { color: '#FFFFFF' },
+  secondaryBadge: { backgroundColor: '#0284C7' },
+  secondaryBadgeText: { color: '#FFFFFF' },
+  tertiaryBadge: { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+  tertiaryBadgeText: { color: '#FFFFFF' },
+  successBadge: { backgroundColor: '#10B981' },
+  successBadgeText: { color: '#FFFFFF' },
+  warningBadge: { backgroundColor: '#F59E0B' },
+  warningBadgeText: { color: '#FFFFFF' },
+  dangerBadge: { backgroundColor: '#EF4444' },
+  dangerBadgeText: { color: '#FFFFFF' },
+  infoBadge: { backgroundColor: '#3B82F6' },
+  infoBadgeText: { color: '#FFFFFF' },
+
+  // Left border for status cards
+  borderLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  successBorder: { backgroundColor: '#10B981' },
+  warningBorder: { backgroundColor: '#F59E0B' },
+  dangerBorder: { backgroundColor: '#EF4444' },
+});

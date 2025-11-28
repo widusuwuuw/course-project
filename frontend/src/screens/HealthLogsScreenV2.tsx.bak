@@ -1,0 +1,510 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  Alert,
+  StyleSheet,
+  RefreshControl,
+  Dimensions,
+  ScrollView,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { apiGet, apiPost } from '@/api/client';
+import GradientBackground from '@/components/GradientBackground';
+import HealthCardV2 from '@/components/HealthCardV2';
+import HealthBadge from '@/components/HealthBadge';
+import Button from '@/components/Button';
+import Input from '@/components/Form/Input';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+type Log = {
+  id: number;
+  metric_type: string;
+  value1: number;
+  unit: string;
+  logged_at?: string;
+};
+
+type HealthMetric = {
+  id: number;
+  value: number;
+  unit: string;
+  date: string;
+  trend: 'up' | 'down' | 'stable';
+  status: 'normal' | 'warning' | 'danger';
+};
+
+// Health metrics card component
+const HealthMetricCard: React.FC<{
+  metric: HealthMetric;
+  onPress?: () => void;
+}> = ({ metric, onPress }) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'warning': return 'warning';
+      case 'danger': return 'danger';
+      default: return 'success';
+    }
+  };
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'up': return '📈';
+      case 'down': return '📉';
+      default: return '➡️';
+    }
+  };
+
+  return (
+    <HealthCardV2
+      title={`${metric.value} ${metric.unit}`}
+      subtitle={metric.date}
+      description={`趋势: ${getTrendIcon(metric.trend)} ${trend === 'up' ? '上升' : trend === 'down' ? '下降' : '稳定'}`}
+      variant={getStatusColor(metric.status)}
+      size="medium"
+      onPress={onPress}
+      badge={metric.status === 'normal' ? '正常' : metric.status === 'warning' ? '注意' : '异常'}
+      icon={<Text style={{ fontSize: 24 }}>⚖️</Text>}
+    />
+  );
+};
+
+// Weight trend chart component
+const WeightTrendChart: React.FC<{
+  data: Log[];
+  style?: any;
+}> = ({ data, style }) => {
+  if (data.length === 0) return null;
+
+  const sortedData = [...data].sort((a, b) =>
+    new Date(a.logged_at || '').getTime() - new Date(b.logged_at || '').getTime()
+  ).slice(-7); // Last 7 records
+
+  const maxValue = Math.max(...sortedData.map(d => d.value1));
+  const minValue = Math.min(...sortedData.map(d => d.value1));
+  const range = maxValue - minValue || 1;
+
+  return (
+    <View style={[styles.chartContainer, style]}>
+      <Text style={styles.chartTitle}>体重趋势 (最近7次)</Text>
+      <View style={styles.chartContent}>
+        {sortedData.map((item, index) => {
+          const height = ((item.value1 - minValue) / range) * 80;
+          return (
+            <View key={item.id} style={styles.chartBar}>
+              <View
+                style={[
+                  styles.bar,
+                  {
+                    height: height + 20, // Minimum height
+                    backgroundColor: index === sortedData.length - 1 ? '#10B981' : '#E5E7EB',
+                  }
+                ]}
+              />
+              <Text style={styles.barLabel}>
+                {new Date(item.logged_at || '').toLocaleDateString('zh-CN', {
+                  month: 'numeric',
+                  day: 'numeric'
+                })}
+              </Text>
+              <Text style={styles.barValue}>{item.value1}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+export default function HealthLogsScreenV2() {
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [weightValue, setWeightValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Calculate health metrics with status analysis
+  const healthMetrics = useMemo(() => {
+    if (logs.length === 0) return [];
+
+    const weightLogs = logs.filter(log => log.metric_type === 'weight');
+
+    return weightLogs.map((log, index, array) => {
+      const prevLog = array[index - 1];
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      let status: 'normal' | 'warning' | 'danger' = 'normal';
+
+      // Calculate trend
+      if (prevLog) {
+        const diff = log.value1 - prevLog.value1;
+        if (diff > 0.5) trend = 'up';
+        else if (diff < -0.5) trend = 'down';
+      }
+
+      // Determine status based on weight ranges (adjust these values as needed)
+      if (log.value1 < 50) status = 'warning';
+      else if (log.value1 > 100) status = 'danger';
+
+      return {
+        id: log.id,
+        value: log.value1,
+        unit: log.unit,
+        date: new Date(log.logged_at || '').toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }),
+        trend,
+        status,
+      };
+    }).reverse(); // Show newest first
+  }, [logs]);
+
+  const loadLogs = async () => {
+    try {
+      const data = await apiGet('/health-logs/');
+      setLogs(data);
+    } catch (e: any) {
+      Alert.alert('加载失败', e?.message || '未知错误');
+    }
+  };
+
+  const addWeightLog = async () => {
+    const weight = Number(weightValue);
+    if (!weight || weight <= 0 || weight > 300) {
+      Alert.alert('提示', '请输入有效的体重 (1-300kg)');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiPost('/health-logs/', {
+        metric_type: 'weight',
+        value1: weight,
+        unit: 'kg'
+      });
+      setWeightValue('');
+      await loadLogs();
+      Alert.alert('成功', '体重记录已添加');
+    } catch (e: any) {
+      Alert.alert('提交失败', e?.message || '未知错误');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadLogs();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    loadLogs();
+  }, []);
+
+  const renderHealthMetric = ({ item }: { item: HealthMetric }) => (
+    <View style={styles.metricCard}>
+      <HealthMetricCard
+        metric={item}
+        onPress={() => Alert.alert('记录详情', `体重: ${item.value} ${item.unit}\n日期: ${item.date}`)}
+      />
+    </View>
+  );
+
+  return (
+    <GradientBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#10B981']}
+            tintColor="#10B981"
+          />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>健康日志</Text>
+            <Text style={styles.subtitle}>记录和追踪您的健康数据</Text>
+          </View>
+          <HealthBadge
+            text={`${logs.length} 条记录`}
+            variant="info"
+            size="medium"
+          />
+        </View>
+
+        {/* Quick Stats */}
+        {healthMetrics.length > 0 && (
+          <View style={styles.statsContainer}>
+            <HealthCardV2
+              title="最新体重"
+              subtitle={`${new Date(healthMetrics[0].date).toLocaleDateString('zh-CN')}`}
+              description={`${healthMetrics[0].value} ${healthMetrics[0].unit}`}
+              variant="primary"
+              size="small"
+              icon={<Text style={{ fontSize: 20 }}>⚖️</Text>}
+              badge={healthMetrics[0].trend === 'up' ? '上升' : healthMetrics[0].trend === 'down' ? '下降' : '稳定'}
+            />
+            <HealthCardV2
+              title="记录天数"
+              subtitle="坚持记录"
+              description={`${healthMetrics.length} 天`}
+              variant="success"
+              size="small"
+              icon={<Text style={{ fontSize: 20 }}>📅</Text>}
+            />
+          </View>
+        )}
+
+        {/* Weight Trend Chart */}
+        <WeightTrendChart
+          data={logs}
+          style={styles.chartSection}
+        />
+
+        {/* Add New Record Card */}
+        <HealthCardV2
+          title="添加体重记录"
+          subtitle="记录今日体重"
+          description="保持记录习惯，追踪健康趋势"
+          variant="secondary"
+          size="large"
+          icon={<Text style={{ fontSize: 28 }}>➕</Text>}
+          style={styles.addCard}
+        >
+          <View style={styles.inputSection}>
+            <Input
+              label="体重 (kg)"
+              placeholder="请输入体重"
+              keyboardType="decimal-pad"
+              value={weightValue}
+              onChangeText={setWeightValue}
+              size="medium"
+              variant="outlined"
+              helperText="建议在每天同一时间测量"
+              style={styles.input}
+            />
+            <Button
+              title={loading ? '添加中...' : '添加记录'}
+              onPress={addWeightLog}
+              loading={loading}
+              disabled={!weightValue || loading}
+              variant="gradient"
+              size="medium"
+              fullWidth
+              style={styles.addButton}
+            />
+          </View>
+        </HealthCardV2>
+
+        {/* Health Metrics List */}
+        {healthMetrics.length > 0 && (
+          <View style={styles.metricsSection}>
+            <Text style={styles.sectionTitle}>历史记录</Text>
+            <FlatList
+              data={healthMetrics}
+              renderItem={renderHealthMetric}
+              keyExtractor={(item) => String(item.id)}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={false}
+              contentContainerStyle={styles.metricsList}
+            />
+          </View>
+        )}
+
+        {/* Empty State */}
+        {healthMetrics.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📝</Text>
+            <Text style={styles.emptyTitle}>开始记录</Text>
+            <Text style={styles.emptySubtitle}>
+              添加您的第一条健康记录，开始健康追踪之旅
+            </Text>
+            <HealthBadge
+              text="坚持记录，健康生活"
+              variant="info"
+              size="medium"
+              style={styles.emptyBadge}
+            />
+          </View>
+        )}
+
+        {/* Health Tips */}
+        <View style={styles.tipsSection}>
+          <HealthCardV2
+            title="健康小贴士"
+            subtitle="体重管理建议"
+            description="保持规律作息，均衡饮食，适量运动，定期监测体重变化"
+            variant="info"
+            size="medium"
+            icon={<Text style={{ fontSize: 24 }}>💡</Text>}
+          />
+        </View>
+      </ScrollView>
+    </GradientBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 32,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 22,
+  },
+
+  // Stats section
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    gap: 12,
+    marginBottom: 20,
+  },
+
+  // Chart section
+  chartContainer: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  chartContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 120,
+    paddingHorizontal: 8,
+  },
+  chartBar: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  bar: {
+    width: 20,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  barLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  barValue: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#111827',
+    textAlign: 'center',
+  },
+
+  // Add record section
+  addCard: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+  },
+  inputSection: {
+    marginTop: 16,
+    gap: 16,
+  },
+  input: {
+    marginBottom: 0,
+  },
+  addButton: {
+    marginTop: 8,
+  },
+
+  // Metrics section
+  metricsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  metricsList: {
+    gap: 12,
+  },
+  metricCard: {
+    marginBottom: 0,
+  },
+
+  // Empty state
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyIcon: {
+    fontSize: 80,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  emptyBadge: {
+    marginTop: 8,
+  },
+
+  // Tips section
+  tipsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+});

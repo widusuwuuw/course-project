@@ -1,0 +1,233 @@
+import React from 'react';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+
+interface ProgressProps {
+  value?: number;
+  max?: number;
+  className?: string;
+  style?: ViewStyle;
+  color?: string;
+  height?: number;
+}
+
+export const Progress: React.FC<ProgressProps> = ({
+  value = 0,
+  max = 100,
+  className = '',
+  style,
+  color = '#6366F1',
+  height = 4
+}) => {
+  const progressValue = useSharedValue(0);
+
+  React.useEffect(() => {
+    progressValue.value = withTiming((value / max) * 100, {
+      duration: 1000,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+  }, [value, max]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    width: `${progressValue.value}%`,
+  }));
+
+  return (
+    <View style={[styles.progressContainer, { height }, style]}>
+      <View style={[styles.progressTrack, { height }]}>
+        <Animated.View
+          style={[
+            styles.progressFill,
+            animatedStyle,
+            { backgroundColor: color, height }
+          ]}
+        />
+      </View>
+    </View>
+  );
+};
+
+interface GradientProgressProps extends Omit<ProgressProps, 'color'> {
+  gradientColors?: string[];
+}
+
+export const GradientProgress: React.FC<GradientProgressProps> = ({
+  value = 0,
+  max = 100,
+  className = '',
+  style,
+  height = 4,
+  gradientColors = ['#6366F1', '#8B5CF6']
+}) => {
+  const progressValue = useSharedValue(0);
+
+  React.useEffect(() => {
+    progressValue.value = withTiming((value / max) * 100, {
+      duration: 1000,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+  }, [value, max]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    width: `${progressValue.value}%`,
+  }));
+
+  return (
+    <View style={[styles.progressContainer, { height }, style]}>
+      <View style={[styles.progressTrack, { height }]}>
+        <Animated.View style={[animatedStyle, { height, borderRadius: height / 2, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.gradientProgressFill, { height }]}
+          />
+        </Animated.View>
+      </View>
+    </View>
+  );
+};
+
+interface CircularProgressProps {
+  value?: number;
+  max?: number;
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  backgroundColor?: string;
+  className?: string;
+  style?: ViewStyle;
+  showPercentage?: boolean;
+  percentageStyle?: any;
+}
+
+export const CircularProgress: React.FC<CircularProgressProps> = ({
+  value = 0,
+  max = 100,
+  size = 120,
+  strokeWidth = 8,
+  color = '#6366F1',
+  backgroundColor = '#E2E8F0',
+  className = '',
+  style,
+  showPercentage = true,
+  percentageStyle
+}) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (value / max) * circumference;
+
+  const progressValue = useSharedValue(0);
+
+  React.useEffect(() => {
+    progressValue.value = withTiming(value, {
+      duration: 1000,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+  }, [value]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    strokeDashoffset: circumference - (progressValue.value / max) * circumference,
+  }));
+
+  return (
+    <View style={[styles.circularProgressContainer, { width: size, height: size }, style]}>
+      {/* Background circle */}
+      <View
+        style={[
+          styles.circularProgressTrack,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            borderWidth: strokeWidth,
+            borderColor: backgroundColor,
+          }
+        ]}
+      />
+
+      {/* Progress circle */}
+      <Animated.View
+        style={[
+          styles.circularProgressFill,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            borderTopWidth: strokeWidth,
+            borderRightWidth: strokeWidth,
+            borderBottomWidth: strokeWidth,
+            borderLeftWidth: strokeWidth,
+            borderTopColor: 'transparent',
+            borderRightColor: color,
+            borderBottomColor: color,
+            borderLeftColor: color,
+            transform: [{ rotate: '-90deg' }],
+            ...animatedStyle,
+          }
+        ]}
+      />
+
+      {showPercentage && (
+        <View style={styles.percentageContainer}>
+          <Animated.Text style={[styles.percentageText, percentageStyle]}>
+            {Math.round((value / max) * 100)}%
+          </Animated.Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  progressContainer: {
+    width: '100%',
+    backgroundColor: 'transparent',
+  },
+  progressTrack: {
+    width: '100%',
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+    minWidth: 2,
+  },
+  gradientProgressFill: {
+    flex: 1,
+  },
+  circularProgressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  circularProgressTrack: {
+    position: 'absolute',
+  },
+  circularProgressFill: {
+    position: 'absolute',
+  },
+  percentageContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  percentageText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+});
+
+export default {
+  Progress,
+  GradientProgress,
+  CircularProgress,
+};

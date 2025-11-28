@@ -1,0 +1,523 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  Dimensions,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  Activity,
+  Heart,
+  Brain,
+  TrendingUp,
+  Zap,
+  Shield,
+  Settings,
+  Bell,
+  User,
+  Calendar,
+  Clock,
+} from 'lucide-react-native';
+
+// 导入我们的Web3组件
+import { Web3BackgroundSimple } from '@/components/Web3UI/Web3BackgroundSimple';
+import { GlassCard } from '@/components/Web3UI/GlassCard';
+import { NeonCard } from '@/components/Web3UI/NeonCard';
+import { Web3Progress } from '@/components/Web3UI/Web3Progress';
+import { Web3Badge } from '@/components/Web3UI/Web3Badge';
+import { Web3StatsCard } from '@/components/Web3UI/Web3StatsCard';
+
+const { width } = Dimensions.get('window');
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
+
+export default function ModernDashboard({ navigation }: Props) {
+  const [timeOfDay, setTimeOfDay] = useState('');
+  const [healthScore] = useState(94);
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setTimeOfDay('早上好');
+    else if (hour < 18) setTimeOfDay('下午好');
+    else setTimeOfDay('晚上好');
+  }, []);
+
+  const logout = async () => {
+    await AsyncStorage.removeItem('token');
+    navigation.replace('Login');
+  };
+
+  // 主要健康指标
+  const healthMetrics = [
+    {
+      id: 1,
+      title: '心率',
+      value: '72',
+      unit: 'bpm',
+      icon: Heart,
+      gradient: ['#FF6B6B', '#FF5252'],
+      status: 'normal',
+      change: '+2%',
+    },
+    {
+      id: 2,
+      title: '血氧',
+      value: '98',
+      unit: '%',
+      icon: Activity,
+      gradient: ['#4ECDC4', '#44A08D'],
+      status: 'excellent',
+      change: '+0.5%',
+    },
+    {
+      id: 3,
+      title: '睡眠质量',
+      value: '8.2',
+      unit: '小时',
+      icon: Brain,
+      gradient: ['#6C5CE7', '#5F3DC4'],
+      status: 'good',
+      change: '+12%',
+    },
+    {
+      id: 4,
+      title: '活动量',
+      value: '8,432',
+      unit: '步',
+      icon: TrendingUp,
+      gradient: ['#00B894', '#00A085'],
+      status: 'active',
+      change: '+15%',
+    },
+  ];
+
+  // 快速操作
+  const quickActions = [
+    {
+      id: 1,
+      title: 'AI健康助手',
+      description: '智能健康咨询',
+      icon: Brain,
+      color: '#6C5CE7',
+      onPress: () => navigation.navigate('ModernAssistant'),
+    },
+    {
+      id: 2,
+      title: '健康记录',
+      description: '查看历史数据',
+      icon: Calendar,
+      color: '#4ECDC4',
+      onPress: () => navigation.navigate('HealthLogs'),
+    },
+  ];
+
+  return (
+    <Web3BackgroundSimple>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0B0D" />
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 顶部导航栏 */}
+        <View style={styles.navBar}>
+          <View style={styles.navLeft}>
+            <View style={styles.userAvatar}>
+              <User size={20} color="#FFFFFF" />
+            </View>
+            <View>
+              <Text style={styles.greeting}>{timeOfDay}</Text>
+              <Text style={styles.userName}>Alex Chen</Text>
+            </View>
+          </View>
+
+          <View style={styles.navRight}>
+            <TouchableOpacity style={styles.iconButton}>
+              <Bell size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={logout}>
+              <Settings size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 健康评分卡片 */}
+        <GlassCard style={styles.scoreCard}>
+          <View style={styles.scoreContent}>
+            <View style={styles.scoreLeft}>
+              <Text style={styles.scoreLabel}>健康评分</Text>
+              <Text style={styles.scoreValue}>{healthScore}</Text>
+              <Web3Progress
+                value={healthScore}
+                max={100}
+                variant="neon"
+                color={['10B981', '#059669']}
+                size="sm"
+                showLabel={false}
+                style={{ marginBottom: 12 }}
+              />
+              <View style={styles.scoreBadges}>
+                <Web3Badge variant="neon" size="sm">
+                  <Shield size={12} color="#10B981" /> 健康
+                </Web3Badge>
+                <Web3Badge variant="glass" size="sm" style={{ marginLeft: 8 }}>
+                  <Zap size={12} color="#F59E0B" /> 活跃
+                </Web3Badge>
+              </View>
+            </View>
+          </View>
+        </GlassCard>
+
+        {/* 实时监测 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>实时监测</Text>
+          <Text style={styles.sectionSubtitle}>上次更新: 2分钟前</Text>
+        </View>
+
+        <View style={styles.metricsGrid}>
+          {healthMetrics.map((metric) => {
+            const IconComponent = metric.icon;
+            return (
+              <Web3StatsCard
+                key={metric.id}
+                title={metric.title}
+                value={metric.value}
+                unit={metric.unit}
+                change={{
+                  value: metric.change,
+                  trend: metric.status === 'excellent' ? 'up' : 'neutral',
+                }}
+                icon={
+                  <View style={styles.metricIcon}>
+                    <IconComponent size={20} color="#FFFFFF" />
+                  </View>
+                }
+                gradient={metric.gradient}
+                variant="glass"
+                size="md"
+                style={styles.metricCard}
+              />
+            );
+          })}
+        </View>
+
+        {/* 快速操作 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>快速操作</Text>
+          <Text style={styles.sectionSubtitle}>常用功能</Text>
+        </View>
+
+        <View style={styles.actionsGrid}>
+          {quickActions.map((action) => {
+            const IconComponent = action.icon;
+            return (
+              <TouchableOpacity
+                key={action.id}
+                style={[styles.actionCard, { borderColor: action.color + '30' }]}
+                onPress={action.onPress}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
+                  <IconComponent size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.actionTitle}>{action.title}</Text>
+                <Text style={styles.actionDescription}>{action.description}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* 今日概览 */}
+        <GlassCard style={styles.overviewCard}>
+          <View style={styles.overviewHeader}>
+            <View style={styles.overviewTime}>
+              <Clock size={16} color="#9CA3AF" />
+              <Text style={styles.overviewTimeText}>今日概览</Text>
+            </View>
+          </View>
+
+          <View style={styles.overviewStats}>
+            <View style={styles.overviewStat}>
+              <Text style={styles.overviewStatValue}>8,432</Text>
+              <Text style={styles.overviewStatLabel}>步数</Text>
+            </View>
+            <View style={styles.overviewDivider} />
+            <View style={styles.overviewStat}>
+              <Text style={styles.overviewStatValue}>324</Text>
+              <Text style={styles.overviewStatLabel}>卡路里</Text>
+            </View>
+            <View style={styles.overviewDivider} />
+            <View style={styles.overviewStat}>
+              <Text style={styles.overviewStatValue}>45</Text>
+              <Text style={styles.overviewStatLabel}>运动分钟</Text>
+            </View>
+          </View>
+        </GlassCard>
+      </ScrollView>
+    </Web3BackgroundSimple>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  // 导航栏
+  navBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  navLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  greeting: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  navRight: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+
+  // 健康评分卡片
+  scoreCard: {
+    marginBottom: 32,
+  },
+  scoreContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  scoreLeft: {
+    flex: 1,
+  },
+  scoreLabel: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginBottom: 8,
+  },
+  scoreValue: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  scoreBar: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  scoreBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  scoreStatus: {
+    fontSize: 14,
+    color: '#10B981',
+    fontWeight: '500',
+  },
+  scoreBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  // 章节
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+
+  // 指标网格
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginBottom: 32,
+  },
+  metricCard: {
+    width: (width - 56) / 2,
+    minHeight: 140,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  metricIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  metricStatus: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  metricUnit: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 8,
+  },
+  metricTitle: {
+    fontSize: 14,
+    color: '#D1D5DB',
+    marginBottom: 12,
+  },
+  metricChange: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metricChangeText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '500',
+  },
+
+  // 快速操作
+  actionsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
+
+  // 概览卡片
+  overviewCard: {
+    marginBottom: 20,
+  },
+  overviewHeader: {
+    marginBottom: 20,
+  },
+  overviewTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  overviewTimeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  overviewStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  overviewStat: {
+    alignItems: 'center',
+  },
+  overviewStatValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  overviewStatLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  overviewDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+});

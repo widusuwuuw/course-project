@@ -1,0 +1,302 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+export type ChatBubbleType = 'user' | 'assistant' | 'system';
+
+interface ChatBubbleProps {
+  message: string;
+  type: ChatBubbleType;
+  timestamp?: string;
+  isTyping?: boolean;
+  onPress?: () => void;
+  style?: ViewStyle;
+  avatar?: React.ReactNode;
+  showAvatar?: boolean;
+}
+
+export const ChatBubble: React.FC<ChatBubbleProps> = ({
+  message,
+  type,
+  timestamp,
+  isTyping = false,
+  onPress,
+  style,
+  avatar,
+  showAvatar = true,
+}) => {
+  const bubbleStyle = [
+    styles.bubble,
+    styles[type],
+    style,
+  ];
+
+  const textStyle = [
+    styles.text,
+    styles[`${type}Text`],
+  ];
+
+  const containerStyle = [
+    styles.container,
+    type === 'user' ? styles.userContainer : styles.assistantContainer,
+  ];
+
+  const renderBubble = () => (
+    <View style={containerStyle}>
+      {/* Avatar */}
+      {showAvatar && (
+        <View style={styles.avatarContainer}>
+          {avatar || (
+            <View style={[styles.defaultAvatar, styles[`${type}Avatar`]]}>
+              <Text style={styles.avatarIcon}>
+                {type === 'user' ? '👤' : '🤖'}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Message bubble */}
+      <View style={styles.messageSection}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onPress}
+          style={bubbleStyle}
+          disabled={!onPress}
+        >
+          {/* Gradient background for assistant messages */}
+          {type === 'assistant' && (
+            <LinearGradient
+              colors={['#F0F9FF', '#E0F2FE']}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          )}
+
+          {/* Message content */}
+          <View style={styles.bubbleContent}>
+            {isTyping ? (
+              <TypingIndicator />
+            ) : (
+              <Text style={textStyle}>{message}</Text>
+            )}
+
+            {/* Disclaimer for assistant messages */}
+            {type === 'assistant' && !isTyping && (
+              <View style={styles.disclaimer}>
+                <Text style={styles.disclaimerText}>
+                  ⚠️ 本回答仅供参考，不能替代专业医疗建议
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* Timestamp */}
+        {timestamp && (
+          <Text style={[styles.timestamp, styles[`${type}Timestamp`]]}>
+            {timestamp}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+
+  return renderBubble();
+};
+
+// Typing indicator component
+const TypingIndicator: React.FC = () => {
+  const [dots, setDots] = React.useState('');
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setDots(prev => (prev.length >= 3 ? '' : prev + '.'));
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View style={styles.typingContainer}>
+      <Text style={styles.typingText}>AI正在思考{dots}</Text>
+      <View style={styles.typingDots}>
+        <View style={[styles.dot, styles.dot1]} />
+        <View style={[styles.dot, styles.dot2]} />
+        <View style={[styles.dot, styles.dot3]} />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  // Container layout
+  container: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    maxWidth: screenWidth * 0.85,
+  },
+  userContainer: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row-reverse',
+  },
+  assistantContainer: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+  },
+
+  // Avatar styles
+  avatarContainer: {
+    marginHorizontal: 8,
+    alignSelf: 'flex-end',
+  },
+  defaultAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userAvatar: {
+    backgroundColor: '#10B981',
+  },
+  assistantAvatar: {
+    backgroundColor: '#6366F1',
+  },
+  avatarIcon: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+
+  // Message section
+  messageSection: {
+    flex: 1,
+  },
+
+  // Bubble styles
+  bubble: {
+    borderRadius: 20,
+    padding: 16,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  user: {
+    backgroundColor: '#10B981',
+    borderBottomRightRadius: 4,
+  },
+  assistant: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderBottomLeftRadius: 4,
+  },
+  system: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    marginHorizontal: 32,
+  },
+
+  // Bubble content
+  bubbleContent: {
+    position: 'relative',
+    zIndex: 1,
+  },
+
+  // Text styles
+  text: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  userText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  assistantText: {
+    color: '#111827',
+  },
+  systemText: {
+    color: '#92400E',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+
+  // Disclaimer
+  disclaimer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  disclaimerText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    lineHeight: 16,
+  },
+
+  // Timestamp
+  timestamp: {
+    fontSize: 11,
+    marginTop: 4,
+    paddingHorizontal: 8,
+  },
+  userTimestamp: {
+    color: '#6B7280',
+    textAlign: 'right',
+  },
+  assistantTimestamp: {
+    color: '#6B7280',
+    textAlign: 'left',
+  },
+
+  // Typing indicator
+  typingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  typingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontStyle: 'italic',
+  },
+  typingDots: {
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#9CA3AF',
+  },
+  dot1: {
+    // Will add animation if needed
+  },
+  dot2: {
+    // Will add animation if needed
+  },
+  dot3: {
+    // Will add animation if needed
+  },
+});
+
+export default ChatBubble;

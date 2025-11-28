@@ -1,0 +1,199 @@
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { Easing } from 'react-native-reanimated';
+
+const { width, height } = Dimensions.get('window');
+
+interface Web3BackgroundProps {
+  children: React.ReactNode;
+}
+
+export const Web3Background: React.FC<Web3BackgroundProps> = ({ children }) => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 8000,
+          useNativeDriver: false,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 8000,
+          useNativeDriver: false,
+          easing: Easing.inOut(Easing.ease),
+        }),
+      ])
+    );
+    animation.start();
+
+    return () => animation.stop();
+  }, [animatedValue]);
+
+  const interpolateBackground = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [
+      '#0A0B0D', // 深黑青色
+      '#1A1D23', // 深灰蓝色
+    ],
+  });
+
+  const interpolateGradient1 = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#0EA5E9', '#8B5CF6'],
+  });
+
+  const interpolateGradient2 = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#8B5CF6', '#10B981'],
+  });
+
+  return (
+    <View style={styles.container}>
+      {/* 动态背景 */}
+      <Animated.View style={[styles.backgroundContainer, {
+        backgroundColor: interpolateBackground,
+      }]}>
+        {/* 流动渐变球体 1 */}
+        <Animated.View
+          style={[
+            styles.orb,
+            {
+              top: '20%',
+              left: '10%',
+              width: 200,
+              height: 200,
+              borderRadius: 100,
+              backgroundColor: interpolateGradient1,
+              opacity: 0.1,
+            },
+          ]}
+        />
+
+        {/* 流动渐变球体 2 */}
+        <Animated.View
+          style={[
+            styles.orb,
+            {
+              top: '60%',
+              right: '15%',
+              width: 150,
+              height: 150,
+              borderRadius: 75,
+              backgroundColor: interpolateGradient2,
+              opacity: 0.08,
+            },
+          ]}
+        />
+
+        {/* 网格线装饰 */}
+        <View style={styles.gridOverlay}>
+          {Array.from({ length: 20 }).map((_, i) => (
+            <View
+              key={`h-${i}`}
+              style={[
+                styles.gridLine,
+                {
+                  position: 'absolute',
+                  top: i * 50,
+                  left: 0,
+                  right: 0,
+                  height: 1,
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                },
+              ]}
+            />
+          ))}
+          {Array.from({ length: 15 }).map((_, i) => (
+            <View
+              key={`v-${i}`}
+              style={[
+                styles.gridLine,
+                {
+                  position: 'absolute',
+                  left: i * 50,
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                },
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* 细粒子效果 */}
+        {Array.from({ length: 20 }).map((_, i) => (
+          <Animated.View
+            key={`particle-${i}`}
+            style={[
+              styles.particle,
+              {
+                position: 'absolute',
+                left: Math.random() * width,
+                top: Math.random() * height,
+                width: 2,
+                height: 2,
+                borderRadius: 1,
+                backgroundColor: '#FFFFFF',
+                opacity: 0.3,
+                transform: [
+                  {
+                    translateY: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -20],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        ))}
+      </Animated.View>
+
+      {/* 内容 */}
+      {children}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  orb: {
+    position: 'absolute',
+    filter: 'blur(40px)',
+  },
+  gridOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  gridLine: {
+    opacity: 0.3,
+  },
+  particle: {
+    shadowColor: '#FFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+});
+
+export default Web3Background;

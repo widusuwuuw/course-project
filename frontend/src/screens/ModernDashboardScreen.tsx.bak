@@ -1,0 +1,324 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  ModernHealthCard,
+  GlassCard,
+  StatsGrid,
+  ModernButton
+} from '@/components/ModernHealthCards';
+import ModernBackground from '@/components/ModernBackground';
+import {
+  Heart,
+  Activity,
+  Moon,
+  TrendingUp,
+  Droplets,
+  Brain,
+  Target,
+  Calendar
+} from 'lucide-react-native';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
+
+export default function ModernDashboardScreen({ navigation }: Props) {
+  const [healthData, setHealthData] = useState({
+    heartRate: 72,
+    steps: 8432,
+    sleep: 7.5,
+    weight: 65,
+    water: 2.1,
+    stress: 3
+  });
+
+  const [weeklyTrends, setWeeklyTrends] = useState([
+    { label: '心率', value: '72', change: '-2%', isPositive: true },
+    { label: '步数', value: '8.4k', change: '+12%', isPositive: true },
+    { label: '睡眠', value: '7.5h', change: '-0.5h', isPositive: false },
+    { label: '体重', value: '65kg', change: '-0.3kg', isPositive: true }
+  ]);
+
+  useEffect(() => {
+    loadHealthData();
+  }, []);
+
+  const loadHealthData = async () => {
+    try {
+      // 模拟加载健康数据
+      const savedData = await AsyncStorage.getItem('healthData');
+      if (savedData) {
+        setHealthData(JSON.parse(savedData));
+      }
+    } catch (error) {
+      console.error('Failed to load health data:', error);
+    }
+  };
+
+  const logout = async () => {
+    await AsyncStorage.removeItem('token');
+    navigation.replace('Login');
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ModernBackground variant="dashboard">
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View>
+                <Text style={styles.greeting}>晚上好 👋</Text>
+                <Text style={styles.title}>健康仪表盘</Text>
+              </View>
+              <TouchableOpacity style={styles.profileButton} onPress={logout}>
+                <View style={styles.profileAvatar} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Quick Stats */}
+          <StatsGrid data={weeklyTrends} />
+
+          {/* Health Metrics Cards */}
+          <View style={styles.cardsSection}>
+            <Text style={styles.sectionTitle}>今日指标</Text>
+
+            <View style={styles.cardsRow}>
+              <ModernHealthCard
+                title="心率"
+                value={healthData.heartRate}
+                subtitle="bpm"
+                trend={{ value: '2%', isPositive: true }}
+                gradient={['#EF4444', '#DC2626']}
+                icon={<Heart size={20} color="#FFFFFF" />}
+              />
+
+              <ModernHealthCard
+                title="步数"
+                value={healthData.steps.toLocaleString()}
+                subtitle="步"
+                trend={{ value: '12%', isPositive: true }}
+                gradient={['#10B981', '#059669']}
+                icon={<Activity size={20} color="#FFFFFF" />}
+              />
+            </View>
+
+            <View style={styles.cardsRow}>
+              <ModernHealthCard
+                title="睡眠"
+                value={healthData.sleep}
+                subtitle="小时"
+                trend={{ value: '0.5h', isPositive: false }}
+                gradient={['#6366F1', '#4F46E5']}
+                icon={<Moon size={20} color="#FFFFFF" />}
+              />
+
+              <ModernHealthCard
+                title="体重"
+                value={healthData.weight}
+                subtitle="kg"
+                trend={{ value: '0.3kg', isPositive: true }}
+                gradient={['#8B5CF6', '#7C3AED']}
+                icon={<TrendingUp size={20} color="#FFFFFF" />}
+              />
+            </View>
+          </View>
+
+          {/* Quick Actions */}
+          <View style={styles.actionsSection}>
+            <Text style={styles.sectionTitle}>快速操作</Text>
+
+            <ModernButton
+              title="AI健康助手"
+              subtitle="获取个性化健康建议和回答问题"
+              onPress={() => navigation.navigate('Assistant')}
+              icon={<Brain size={20} color="#6366F1" />}
+            />
+
+            <ModernButton
+              title="健康日志"
+              subtitle="记录和查看你的健康数据趋势"
+              onPress={() => navigation.navigate('HealthLogs')}
+              variant="secondary"
+              icon={<Calendar size={20} color="#8B5CF6" />}
+            />
+
+            <ModernButton
+              title="设定目标"
+              subtitle="制定个人健康目标和计划"
+              onPress={() => {/* TODO: Navigate to goals */}}
+              variant="secondary"
+              icon={<Target size={20} color="#10B981" />}
+            />
+          </View>
+
+          {/* Weekly Progress */}
+          <GlassCard style={styles.progressCard}>
+            <Text style={styles.progressTitle}>本周进度</Text>
+            <View style={styles.progressContent}>
+              <View style={styles.progressItem}>
+                <View style={styles.progressHeader}>
+                  <Droplets size={16} color="#6366F1" />
+                  <Text style={styles.progressLabel}>饮水目标</Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '75%' }]} />
+                </View>
+                <Text style={styles.progressText}>1.5L / 2.0L</Text>
+              </View>
+
+              <View style={styles.progressItem}>
+                <View style={styles.progressHeader}>
+                  <Activity size={16} color="#10B981" />
+                  <Text style={styles.progressLabel}>运动目标</Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '60%' }]} />
+                </View>
+                <Text style={styles.progressText}>5,059 / 8,000 步</Text>
+              </View>
+            </View>
+          </GlassCard>
+
+          {/* Health Tips */}
+          <GlassCard style={styles.tipsCard}>
+            <Text style={styles.tipsTitle}>今日健康提醒</Text>
+            <Text style={styles.tipsText}>
+              💡 记得每小时站立活动5分钟，有助于改善血液循环和缓解久坐疲劳。
+            </Text>
+          </GlassCard>
+        </ScrollView>
+      </ModernBackground>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#F1F5F9',
+    letterSpacing: -1,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#334155',
+  },
+  profileAvatar: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#6366F1',
+    borderRadius: 18,
+  },
+  cardsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 16,
+  },
+  cardsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  actionsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 32,
+  },
+  progressCard: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+    paddingVertical: 24,
+  },
+  progressTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 20,
+  },
+  progressContent: {
+    gap: 16,
+  },
+  progressItem: {
+    gap: 8,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  progressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E2E8F0',
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#1E293B',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#6366F1',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  tipsCard: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+    paddingVertical: 20,
+  },
+  tipsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 12,
+  },
+  tipsText: {
+    fontSize: 14,
+    color: '#CBD5E1',
+    lineHeight: 20,
+  },
+});

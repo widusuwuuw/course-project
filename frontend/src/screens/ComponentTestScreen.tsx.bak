@@ -1,0 +1,393 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Dimensions,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import GradientBackground from '@/components/GradientBackground';
+import HealthCardV2 from '@/components/HealthCardV2';
+import HealthBadge from '@/components/HealthBadge';
+import Button from '@/components/Button';
+import Input from '@/components/Form/Input';
+import ChatBubble from '@/components/Chat/ChatBubble';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+type Props = NativeStackScreenProps<RootStackParamList, 'ComponentTest'>;
+
+export default function ComponentTestScreen({ navigation }: Props) {
+  const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [selectedCardVariant, setSelectedCardVariant] = useState('primary');
+
+  const cardVariants = ['primary', 'secondary', 'tertiary', 'success', 'warning', 'danger', 'info'];
+  const badgeVariants = ['primary', 'secondary', 'success', 'warning', 'danger', 'info', 'outline'];
+  const buttonVariants = ['primary', 'secondary', 'outline', 'gradient', 'success', 'warning', 'danger'];
+
+  const testMessages = [
+    {
+      id: '1',
+      text: '您好！我是您的AI健康助手，有什么可以帮助您的吗？',
+      type: 'assistant' as const,
+      timestamp: '10:30',
+    },
+    {
+      id: '2',
+      text: '我想了解一下如何改善睡眠质量',
+      type: 'user' as const,
+      timestamp: '10:31',
+    },
+    {
+      id: '3',
+      text: '改善睡眠质量可以从以下几个方面入手：\n\n1. 🕐 保持规律作息\n2. 📱 睡前1小时避免使用电子设备\n3. 🏃‍♂️ 适量运动，但避免睡前剧烈运动\n4. 🌡️ 保持卧室温度在18-22°C\n5. ☕ 下午4点后避免咖啡因\n\n⚠️ 如果睡眠问题持续，建议咨询专业医生。',
+      type: 'assistant' as const,
+      timestamp: '10:32',
+    },
+  ];
+
+  const handleCardPress = (variant: string) => {
+    Alert.alert('卡片点击', `你点击了 ${variant} 变体的卡片`);
+  };
+
+  const handleBadgePress = (variant: string) => {
+    Alert.alert('徽章点击', `你点击了 ${variant} 变体的徽章`);
+  };
+
+  const handleButtonPress = (variant: string) => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      Alert.alert('按钮点击', `${variant} 按钮测试完成`);
+    }, 1500);
+  };
+
+  return (
+    <GradientBackground>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>🎨 组件测试页面</Text>
+          <Text style={styles.subtitle}>测试所有新的ShadCN风格组件</Text>
+        </View>
+
+        {/* HealthCardV2 Components */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💚 HealthCardV2 组件</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+            {cardVariants.map((variant) => (
+              <View key={variant} style={styles.cardContainer}>
+                <HealthCardV2
+                  title={`${variant.charAt(0).toUpperCase() + variant.slice(1)} 卡片`}
+                  subtitle="点击测试交互效果"
+                  description="这是一个现代化的健康卡片组件"
+                  variant={variant as any}
+                  size="medium"
+                  onPress={() => handleCardPress(variant)}
+                  badge="测试"
+                  icon={<Text style={{ fontSize: 24 }}>🏥</Text>}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* HealthBadge Components */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🏷️ HealthBadge 组件</Text>
+          <View style={styles.badgeContainer}>
+            {badgeVariants.map((variant) => (
+              <HealthBadge
+                key={variant}
+                text={variant.toUpperCase()}
+                variant={variant as any}
+                size="medium"
+                onPress={() => handleBadgePress(variant)}
+                style={styles.badgeItem}
+              />
+            ))}
+          </View>
+          <View style={styles.badgeContainer}>
+            <HealthBadge text="小徽章" size="small" variant="primary" />
+            <HealthBadge text="中等徽章" size="medium" variant="success" />
+            <HealthBadge text="大徽章" size="large" variant="warning" />
+            <HealthBadge text="带脉冲" size="medium" variant="danger" pulsing={true} />
+          </View>
+        </View>
+
+        {/* Button Components */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔘 Button 组件</Text>
+          <View style={styles.buttonGrid}>
+            {buttonVariants.map((variant) => (
+              <Button
+                key={variant}
+                title={variant.toUpperCase()}
+                variant={variant as any}
+                size="medium"
+                onPress={() => handleButtonPress(variant)}
+                loading={variant === 'primary' && loading}
+                style={styles.buttonItem}
+              />
+            ))}
+          </View>
+          <View style={styles.buttonRow}>
+            <Button
+              title="小按钮"
+              size="small"
+              variant="secondary"
+              leftIcon={<Text>📱</Text>}
+            />
+            <Button
+              title="中等按钮"
+              size="medium"
+              variant="outline"
+              rightIcon={<Text>➡️</Text>}
+            />
+            <Button
+              title="大按钮"
+              size="large"
+              variant="gradient"
+              leftIcon={<Text>✨</Text>}
+            />
+          </View>
+        </View>
+
+        {/* Input Components */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📝 Input 组件</Text>
+          <View style={styles.inputContainer}>
+            <Input
+              label="默认输入框"
+              placeholder="请输入内容..."
+              value={inputValue}
+              onChangeText={setInputValue}
+              size="medium"
+              variant="outlined"
+            />
+            <Input
+              label="成功状态"
+              placeholder="验证成功的输入框"
+              value="测试成功"
+              success={true}
+              helperText="输入验证通过"
+              variant="success"
+            />
+            <Input
+              label="错误状态"
+              placeholder="有错误的输入框"
+              value=""
+              error={true}
+              helperText="请输入有效内容"
+              variant="error"
+            />
+            <Input
+              label="警告状态"
+              placeholder="警告提示"
+              value="需要注意的内容"
+              warning={true}
+              helperText="请注意输入格式"
+              variant="warning"
+            />
+          </View>
+        </View>
+
+        {/* ChatBubble Components */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💬 ChatBubble 组件</Text>
+          <View style={styles.chatContainer}>
+            {testMessages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                message={message.text}
+                type={message.type}
+                timestamp={message.timestamp}
+              />
+            ))}
+            <ChatBubble
+              message="AI正在思考..."
+              type="assistant"
+              timestamp="10:33"
+              isTyping={true}
+            />
+          </View>
+        </View>
+
+        {/* Color Palette */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🎨 医疗健康色彩系统</Text>
+          <View style={styles.colorPalette}>
+            <View style={[styles.colorBox, { backgroundColor: '#10B981' }]}>
+              <Text style={styles.colorText}>Primary #10B981</Text>
+            </View>
+            <View style={[styles.colorBox, { backgroundColor: '#3B82F6' }]}>
+              <Text style={styles.colorText}>Info #3B82F6</Text>
+            </View>
+            <View style={[styles.colorBox, { backgroundColor: '#F59E0B' }]}>
+              <Text style={styles.colorText}>Warning #F59E0B</Text>
+            </View>
+            <View style={[styles.colorBox, { backgroundColor: '#EF4444' }]}>
+              <Text style={styles.colorText}>Danger #EF4444</Text>
+            </View>
+            <View style={[styles.colorBox, { backgroundColor: '#8B5CF6' }]}>
+              <Text style={styles.colorText}>Purple #8B5CF6</Text>
+            </View>
+            <View style={[styles.colorBox, { backgroundColor: '#6B7280' }]}>
+              <Text style={styles.colorText}>Gray #6B7280</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Navigation Test */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🧭 导航测试</Text>
+          <HealthCardV2
+            title="健康日志 V2"
+            subtitle="查看新的健康日志页面"
+            description="包含体重趋势图表和状态分析"
+            variant="primary"
+            size="large"
+            icon={<Text style={{ fontSize: 28 }}>📊</Text>}
+            onPress={() => navigation.navigate('HealthLogsV2' as any)}
+          />
+          <HealthCardV2
+            title="AI助手 V2"
+            subtitle="查看新的AI助手界面"
+            description="现代化聊天界面，支持分类咨询"
+            variant="secondary"
+            size="large"
+            icon={<Text style={{ fontSize: 28 }}>🤖</Text>}
+            onPress={() => navigation.navigate('AssistantV2' as any)}
+          />
+        </View>
+
+        {/* Back Button */}
+        <View style={styles.section}>
+          <Button
+            title="返回 Dashboard"
+            variant="outline"
+            size="large"
+            fullWidth
+            onPress={() => navigation.goBack()}
+            leftIcon={<Text>🔙</Text>}
+          />
+        </View>
+      </ScrollView>
+    </GradientBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  section: {
+    marginBottom: 24,
+    paddingHorizontal: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+
+  // Horizontal scroll
+  horizontalScroll: {
+    marginHorizontal: -24,
+    paddingHorizontal: 24,
+  },
+  cardContainer: {
+    width: 280,
+    marginRight: 16,
+  },
+
+  // Badge styles
+  badgeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  badgeItem: {
+    marginBottom: 0,
+  },
+
+  // Button styles
+  buttonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  buttonItem: {
+    minWidth: 100,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+
+  // Input styles
+  inputContainer: {
+    gap: 16,
+  },
+
+  // Chat styles
+  chatContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+  },
+
+  // Color palette
+  colorPalette: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  colorBox: {
+    width: (screenWidth - 48 - 24) / 2,
+    height: 60,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  colorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+});

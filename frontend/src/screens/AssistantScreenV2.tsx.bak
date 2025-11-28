@@ -1,0 +1,473 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Dimensions,
+  ScrollView,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiPost } from '@/api/client';
+import GradientBackground from '@/components/GradientBackground';
+import HealthCardV2 from '@/components/HealthCardV2';
+import HealthBadge from '@/components/HealthBadge';
+import Button from '@/components/Button';
+import ChatBubble from '@/components/Chat/ChatBubble';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Message types
+interface ChatMessage {
+  id: string;
+  text: string;
+  type: 'user' | 'assistant' | 'system';
+  timestamp: string;
+  isTyping?: boolean;
+}
+
+// Predefined health question categories
+const healthCategories = [
+  {
+    id: 'general',
+    title: '一般健康咨询',
+    icon: '💊',
+    description: '日常健康问题咨询',
+    color: '#3B82F6',
+  },
+  {
+    id: 'lifestyle',
+    title: '生活方式建议',
+    icon: '🏃‍♂️',
+    description: '运动、饮食、睡眠建议',
+    color: '#10B981',
+  },
+  {
+    id: 'symptoms',
+    title: '症状分析',
+    icon: '🩺',
+    description: '症状描述和初步建议',
+    color: '#F59E0B',
+  },
+  {
+    id: 'prevention',
+    title: '疾病预防',
+    icon: '🛡️',
+    description: '预防措施和健康筛查',
+    color: '#8B5CF6',
+  },
+];
+
+// Quick suggestions
+const quickSuggestions = [
+  '如何提高睡眠质量？',
+  '健康饮食的基本原则',
+  '运动对健康的好处',
+  '如何缓解工作压力？',
+  '定期体检的重要性',
+  '常见疾病预防方法',
+];
+
+export default function AssistantScreenV2() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
+
+  // Initialize with welcome message
+  useEffect(() => {
+    const welcomeMessage: ChatMessage = {
+      id: 'welcome',
+      text: '您好！我是您的AI健康助手👋\n\n我可以为您提供：\n• 健康科普知识\n• 生活方式建议\n• 症状初步分析\n• 疾病预防指导\n\n请注意：我的回答仅供参考，不能替代专业医疗诊断。',
+      type: 'assistant',
+      timestamp: new Date().toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+    };
+    setMessages([welcomeMessage]);
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
+
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
+
+    // Add user message
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      text: text.trim(),
+      type: 'user',
+      timestamp: new Date().toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setIsLoading(true);
+
+    // Add typing indicator
+    const typingId = (Date.now() + 1).toString();
+    const typingMessage: ChatMessage = {
+      id: typingId,
+      text: '',
+      type: 'assistant',
+      timestamp: new Date().toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      isTyping: true,
+    };
+    setMessages(prev => [...prev, typingMessage]);
+
+    try {
+      // Call AI assistant API
+      const response = await apiPost('/assistant/query', {
+        question: text.trim(),
+        question_type: selectedCategory || 'general',
+        user_profile: {
+          // Add user profile if available
+        }
+      });
+
+      // Remove typing indicator and add AI response
+      setMessages(prev =>
+        prev.filter(msg => msg.id !== typingId)
+      );
+
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        text: response.answer || '抱歉，我现在无法回答这个问题，请稍后再试。',
+        type: 'assistant',
+        timestamp: new Date().toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+
+    } catch (error: any) {
+      // Remove typing indicator
+      setMessages(prev =>
+        prev.filter(msg => msg.id !== typingId)
+      );
+
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        text: '抱歉，网络连接出现问题，请稍后再试。',
+        type: 'system',
+        timestamp: new Date().toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
+      console.error('AI Assistant Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCategorySelect = (categoryId: string) => {
+    // Map frontend category IDs to backend question_type values
+    const categoryMapping: { [key: string]: string } = {
+      'general': 'general',
+      'lifestyle': 'lifestyle',
+      'symptoms': 'symptom',
+      'prevention': 'general',
+    };
+
+    const backendCategory = categoryMapping[categoryId] || 'general';
+    setSelectedCategory(categoryId === selectedCategory ? null : backendCategory);
+  };
+
+  const handleQuickSuggestion = (suggestion: string) => {
+    sendMessage(suggestion);
+  };
+
+  const renderMessage = ({ item }: { item: ChatMessage }) => (
+    <ChatBubble
+      message={item.text}
+      type={item.type}
+      timestamp={item.timestamp}
+      isTyping={item.isTyping}
+    />
+  );
+
+  const renderCategory = (category: typeof healthCategories[0]) => (
+    <HealthCardV2
+      key={category.id}
+      title={category.title}
+      subtitle={category.description}
+      icon={<Text style={{ fontSize: 24 }}>{category.icon}</Text>}
+      variant={selectedCategory === category.id ? 'primary' : 'secondary'}
+      size="small"
+      onPress={() => handleCategorySelect(category.id)}
+      badge={selectedCategory === category.id ? '已选择' : undefined}
+      style={styles.categoryCard}
+    />
+  );
+
+  return (
+    <GradientBackground>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>AI健康助手</Text>
+            <Text style={styles.subtitle}>专业、安全的健康咨询</Text>
+          </View>
+          <HealthBadge
+            text={selectedCategory ? '已分类' : '通用咨询'}
+            variant={selectedCategory ? 'success' : 'info'}
+            size="small"
+          />
+        </View>
+
+        {/* Category Selection */}
+        <View style={styles.categoriesSection}>
+          <Text style={styles.sectionTitle}>选择咨询类型</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+          >
+            {healthCategories.map(renderCategory)}
+          </ScrollView>
+        </View>
+
+        {/* Quick Suggestions */}
+        {messages.length === 1 && (
+          <View style={styles.suggestionsSection}>
+            <Text style={styles.sectionTitle}>快速提问</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionsContainer}
+            >
+              {quickSuggestions.map((suggestion, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestionChip}
+                  onPress={() => handleQuickSuggestion(suggestion)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Chat Messages */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          style={styles.messagesList}
+          contentContainerStyle={styles.messagesContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+
+        {/* Disclaimer Bar */}
+        <View style={styles.disclaimerBar}>
+          <Text style={styles.disclaimerBarText}>
+            ⚠️ 本助手提供的信息仅供参考，不能替代专业医疗建议
+          </Text>
+        </View>
+
+        {/* Input Area */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            ref={inputRef}
+            style={styles.textInput}
+            placeholder={
+              selectedCategory
+                ? `请输入${healthCategories.find(c => c.id === selectedCategory)?.title}相关问题...`
+                : '请输入您的健康问题...'
+            }
+            placeholderTextColor="#9CA3AF"
+            multiline
+            maxLength={500}
+            value={inputText}
+            onChangeText={setInputText}
+            textAlignVertical="center"
+            blurOnSubmit={false}
+            onSubmitEditing={() => {
+              if (inputText.trim()) {
+                sendMessage(inputText);
+              }
+            }}
+          />
+          <Button
+            title={isLoading ? '发送中...' : '发送'}
+            onPress={() => sendMessage(inputText)}
+            disabled={!inputText.trim() || isLoading}
+            loading={isLoading}
+            variant="gradient"
+            size="medium"
+            style={styles.sendButton}
+            leftIcon={<Text style={{ color: '#FFFFFF', fontSize: 16 }}>📤</Text>}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </GradientBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+
+  // Categories section
+  categoriesSection: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+    paddingHorizontal: 24,
+  },
+  categoriesContainer: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  categoryCard: {
+    width: 160,
+  },
+
+  // Quick suggestions
+  suggestionsSection: {
+    marginBottom: 16,
+  },
+  suggestionsContainer: {
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  suggestionChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+
+  // Messages list
+  messagesList: {
+    flex: 1,
+  },
+  messagesContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+
+  // Disclaimer bar
+  disclaimerBar: {
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(251, 191, 36, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  disclaimerBarText: {
+    fontSize: 12,
+    color: '#92400E',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+
+  // Input area
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 12,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    maxHeight: 100,
+    minHeight: 48,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  sendButton: {
+    minWidth: 80,
+  },
+});

@@ -1,0 +1,206 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, themeUtils } from '../../contexts/ThemeContext';
+
+interface HealthCardProps {
+  title: string;
+  value?: string | number;
+  unit?: string;
+  subtitle?: string;
+  icon?: React.ReactNode;
+  gradient?: string[];
+  onPress?: () => void;
+  style?: ViewStyle;
+  size?: 'small' | 'medium' | 'large';
+  variant?: 'default' | 'compact';
+  children?: React.ReactNode;
+  showProgress?: boolean;
+  progressValue?: number; // 0-1
+}
+
+const HealthCard: React.FC<HealthCardProps> = ({
+  title,
+  value,
+  unit,
+  subtitle,
+  icon,
+  gradient,
+  onPress,
+  style,
+  size = 'medium',
+  variant = 'default',
+  children,
+  showProgress = false,
+  progressValue = 0,
+}) => {
+  const { colors } = useTheme();
+
+  // 获取尺寸配置
+  const getSizeConfig = () => {
+    switch (size) {
+      case 'small':
+        return { height: 120, padding: 16, titleSize: 14, valueSize: 20 };
+      case 'large':
+        return { height: 200, padding: 24, titleSize: 18, valueSize: 32 };
+      default:
+        return { height: 160, padding: 20, titleSize: 16, valueSize: 24 };
+    }
+  };
+
+  const sizeConfig = getSizeConfig();
+  const cardGradient = gradient || colors.gradientHealth;
+
+  const cardStyle = StyleSheet.create([
+    {
+      height: sizeConfig.height,
+      borderRadius: 20,
+      overflow: 'hidden',
+      marginBottom: 16,
+    },
+    themeUtils.getCardShadow(colors),
+    style,
+  ]);
+
+  const contentStyle = {
+    flex: 1,
+    padding: sizeConfig.padding,
+    justifyContent: 'space-between',
+  };
+
+  const headerStyle = {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  };
+
+  const progressStyle = {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 8,
+  };
+
+  const progressFillStyle = {
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 3,
+    width: `${Math.min(Math.max(progressValue, 0), 1) * 100}%`,
+  };
+
+  const CardContent = (
+    <View style={contentStyle}>
+      {/* 头部区域 */}
+      <View style={headerStyle}>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: colors.textWhite,
+                fontSize: sizeConfig.titleSize,
+                marginBottom: variant === 'compact' ? 0 : 4,
+              },
+            ]}
+          >
+            {title}
+          </Text>
+          {subtitle && variant !== 'compact' && (
+            <Text style={[styles.subtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+        {icon && <View style={styles.iconContainer}>{icon}</View>}
+      </View>
+
+      {/* 主要内容区域 */}
+      {value !== undefined && (
+        <View style={styles.valueContainer}>
+          <Text
+            style={[
+              styles.value,
+              {
+                color: colors.textWhite,
+                fontSize: sizeConfig.valueSize,
+                marginRight: unit ? 8 : 0,
+              },
+            ]}
+          >
+            {value}
+          </Text>
+          {unit && (
+            <Text style={[styles.unit, { color: 'rgba(255, 255, 255, 0.9)' }]}>
+              {unit}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* 自定义内容 */}
+      {children}
+
+      {/* 进度条 */}
+      {showProgress && (
+        <View style={progressStyle}>
+          <View style={progressFillStyle} />
+        </View>
+      )}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={cardStyle}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <LinearGradient colors={cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          {CardContent}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={cardStyle}>
+      <LinearGradient colors={cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        {CardContent}
+      </LinearGradient>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  title: {
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 12,
+    fontWeight: '400',
+    lineHeight: 16,
+  },
+  valueContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 4,
+  },
+  value: {
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  unit: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  iconContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+  },
+});
+
+export default HealthCard;

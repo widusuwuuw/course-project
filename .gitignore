@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+dev.db
+
+# Environments
+.venv/
+.env
+backend/.env
+frontend/.env
+
+# Node / Expo
+frontend/node_modules/
+frontend/.expo/
+frontend/.expo-shared/
+
+# Test & cache
+.pytest_cache/
+
+# VSCode / IDE
+.vscode/
+
+# Logs
+*.log
+
+# Build artifacts
+dist/
+build/
+
+# PDF
+*.pdf

@@ -1,0 +1,280 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import { useTheme } from '../contexts/ThemeContext';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
+
+export default function UISelectionScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+
+  const uiOptions = [
+    {
+      id: 'health-tracker',
+      title: 'Health Tracker 风格',
+      subtitle: '清新现代的健康数据追踪界面',
+      description: '基于现代健康应用设计，采用清新的蓝绿色调，卡片式布局，数据可视化直观',
+      features: ['清新配色', '卡片设计', '渐变效果', '底部导航'],
+      preview: require('../../assets/images/health-monitoring.jpg'),
+      onPress: () => navigation.replace('HealthTrackerDashboard'),
+    },
+    {
+      id: 'modern-dark',
+      title: 'Modern Dark 风格',
+      subtitle: '深色主题的科技感界面',
+      description: 'Web3风格的玻璃态效果，深色背景搭配渐变色彩，适合科技爱好者',
+      features: ['深色主题', '玻璃态效果', '渐变色彩', '科技感'],
+      preview: require('../../assets/images/fitness-tracking.jpg'),
+      onPress: () => navigation.replace('ModernDashboard'),
+    },
+    {
+      id: 'original',
+      title: 'Original 风格',
+      subtitle: '经典版本的功能界面',
+      description: '项目的原始版本，功能完整，适合熟悉旧界面的用户',
+      features: ['经典设计', '功能完整', '熟悉界面', '稳定可靠'],
+      preview: require('../../assets/images/nutrition-management.jpg'),
+      onPress: () => navigation.replace('Dashboard'),
+    },
+  ];
+
+  const ThemeToggle = () => (
+    <View style={styles.themeToggle}>
+      <TouchableOpacity
+        style={[styles.themeButton, { backgroundColor: colors.backgroundCard }]}
+        onPress={() => {/* TODO: 实现主题切换 */}}
+      >
+        <Text style={[styles.themeButtonText, { color: colors.text }]}>
+          {colors.background === '#F8FAFC' ? '🌙 夜间模式' : '☀️ 日间模式'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>
+          选择界面风格
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          选择您喜欢的健康数据展示风格
+        </Text>
+      </View>
+
+      <ThemeToggle />
+
+      <View style={styles.optionsContainer}>
+        {uiOptions.map((option) => (
+          <TouchableOpacity
+            key={option.id}
+            style={[styles.optionCard, { backgroundColor: colors.backgroundCard }]}
+            onPress={option.onPress}
+            activeOpacity={0.8}
+          >
+            {/* 预览图片 */}
+            <View style={styles.previewContainer}>
+              <Image source={option.preview} style={styles.previewImage} />
+              <View style={styles.previewOverlay}>
+                <Text style={[styles.previewTitle, { color: colors.textWhite }]}>
+                  {option.title}
+                </Text>
+              </View>
+            </View>
+
+            {/* 内容区域 */}
+            <View style={styles.contentContainer}>
+              <View style={styles.textContainer}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  {option.subtitle}
+                </Text>
+                <Text style={[styles.description, { color: colors.textSecondary }]}>
+                  {option.description}
+                </Text>
+              </View>
+
+              {/* 特性标签 */}
+              <View style={styles.featuresContainer}>
+                {option.features.map((feature, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.featureTag,
+                      { backgroundColor: colors.primary + '20' },
+                    ]}
+                  >
+                    <Text style={[styles.featureText, { color: colors.primary }]}>
+                      {feature}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* 选择按钮 */}
+              <TouchableOpacity
+                style={[styles.selectButton, { backgroundColor: colors.primary }]}
+                onPress={option.onPress}
+              >
+                <Text style={styles.selectButtonText}>选择此风格</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* 提示信息 */}
+      <View style={[styles.tipContainer, { backgroundColor: colors.backgroundSecondary }]}>
+        <Text style={[styles.tipTitle, { color: colors.text }]}>💡 小贴士</Text>
+        <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+          您可以随时在设置中切换界面风格和主题模式。不同风格的功能完全相同，只是视觉呈现不同。
+        </Text>
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+          Omnihealth - 您的健康管理助手
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  themeToggle: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  themeButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  themeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  optionsContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  optionCard: {
+    borderRadius: 20,
+    marginBottom: 20,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  previewContainer: {
+    height: 160,
+    position: 'relative',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  previewOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  previewTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  contentContainer: {
+    padding: 20,
+  },
+  textContainer: {
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '400',
+  },
+  featuresContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  featureTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  featureText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  selectButton: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  selectButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  tipContainer: {
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  tipTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  tipText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+  footerText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+});

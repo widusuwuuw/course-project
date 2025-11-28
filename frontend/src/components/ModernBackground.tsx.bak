@@ -1,0 +1,158 @@
+import React from 'react';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Animated } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
+
+interface ModernBackgroundProps {
+  children: React.ReactNode;
+  variant?: 'dashboard' | 'health' | 'assistant';
+}
+
+export const ModernBackground: React.FC<ModernBackgroundProps> = ({
+  children,
+  variant = 'dashboard'
+}) => {
+  const getGradientColors = () => {
+    switch (variant) {
+      case 'health':
+        return ['#0F172A', '#1E293B', '#334155'];
+      case 'assistant':
+        return ['#1E1B4B', '#312E81', '#1E293B'];
+      default: // dashboard
+        return ['#0F172A', '#1E293B', '#0F172A'];
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={getGradientColors()}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backgroundGradient}
+      >
+        {/* Animated gradient orbs for visual interest */}
+        <Animated.View style={[styles.orb, styles.orb1]} />
+        <Animated.View style={[styles.orb, styles.orb2]} />
+        <Animated.View style={[styles.orb, styles.orb3]} />
+
+        {/* Grid pattern overlay */}
+        <View style={styles.gridOverlay} />
+
+        {children}
+      </LinearGradient>
+    </View>
+  );
+};
+
+interface FloatingOrbProps {
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  size?: number;
+  colors?: string[];
+}
+
+export const FloatingOrb: React.FC<FloatingOrbProps> = ({
+  position,
+  size = 200,
+  colors = ['#6366F1', '#8B5CF6']
+}) => {
+  const getPositionStyle = () => {
+    switch (position) {
+      case 'top-left':
+        return { top: -size/2, left: -size/2 };
+      case 'top-right':
+        return { top: -size/2, right: -size/2 };
+      case 'bottom-left':
+        return { bottom: -size/2, left: -size/2 };
+      case 'bottom-right':
+        return { bottom: -size/2, right: -size/2 };
+      default:
+        return { top: -size/2, left: -size/2 };
+    }
+  };
+
+  return (
+    <View style={[styles.orbContainer, getPositionStyle()]}>
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.orbGradient,
+          { width: size, height: size, borderRadius: size / 2 }
+        ]}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  backgroundGradient: {
+    flex: 1,
+    position: 'relative',
+  },
+  orb: {
+    position: 'absolute',
+    borderRadius: 150,
+    opacity: 0.1,
+  },
+  orb1: {
+    width: 300,
+    height: 300,
+    top: -150,
+    right: -100,
+    backgroundColor: '#6366F1',
+  },
+  orb2: {
+    width: 200,
+    height: 200,
+    bottom: 100,
+    left: -50,
+    backgroundColor: '#8B5CF6',
+  },
+  orb3: {
+    width: 150,
+    height: 150,
+    top: '50%',
+    right: 50,
+    backgroundColor: '#A855F7',
+  },
+  gridOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.03,
+    backgroundImage: `repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 20px,
+      rgba(255,255,255,0.03) 20px,
+      rgba(255,255,255,0.03) 21px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 20px,
+      rgba(255,255,255,0.03) 20px,
+      rgba(255,255,255,0.03) 21px
+    )`,
+  },
+  orbContainer: {
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  orbGradient: {
+    opacity: 0.1,
+    blurRadius: 100,
+  },
+});
+
+export default ModernBackground;
