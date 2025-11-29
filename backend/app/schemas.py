@@ -50,3 +50,11 @@ class TrendsResponse(BaseModel):
     avg_prev_7: Optional[float] = None
     weekly_change: Optional[float] = None
     trend: Optional[str] = None  # up | down | stable
+
+
+class DashboardSummary(BaseModel):
+    heartRate: Optional[HealthLogOut] = None
+    steps: Optional[HealthLogOut] = None
+    sleep: Optional[HealthLogOut] = None
+    water: Optional[HealthLogOut] = None
+    weight: Optional[HealthLogOut] = None

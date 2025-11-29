@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../App';
 import { useTheme } from '../contexts/ThemeContext';
+import { apiGet } from '../api/client';
 
 const { width } = Dimensions.get('window');
 
@@ -40,19 +42,19 @@ export default function HealthTrackerDashboard({ navigation }: Props) {
   const [streak, setStreak] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
 
-  useEffect(() => {
-    loadHealthData();
-    // 3秒后隐藏欢迎信息
-    const timer = setTimeout(() => setShowWelcome(false), 3000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const loadHealthData = async () => {
+  const loadHealthData = useCallback(async () => {
     try {
-      // 模拟加载数据
-      const storedData = await AsyncStorage.getItem('healthData');
-      if (storedData) {
-        setHealthData(JSON.parse(storedData));
+      // 从后端加载最新的健康数据摘要
+      const summary = await apiGet('/health-logs/summary');
+      if (summary) {
+        setHealthData(prev => ({
+          ...prev,
+          heartRate: summary.heartRate?.value1 ?? prev.heartRate,
+          steps: summary.steps?.value1 ?? prev.steps,
+          sleep: summary.sleep?.value1 ?? prev.sleep,
+          water: summary.water?.value1 ?? prev.water,
+          weight: summary.weight?.value1 ?? prev.weight,
+        }));
       }
 
       const checkedIn = await AsyncStorage.getItem('checkedIn');
@@ -71,7 +73,20 @@ export default function HealthTrackerDashboard({ navigation }: Props) {
     } catch (error) {
       console.error('Failed to load health data:', error);
     }
-  };
+  }, []);
+
+  // 屏幕加载时和每次获得焦点时都刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      loadHealthData();
+    }, [loadHealthData])
+  );
+
+  useEffect(() => {
+    // 3秒后隐藏欢迎信息
+    const timer = setTimeout(() => setShowWelcome(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleCheckIn = async (data: any) => {
     try {
@@ -238,7 +253,7 @@ export default function HealthTrackerDashboard({ navigation }: Props) {
 
           {/* 饮水卡片 */}
           <TouchableOpacity
-            style={[styles.simpleCard, { backgroundColor: colors.backgroundCard }]}
+            style={[styles.simpleCard, { backgroundColor: colors.water }]}
             onPress={() => navigation.navigate('HealthLogs', { metric: 'water' })}
           >
             <WaterIcon />

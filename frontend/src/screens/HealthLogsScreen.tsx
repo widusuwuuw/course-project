@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TextInput, Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { apiGet, apiPost } from '@/api/client';
 import GradientBackground from '@/components/GradientBackground';
 import { RootStackParamList } from 'App';
+import { Ionicons } from '@expo/vector-icons';
 
 type Log = {
   id: number;
@@ -15,18 +16,31 @@ type Log = {
 };
 
 type HealthLogsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'HealthLogs'>;
+type HealthLogsScreenRouteProp = RouteProp<RootStackParamList, 'HealthLogs'>;
 
+const metricConfigMap: { [key: string]: { title: string; placeholder: string; unit: string; icon: string } } = {
+  weight: { title: '体重日志', placeholder: '输入体重', unit: 'kg', icon: 'scale-outline' },
+  heartRate: { title: '心率日志', placeholder: '输入心率', unit: 'bpm', icon: 'heart-outline' },
+  steps: { title: '步数日志', placeholder: '输入步数', unit: '步', icon: 'walk-outline' },
+  sleep: { title: '睡眠日志', placeholder: '输入睡眠时长', unit: '小时', icon: 'moon-outline' },
+  water: { title: '饮水日志', placeholder: '输入饮水量', unit: '杯', icon: 'water-outline' },
+};
 
 export default function HealthLogsScreen() {
   const [items, setItems] = useState<Log[]>([]);
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation<HealthLogsScreenNavigationProp>();
+  const route = useRoute<HealthLogsScreenRouteProp>();
+  const { metric } = route.params || { metric: 'weight' };
+
+  const currentMetricConfig = metricConfigMap[metric || 'weight'];
+
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await apiGet('/health-logs/');
+      const data = await apiGet(`/health-logs/?metric_type=${metric}`);
       setItems(data);
     } catch (e: any) {
       Alert.alert('加载失败', e?.message || '未知错误');
@@ -38,12 +52,16 @@ export default function HealthLogsScreen() {
   const add = async () => {
     const v = Number(value);
     if (!v || v <= 0) {
-      Alert.alert('提示', '请输入有效的体重');
+      Alert.alert('提示', `请输入有效的${currentMetricConfig.title.replace('日志', '')}`);
       return;
     }
     setLoading(true);
     try {
-      await apiPost('/health-logs/', { metric_type: 'weight', value1: v, unit: 'kg' });
+      await apiPost('/health-logs/', { 
+        metric_type: metric, 
+        value1: v, 
+        unit: currentMetricConfig.unit 
+      });
       setValue('');
       await load();
     } catch (e: any) {
@@ -55,21 +73,23 @@ export default function HealthLogsScreen() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [metric]); // 当metric变化时重新加载数据
 
   return (
     <GradientBackground>
       <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>体重日志</Text>
-          <Text style={styles.subtitle}>记录您的体重变化</Text>
+          <Text style={styles.title}>{currentMetricConfig.title}</Text>
+          <Text style={styles.subtitle}>记录您的{currentMetricConfig.title.replace('日志', '')}变化</Text>
         </View>
         <View style={styles.headerActions}>
             <Text style={styles.countBadge}>{items.length} 条</Text>
-            <TouchableOpacity style={styles.trendsButton} onPress={() => navigation.navigate('Trends')}>
-                <Text style={styles.trendsButtonText}>查看趋势</Text>
-            </TouchableOpacity>
+            {metric === 'weight' && ( // 只有体重日志才显示查看趋势按钮
+              <TouchableOpacity style={styles.trendsButton} onPress={() => navigation.navigate('Trends')}>
+                  <Text style={styles.trendsButtonText}>查看趋势</Text>
+              </TouchableOpacity>
+            )}
         </View>
       </View>
 
@@ -78,7 +98,7 @@ export default function HealthLogsScreen() {
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
-            placeholder="输入体重 (kg)"
+            placeholder={`${currentMetricConfig.placeholder} (${currentMetricConfig.unit})`}
             placeholderTextColor="#9CA3AF"
             keyboardType="decimal-pad"
             value={value}
@@ -104,7 +124,7 @@ export default function HealthLogsScreen() {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardIcon}>
-              <Text style={styles.cardIconText}>⚖️</Text>
+              <Ionicons name={currentMetricConfig.icon as any} size={24} color="#3B82F6" />
             </View>
             <View style={styles.cardContent}>
               <Text style={styles.cardValue}>{item.value1} <Text style={styles.cardUnit}>{item.unit}</Text></Text>
@@ -121,7 +141,7 @@ export default function HealthLogsScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📝</Text>
             <Text style={styles.emptyText}>暂无记录</Text>
-            <Text style={styles.emptySubtext}>添加第一条体重记录吧</Text>
+            <Text style={styles.emptySubtext}>添加第一条{currentMetricConfig.title.replace('日志', '')}记录吧</Text>
           </View>
         }
       />
@@ -259,7 +279,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  cardIconText: {
+  cardIconText: { // 样式已从 HealthLogsScreen.tsx 中移除，因为我们使用 Ionicons
     fontSize: 24,
   },
   cardContent: {
@@ -272,7 +292,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   cardUnit: {
-    fontSize: 16,
+    fontSize: 16, 
     fontWeight: '600',
     color: '#6B7280',
   },
