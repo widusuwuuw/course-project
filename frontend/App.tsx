@@ -13,6 +13,8 @@ import AssistantScreen from '@/screens/AssistantScreen';
 import AchievementsScreen from '@/screens/AchievementsScreen';
 import TrendsScreen from '@/screens/TrendsScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
+import NotificationSettingsScreen from '@/screens/NotificationSettingsScreen';
+import AccountSettingsScreen from '@/screens/AccountSettingsScreen';
 import { StatusBar } from 'react-native';
 
 export type RootStackParamList = {
@@ -25,6 +27,8 @@ export type RootStackParamList = {
   Achievements: undefined;
   Trends: undefined;
   Profile: undefined;
+  NotificationSettings: undefined;
+  AccountSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -44,6 +48,8 @@ export default function App() {
           <Stack.Screen name="Achievements" component={AchievementsScreen} options={{ title: '健康成就' }} />
           <Stack.Screen name="Trends" component={TrendsScreen} options={{ title: '体重趋势' }} />
           <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: '我的' }} />
+          <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: '通知设置' }} />
+          <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} options={{ title: '账户与安全' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>

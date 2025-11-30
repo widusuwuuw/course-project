@@ -72,13 +72,13 @@ export default function ProfileScreen() {
           />
         </View>
         <View style={styles.divider} />
-        <TouchableOpacity style={styles.settingRow}>
+        <TouchableOpacity style={styles.settingRow} onPress={() => navigation.navigate('NotificationSettings')}>
           <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} style={styles.icon} />
           <Text style={[styles.settingText, { color: colors.text }]}>通知设置</Text>
           <Ionicons name="chevron-forward-outline" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
         <View style={styles.divider} />
-        <TouchableOpacity style={styles.settingRow}>
+        <TouchableOpacity style={styles.settingRow} onPress={() => navigation.navigate('AccountSettings')}>
           <Ionicons name="lock-closed-outline" size={22} color={colors.textSecondary} style={styles.icon} />
           <Text style={[styles.settingText, { color: colors.text }]}>账户与安全</Text>
           <Ionicons name="chevron-forward-outline" size={22} color={colors.textSecondary} />
