@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Image, Dimensions, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { loginRequest } from '../api/client';
+
+// 类型定义 - 导入App.tsx中定义的类型
 import { RootStackParamList } from '../../App';
-import { loginRequest } from '@/api/client';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -111,7 +113,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       const data = await loginRequest(email.trim(), password);
       await AsyncStorage.setItem('token', data.access_token);
-      navigation.replace('HealthTrackerDashboard');
+      navigation.replace('MainTabs');
     } catch (e: any) {
       Alert.alert('登录失败', e?.message || '未知错误');
     } finally {

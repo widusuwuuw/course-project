@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TextInput, Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import { apiGet, apiPost } from '@/api/client';
-import GradientBackground from '@/components/GradientBackground';
+import { apiGet, apiPost } from '../api/client';
+import GradientBackground from '../components/GradientBackground';
 
 type Log = {
   id: number;

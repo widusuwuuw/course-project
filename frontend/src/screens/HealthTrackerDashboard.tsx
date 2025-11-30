@@ -5,8 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../App';
 import { useTheme } from '../contexts/ThemeContext';
+
+// 类型定义
+type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  HealthTrackerDashboard: undefined;
+  HealthLogs: { metric?: string } | undefined;
+  Assistant: undefined;
+  Achievements: undefined;
+};
 
 const { width } = Dimensions.get('window');
 

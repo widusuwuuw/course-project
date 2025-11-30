@@ -18,7 +18,15 @@
       "Bash(npx tsc:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(tree:*)",
+      "mcp__github__get_file_contents",
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(.venvScriptsActivate.ps1)",
+      "Bash(.venv/Scripts/activate)",
+      "Bash(pip install:*)",
+      "Bash(uvicorn:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, Platform, Image } from 'react-native';
-import { assistantQuery } from '@/api/client';
-import GradientBackground from '@/components/GradientBackground';
+import { assistantQuery } from '../api/client';
+import GradientBackground from '../components/GradientBackground';
 
 type Message = {
   id: string;

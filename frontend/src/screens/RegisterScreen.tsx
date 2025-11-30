@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Image, Dimensions, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { registerRequest } from '../api/client';
+
+// 类型定义 - 导入App.tsx中定义的类型
 import { RootStackParamList } from '../../App';
-import { registerRequest } from '@/api/client';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
