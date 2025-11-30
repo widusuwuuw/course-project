@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { apiGet } from '@/api/client';
 import { RootStackParamList } from 'App';
 import { useTheme } from '@/contexts/ThemeContext';
+import { AlertDialog } from '@/components/ui/AlertDialog';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -19,6 +20,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { colors, themeMode, toggleTheme, isDark } = useTheme();
   const [user, setUser] = useState<User | null>(null);
+  const [isLogoutAlertVisible, setLogoutAlertVisible] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -33,21 +35,13 @@ export default function ProfileScreen() {
   }, []);
 
   const handleLogout = async () => {
-    Alert.alert(
-      "退出登录",
-      "您确定要退出登录吗？",
-      [
-        { text: "取消", style: "cancel" },
-        {
-          text: "确定",
-          onPress: async () => {
-            await AsyncStorage.removeItem('token');
-            navigation.replace('Login');
-          },
-          style: "destructive"
-        },
-      ]
-    );
+    setLogoutAlertVisible(true);
+  };
+
+  const performLogout = async () => {
+    setLogoutAlertVisible(false);
+    await AsyncStorage.removeItem('token');
+    navigation.replace('Login');
   };
 
   return (
@@ -99,6 +93,16 @@ export default function ProfileScreen() {
       >
         <Text style={[styles.logoutButtonText, { color: colors.error }]}>退出登录</Text>
       </TouchableOpacity>
+
+      <AlertDialog
+        visible={isLogoutAlertVisible}
+        title="退出登录"
+        description="您确定要退出登录吗？"
+        confirmText="确定"
+        cancelText="取消"
+        onCancel={() => setLogoutAlertVisible(false)}
+        onConfirm={performLogout}
+      />
     </View>
   );
 }
