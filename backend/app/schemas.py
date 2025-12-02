@@ -16,9 +16,29 @@ class Token(BaseModel):
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    new_log_alerts: bool
+    achievement_alerts: bool
+    weekly_summary: bool
+    assistant_updates: bool
 
     class Config:
         from_attributes = True
+
+
+class UserSettingsUpdate(BaseModel):
+    new_log_alerts: Optional[bool] = None
+    achievement_alerts: Optional[bool] = None
+    weekly_summary: Optional[bool] = None
+    assistant_updates: Optional[bool] = None
+
+
+class PasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class PasswordConfirmation(BaseModel):
+    password: str
 
 
 class HealthLogBase(BaseModel):

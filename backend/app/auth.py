@@ -1,26 +1,16 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from passlib.context import CryptContext
-from sqlalchemy.orm import Session
-
-from .db import get_db
-from .models import User
-from .schemas import UserCreate, Token, UserOut
-from .security import create_access_token
+from sqlalchemy.orm import Session # Re-added
+from .db import get_db # Re-added
+from .models import User # Re-added
+from .schemas import UserCreate, Token, UserOut, UserSettingsUpdate, PasswordUpdate, PasswordConfirmation # Re-added
+from .security import create_access_token, verify_password, get_password_hash
 from .deps import get_current_user
+from starlette.requests import Request # Add this import
 
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 router = APIRouter()
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
 
 
 @router.post("/register", status_code=201)
@@ -49,3 +39,52 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @router.get("/me", response_model=UserOut)
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.put("/me/settings", response_model=UserOut)
+async def update_user_settings(
+    settings: UserSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Fetch the user from the current session to ensure changes are tracked
+    user_in_db = db.query(User).filter(User.id == current_user.id).first()
+    if not user_in_db:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = settings.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(user_in_db, key, value)
+    
+    db.commit()
+    db.refresh(user_in_db)
+    return user_in_db
+
+
+@router.put("/me/password")
+def update_password(
+    payload: PasswordUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password")
+    
+    current_user.password_hash = get_password_hash(payload.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+
+@router.delete("/me")
+def delete_account(
+    payload: PasswordConfirmation,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(payload.password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password")
+    
+    db.delete(current_user)
+    db.commit()
+    return {"message": "Account deleted successfully"}

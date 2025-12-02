@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean
+from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
 
 from .db import Base
@@ -12,6 +13,12 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Notification Settings
+    new_log_alerts = Column(Boolean, server_default=text('true'), nullable=False)
+    achievement_alerts = Column(Boolean, server_default=text('true'), nullable=False)
+    weekly_summary = Column(Boolean, server_default=text('false'), nullable=False)
+    assistant_updates = Column(Boolean, server_default=text('true'), nullable=False)
 
     logs = relationship("HealthLog", back_populates="user", cascade="all, delete-orphan")
 

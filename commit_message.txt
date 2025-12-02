@@ -1,0 +1,9 @@
+feat(my-screen): Implement placeholder screens for settings
+
+This commit adds placeholder screens and navigation for "Notification Settings" and "Account & Security" within the "My" screen.
+
+Changes include:
+- Created NotificationSettingsScreen.tsx and AccountSettingsScreen.tsx placeholder files.
+- Added these screens to App.tsx navigation.
+- Wired up navigation from ProfileScreen.tsx buttons to the new screens.
+- Restored metro.config.js to ensure NativeWind build compatibility.

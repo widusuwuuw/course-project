@@ -1,13 +1,60 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Switch, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { apiGet, apiPut } from '@/api/client';
+import { useFocusEffect } from '@react-navigation/native';
+
+// Define a type for the settings state
+type NotificationSettings = {
+  new_log_alerts: boolean;
+  achievement_alerts: boolean;
+  weekly_summary: boolean;
+  assistant_updates: boolean;
+};
 
 export default function NotificationSettingsScreen() {
   const { colors } = useTheme();
-  const [newLogAlerts, setNewLogAlerts] = useState(true);
-  const [achievementAlerts, setAchievementAlerts] = useState(true);
-  const [weeklySummary, setWeeklySummary] = useState(false);
-  const [assistantUpdates, setAssistantUpdates] = useState(true);
+  const [settings, setSettings] = useState<NotificationSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const userData = await apiGet('/me');
+      setSettings({
+        new_log_alerts: userData.new_log_alerts,
+        achievement_alerts: userData.achievement_alerts,
+        weekly_summary: userData.weekly_summary,
+        assistant_updates: userData.assistant_updates,
+      });
+    } catch (error) {
+      Alert.alert('错误', '无法加载设置');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadSettings();
+    }, [loadSettings])
+  );
+
+  const handleValueChange = async (key: keyof NotificationSettings, value: boolean) => {
+    if (!settings) return;
+
+    // Optimistically update UI
+    const originalSettings = { ...settings };
+    setSettings(prev => prev ? { ...prev, [key]: value } : null);
+
+    try {
+      await apiPut('/me/settings', { [key]: value });
+    } catch (error) {
+      // Revert UI on failure
+      setSettings(originalSettings);
+      Alert.alert('错误', '无法更新设置');
+    }
+  };
 
   // Dynamic styles based on theme
   const dynamicStyles = {
@@ -18,6 +65,14 @@ export default function NotificationSettingsScreen() {
     settingText: { color: colors.text },
     descriptionText: { color: colors.textSecondary },
   };
+  
+  if (loading || !settings) {
+    return (
+      <View style={[styles.container, dynamicStyles.container, styles.center]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={[styles.container, dynamicStyles.container]}>
@@ -32,10 +87,10 @@ export default function NotificationSettingsScreen() {
             <Text style={[styles.descriptionText, dynamicStyles.descriptionText]}>当添加新健康日志时接收确认。</Text>
           </View>
           <Switch
-            value={newLogAlerts}
-            onValueChange={setNewLogAlerts}
+            value={settings.new_log_alerts}
+            onValueChange={(value) => handleValueChange('new_log_alerts', value)}
             trackColor={{ false: '#767577', true: colors.primaryLight }}
-            thumbColor={newLogAlerts ? colors.primary : '#f4f3f4'}
+            thumbColor={settings.new_log_alerts ? colors.primary : '#f4f3f4'}
           />
         </View>
         <View style={[styles.settingRow, dynamicStyles.settingRow]}>
@@ -44,10 +99,10 @@ export default function NotificationSettingsScreen() {
             <Text style={[styles.descriptionText, dynamicStyles.descriptionText]}>当您解锁新成就时收到通知。</Text>
           </View>
           <Switch
-            value={achievementAlerts}
-            onValueChange={setAchievementAlerts}
+            value={settings.achievement_alerts}
+            onValueChange={(value) => handleValueChange('achievement_alerts', value)}
             trackColor={{ false: '#767577', true: colors.primaryLight }}
-            thumbColor={achievementAlerts ? colors.primary : '#f4f3f4'}
+            thumbColor={settings.achievement_alerts ? colors.primary : '#f4f3f4'}
           />
         </View>
         <View style={[styles.settingRow, dynamicStyles.settingRow]}>
@@ -56,10 +111,10 @@ export default function NotificationSettingsScreen() {
             <Text style={[styles.descriptionText, dynamicStyles.descriptionText]}>每周接收一次您的健康趋势总结。</Text>
           </View>
           <Switch
-            value={weeklySummary}
-            onValueChange={setWeeklySummary}
+            value={settings.weekly_summary}
+            onValueChange={(value) => handleValueChange('weekly_summary', value)}
             trackColor={{ false: '#767577', true: colors.primaryLight }}
-            thumbColor={weeklySummary ? colors.primary : '#f4f3f4'}
+            thumbColor={settings.weekly_summary ? colors.primary : '#f4f3f4'}
           />
         </View>
         <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
@@ -68,10 +123,10 @@ export default function NotificationSettingsScreen() {
             <Text style={[styles.descriptionText, dynamicStyles.descriptionText]}>当AI助手有新的建议时通知您。</Text>
           </View>
           <Switch
-            value={assistantUpdates}
-            onValueChange={setAssistantUpdates}
+            value={settings.assistant_updates}
+            onValueChange={(value) => handleValueChange('assistant_updates', value)}
             trackColor={{ false: '#767577', true: colors.primaryLight }}
-            thumbColor={assistantUpdates ? colors.primary : '#f4f3f4'}
+            thumbColor={settings.assistant_updates ? colors.primary : '#f4f3f4'}
           />
         </View>
       </View>
@@ -82,6 +137,10 @@ export default function NotificationSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     padding: 24,

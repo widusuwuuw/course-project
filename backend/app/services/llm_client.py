@@ -66,7 +66,7 @@ def _extract_text(resp) -> str:
     return "(LLM响应解析失败)"
 
 
-def generate_answer(question: str, system_prompt: Optional[str] = None) -> str:
+def generate_answer(llm_messages: list[dict]) -> str:
     """Call Tongyi Qianwen with simple retry & soft timeout."""
     if not is_enabled():
         raise LLMUnavailable("DashScope not configured or library missing")
@@ -81,10 +81,7 @@ def generate_answer(question: str, system_prompt: Optional[str] = None) -> str:
                 resp = Generation.call(
                     model=MODEL_DEFAULT,
                     api_key=API_KEY,
-                    messages=[
-                        {"role": "system", "content": system_prompt or "你是一个健康科普助手，只给一般性建议，避免诊断与用药指导。"},
-                        {"role": "user", "content": question},
-                    ],
+                    messages=llm_messages, # Pass messages directly
                     temperature=float(os.getenv("LLM_TEMPERATURE", "0.7")),
                     max_tokens=int(os.getenv("LLM_MAX_TOKENS", "512")),
                 )
@@ -112,10 +109,7 @@ def generate_answer(question: str, system_prompt: Optional[str] = None) -> str:
         data = {
             "model": MODEL_DEFAULT,
             "input": {
-                "messages": [
-                    {"role": "system", "content": system_prompt or "你是一个健康科普助手，只给一般性建议，避免诊断与用药指导。"},
-                    {"role": "user", "content": question},
-                ]
+                "messages": llm_messages # Pass messages directly
             },
             "parameters": {
                 "temperature": float(os.getenv("LLM_TEMPERATURE", "0.7")),
