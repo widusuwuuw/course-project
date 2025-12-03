@@ -37,7 +37,7 @@ function MainTabs() {
               iconName = focused ? 'storefront' : 'storefront-outline';
               break;
             case 'AI':
-              iconName = focused ? 'chatbot' : 'chatbot-outline';
+              iconName = focused ? 'chatbubble' : 'chatbubble-outline';
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';

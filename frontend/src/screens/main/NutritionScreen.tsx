@@ -19,6 +19,23 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 const { width } = Dimensions.get('window');
 
+// 食物图标映射
+const foodIcons = {
+  '全麦面包': '🍞',
+  '水煮蛋': '🥚',
+  '脱脂牛奶': '🥛',
+  '燕麦粥': '🥣',
+  '鸡胸肉': '🍗',
+  '沙拉': '🥗',
+  '香蕉': '🍌',
+  '煮鸡蛋': '🥚',
+  '全麦吐司': '🍞',
+  '希腊酸奶': '🥛',
+  '混合坚果': '🥜',
+  '豆浆': '🥛',
+  '菜包': '🥟',
+};
+
 interface Food {
   id: string;
   name: string;
@@ -48,47 +65,157 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
     fat: 65
   });
 
-  const [currentIntake, setCurrentIntake] = useState<NutritionGoal>({
-    calories: 1456,
-    protein: 98,
-    carbs: 180,
-    fat: 52
-  });
+  // 日期选择数据
+  const [dates, setDates] = useState([
+    { day: '一', date: 25, isToday: false },
+    { day: '二', date: 26, isToday: false },
+    { day: '今', date: 27, isToday: true },
+    { day: '四', date: 28, isToday: false },
+    { day: '五', date: 29, isToday: false },
+  ]);
+
+  const [selectedDate, setSelectedDate] = useState(27); // 默认选中今天
 
   const [selectedMeal, setSelectedMeal] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
   const [showAddFood, setShowAddFood] = useState(false);
-  const [foods, setFoods] = useState<Food[]>([
-    {
-      id: '1',
-      name: '燕麦粥',
-      calories: 158,
-      protein: 6,
-      carbs: 28,
-      fat: 3,
-      serving: '1碗 (200g)',
-      meal: 'breakfast'
-    },
-    {
-      id: '2',
-      name: '煮鸡蛋',
-      calories: 155,
-      protein: 13,
-      carbs: 1,
-      fat: 11,
-      serving: '2个',
-      meal: 'breakfast'
-    },
-    {
-      id: '3',
-      name: '鸡胸肉沙拉',
-      calories: 320,
-      protein: 35,
-      carbs: 12,
-      fat: 8,
-      serving: '1份',
-      meal: 'lunch'
-    }
-  ]);
+  // 不同日期的食物数据
+  const foodsDataByDate = {
+    25: [
+      {
+        id: '1',
+        name: '燕麦粥',
+        calories: 158,
+        protein: 6,
+        carbs: 28,
+        fat: 3,
+        serving: '1碗',
+        meal: 'breakfast'
+      },
+      {
+        id: '2',
+        name: '香蕉',
+        calories: 105,
+        protein: 1.3,
+        carbs: 27,
+        fat: 0.4,
+        serving: '1根',
+        meal: 'breakfast'
+      }
+    ],
+    26: [
+      {
+        id: '1',
+        name: '煮鸡蛋',
+        calories: 155,
+        protein: 13,
+        carbs: 1,
+        fat: 11,
+        serving: '2个',
+        meal: 'breakfast'
+      },
+      {
+        id: '2',
+        name: '全麦吐司',
+        calories: 120,
+        protein: 4,
+        carbs: 20,
+        fat: 3,
+        serving: '2片',
+        meal: 'breakfast'
+      }
+    ],
+    27: [
+      {
+        id: '1',
+        name: '全麦面包',
+        calories: 140,
+        protein: 6,
+        carbs: 28,
+        fat: 3,
+        serving: '2片',
+        meal: 'breakfast'
+      },
+      {
+        id: '2',
+        name: '水煮蛋',
+        calories: 155,
+        protein: 13,
+        carbs: 1,
+        fat: 11,
+        serving: '2个',
+        meal: 'breakfast'
+      },
+      {
+        id: '3',
+        name: '脱脂牛奶',
+        calories: 80,
+        protein: 6.5,
+        carbs: 8,
+        fat: 0.2,
+        serving: '200ml',
+        meal: 'breakfast'
+      }
+    ],
+    28: [
+      {
+        id: '1',
+        name: '希腊酸奶',
+        calories: 100,
+        protein: 17,
+        carbs: 6,
+        fat: 0.7,
+        serving: '150g',
+        meal: 'breakfast'
+      },
+      {
+        id: '2',
+        name: '混合坚果',
+        calories: 180,
+        protein: 6,
+        carbs: 6,
+        fat: 16,
+        serving: '30g',
+        meal: 'breakfast'
+      }
+    ],
+    29: [
+      {
+        id: '1',
+        name: '豆浆',
+        calories: 80,
+        protein: 7,
+        carbs: 4,
+        fat: 4,
+        serving: '250ml',
+        meal: 'breakfast'
+      },
+      {
+        id: '2',
+        name: '菜包',
+        calories: 200,
+        protein: 8,
+        carbs: 35,
+        fat: 6,
+        serving: '1个',
+        meal: 'breakfast'
+      }
+    ]
+  };
+
+  const [foods, setFoods] = useState<Food[]>(foodsDataByDate[selectedDate as keyof typeof foodsDataByDate] || []);
+
+  // 不同日期的营养摄入数据
+  const nutritionDataByDate = {
+    25: { calories: 1200, protein: 80, carbs: 150, fat: 40 },
+    26: { calories: 1350, protein: 90, carbs: 165, fat: 45 },
+    27: { calories: 1456, protein: 98, carbs: 180, fat: 52 },
+    28: { calories: 1600, protein: 105, carbs: 195, fat: 58 },
+    29: { calories: 1100, protein: 75, carbs: 140, fat: 38 }
+  };
+
+  const [currentIntake, setCurrentIntake] = useState<NutritionGoal>(
+    nutritionDataByDate[selectedDate as keyof typeof nutritionDataByDate]
+  );
 
   const [newFood, setNewFood] = useState({
     name: '',
@@ -101,15 +228,36 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
 
   // 餐食类型配置
   const mealTypes = [
-    { key: 'breakfast', label: '早餐', icon: 'sunny-outline', color: '#F59E0B' },
-    { key: 'lunch', label: '午餐', icon: 'restaurant-outline', color: '#10B981' },
-    { key: 'dinner', label: '晚餐', icon: 'moon-outline', color: '#6366F1' },
-    { key: 'snack', label: '加餐', icon: 'nutrition-outline', color: '#8B5CF6' }
+    { key: 'breakfast', label: '早餐', icon: 'sunny-outline', color: '#4ABAB8' },
+    { key: 'lunch', label: '午餐', icon: 'restaurant-outline', color: '#4ABAB8' },
+    { key: 'dinner', label: '晚餐', icon: 'moon-outline', color: '#4ABAB8' },
+    { key: 'snack', label: '加餐', icon: 'nutrition-outline', color: '#4ABAB8' }
   ];
 
   // 计算进度百分比
   const calculateProgress = (current: number, goal: number) => {
     return Math.min((current / goal) * 100, 100);
+  };
+
+  // 日期切换处理函数
+  const handleDateSelect = (date: number) => {
+    setSelectedDate(date);
+    // 更新食物数据
+    const newFoods = foodsDataByDate[date as keyof typeof foodsDataByDate] || [];
+    setFoods(newFoods);
+
+    // 更新营养摄入数据
+    const newNutrition = nutritionDataByDate[date as keyof typeof nutritionDataByDate];
+    if (newNutrition) {
+      setCurrentIntake(newNutrition);
+    }
+
+    // 更新日期选中状态
+    const updatedDates = dates.map(d => ({
+      ...d,
+      isToday: d.date === date
+    }));
+    setDates(updatedDates);
   };
 
   // 过滤选中餐食的食物
@@ -170,160 +318,178 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+    <SafeAreaView style={[styles.container, { backgroundColor: '#F8FAFB' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#4ABAB8" />
 
-      {/* 顶部营养概览卡片 */}
+      {/* 顶部渐变头部区域 */}
       <LinearGradient
-        colors={['#B8E5E5', '#D4EDD4']}
+        colors={['#4ABAB8', '#389BA2']}
         style={styles.headerGradient}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
+        end={{ x: 0, y: 1 }}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color="#1F2937" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>营养记录</Text>
-            <TouchableOpacity onPress={() => {
-              Alert.alert('分享', '营养记录分享功能即将上线！');
-            }}>
-              <Ionicons name="share-outline" size={24} color="#1F2937" />
-            </TouchableOpacity>
+        {/* 导航栏 */}
+        <View style={styles.navBar}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>营养追踪</Text>
+          <TouchableOpacity onPress={() => {
+            Alert.alert('分享', '营养记录分享功能即将上线！');
+          }}>
+            <Ionicons name="share-outline" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 营养仪表盘 */}
+        <View style={styles.dashboard}>
+          {/* 左侧圆环 */}
+          <View style={styles.circularProgress}>
+            <View style={styles.progressRing}>
+              <View style={styles.progressRingInner}>
+                <Text style={styles.progressSmallText}>剩余</Text>
+                <Text style={styles.progressBigText}>{dailyGoal.calories - currentIntake.calories}</Text>
+                <Text style={styles.progressSmallText}>kcal</Text>
+              </View>
+            </View>
           </View>
 
-          {/* 热量环形进度 */}
-          <View style={styles.caloriesOverview}>
-            <View style={styles.caloriesCircle}>
-              <Text style={styles.caloriesCurrent}>{currentIntake.calories}</Text>
-              <Text style={styles.caloriesGoal}>/ {dailyGoal.calories} kcal</Text>
-            </View>
-            <View style={styles.caloriesInfo}>
-              <Text style={styles.caloriesTitle}>今日热量</Text>
-              <Text style={styles.caloriesPercentage}>
-                已摄入 {Math.round(calculateProgress(currentIntake.calories, dailyGoal.calories))}%
-              </Text>
-            </View>
-          </View>
-
-          {/* 三大营养素进度条 */}
-          <View style={styles.macrosContainer}>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>蛋白质</Text>
-              <View style={styles.macroProgress}>
-                <View style={[
-                  styles.macroFill,
-                  { width: `${calculateProgress(currentIntake.protein, dailyGoal.protein)}%`, backgroundColor: '#FFB5C5' }
-                ]} />
+          {/* 右侧进度条 */}
+          <View style={styles.progressBars}>
+            <View style={styles.progressItem}>
+              <View style={styles.progressLabel}>
+                <Text style={styles.progressLabelText}>蛋白质</Text>
+                <Text style={styles.progressValueText}>{currentIntake.protein}/{dailyGoal.protein}g</Text>
               </View>
-              <Text style={styles.macroValue}>{currentIntake.protein}g/{dailyGoal.protein}g</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${calculateProgress(currentIntake.protein, dailyGoal.protein)}%` }]} />
+              </View>
             </View>
 
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>碳水</Text>
-              <View style={styles.macroProgress}>
-                <View style={[
-                  styles.macroFill,
-                  { width: `${calculateProgress(currentIntake.carbs, dailyGoal.carbs)}%`, backgroundColor: '#FFD88C' }
-                ]} />
+            <View style={styles.progressItem}>
+              <View style={styles.progressLabel}>
+                <Text style={styles.progressLabelText}>碳水</Text>
+                <Text style={styles.progressValueText}>{currentIntake.carbs}/{dailyGoal.carbs}g</Text>
               </View>
-              <Text style={styles.macroValue}>{currentIntake.carbs}g/{dailyGoal.carbs}g</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${calculateProgress(currentIntake.carbs, dailyGoal.carbs)}%` }]} />
+              </View>
             </View>
 
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>脂肪</Text>
-              <View style={styles.macroProgress}>
-                <View style={[
-                  styles.macroFill,
-                  { width: `${calculateProgress(currentIntake.fat, dailyGoal.fat)}%`, backgroundColor: '#B8E5E5' }
-                ]} />
+            <View style={styles.progressItem}>
+              <View style={styles.progressLabel}>
+                <Text style={styles.progressLabelText}>脂肪</Text>
+                <Text style={styles.progressValueText}>{currentIntake.fat}/{dailyGoal.fat}g</Text>
               </View>
-              <Text style={styles.macroValue}>{currentIntake.fat}g/{dailyGoal.fat}g</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${calculateProgress(currentIntake.fat, dailyGoal.fat)}%` }]} />
+              </View>
             </View>
           </View>
         </View>
       </LinearGradient>
 
-      {/* 餐食选择标签 */}
-      <View style={styles.mealTabs}>
-        {mealTypes.map((meal) => (
-          <TouchableOpacity
-            key={meal.key}
-            style={[
-              styles.mealTab,
-              selectedMeal === meal.key && { backgroundColor: meal.color }
-            ]}
-            onPress={() => setSelectedMeal(meal.key as any)}
-          >
-            <Ionicons
-              name={meal.icon as keyof typeof Ionicons.glyphMap}
-              size={20}
-              color={selectedMeal === meal.key ? colors.textWhite : '#6B7280'}
-            />
-            <Text style={[
-              styles.mealTabText,
-              selectedMeal === meal.key && { color: colors.textWhite }
-            ]}>
-              {meal.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 食物列表 */}
-      <ScrollView style={styles.foodsList} showsVerticalScrollIndicator={false}>
-        <View style={styles.foodsHeader}>
-          <Text style={styles.foodsTitle}>{mealTypes.find(m => m.key === selectedMeal)?.label}</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowAddFood(true)}
-          >
-            <Ionicons name="add" size={20} color={colors.textWhite} />
-          </TouchableOpacity>
+      {/* 主要内容区域 */}
+      <ScrollView style={styles.mainContent} showsVerticalScrollIndicator={false}>
+        {/* 日期选择条 */}
+        <View style={styles.dateSelector}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {dates.map((date, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.dateItem,
+                  date.isToday && styles.dateItemActive
+                ]}
+                onPress={() => handleDateSelect(date.date)}
+              >
+                <Text style={[
+                  styles.dateDay,
+                  date.isToday && styles.dateDayActive
+                ]}>{date.day}</Text>
+                <Text style={[
+                  styles.dateNumber,
+                  date.isToday && styles.dateNumberActive
+                ]}>{date.date}</Text>
+                {date.isToday && <View style={styles.dateDot} />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        {getFoodsByMeal(selectedMeal).length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="restaurant-outline" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyText}>还没有记录{mealTypes.find(m => m.key === selectedMeal)?.label}</Text>
+        {/* 餐食切换标签 */}
+        <View style={styles.mealTabs}>
+          {mealTypes.map((meal) => (
             <TouchableOpacity
-              style={styles.addFirstButton}
-              onPress={() => setShowAddFood(true)}
+              key={meal.key}
+              style={styles.mealTab}
+              onPress={() => setSelectedMeal(meal.key as any)}
             >
-              <Text style={styles.addFirstText}>添加第一个食物</Text>
+              <Text style={[
+                styles.mealTabText,
+                selectedMeal === meal.key && styles.mealTabTextActive
+              ]}>{meal.label}</Text>
+              <View style={[
+                styles.mealTabIndicator,
+                selectedMeal === meal.key && styles.mealTabIndicatorActive
+              ]} />
             </TouchableOpacity>
-          </View>
-        ) : (
-          getFoodsByMeal(selectedMeal).map((food) => (
-            <View key={food.id} style={styles.foodItem}>
-              <View style={styles.foodInfo}>
-                <Text style={styles.foodName}>{food.name}</Text>
-                <Text style={styles.foodServing}>{food.serving}</Text>
-              </View>
-              <View style={styles.foodNutrients}>
-                <Text style={styles.foodCalories}>{food.calories} kcal</Text>
-                <Text style={styles.foodMacros}>P:{food.protein}g C:{food.carbs}g F:{food.fat}g</Text>
-              </View>
+          ))}
+        </View>
+
+        {/* 摄入总计 */}
+        <View style={styles.intakeSummary}>
+          <Text style={styles.intakeLabel}>{mealTypes.find(m => m.key === selectedMeal)?.label}摄入</Text>
+          <Text style={styles.intakeCalories}>
+            {getFoodsByMeal(selectedMeal).reduce((sum, food) => sum + food.calories, 0)}
+            <Text style={styles.intakeUnit}> kcal</Text>
+          </Text>
+        </View>
+
+        {/* 食物列表 */}
+        <View style={styles.foodList}>
+          {getFoodsByMeal(selectedMeal).length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>还没有记录{mealTypes.find(m => m.key === selectedMeal)?.label}</Text>
               <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => {
-                  Alert.alert(
-                    '删除食物',
-                    `确定要删除${food.name}吗？`,
-                    [
-                      { text: '取消', style: 'cancel' },
-                      { text: '删除', style: 'destructive', onPress: () => handleDeleteFood(food.id) }
-                    ]
-                  );
-                }}
+                style={styles.addFirstButton}
+                onPress={() => setShowAddFood(true)}
               >
-                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                <Text style={styles.addFirstText}>添加食物</Text>
               </TouchableOpacity>
             </View>
-          ))
-        )}
+          ) : (
+            getFoodsByMeal(selectedMeal).map((food) => (
+              <View key={food.id} style={styles.foodItem}>
+                <View style={styles.foodIcon}>
+                  <Text style={styles.foodEmoji}>{foodIcons[food.name as keyof typeof foodIcons] || '🍽️'}</Text>
+                </View>
+                <View style={styles.foodInfo}>
+                  <Text style={styles.foodName}>{food.name}</Text>
+                  <Text style={styles.foodDetails}>{food.serving} · {food.protein}g 蛋白质</Text>
+                </View>
+                <View style={styles.foodCaloriesContainer}>
+                  <Text style={styles.foodCalories}>{food.calories}</Text>
+                  <Text style={styles.foodUnit}>kcal</Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
       </ScrollView>
+
+      {/* 悬浮添加按钮 */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowAddFood(true)}
+      >
+        <LinearGradient
+          colors={['#4ABAB8', '#389BA2']}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={24} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* 添加食物模态框 */}
       <Modal
@@ -332,7 +498,7 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
         presentationStyle="pageSheet"
         onRequestClose={() => setShowAddFood(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: '#F8FAFB' }]}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAddFood(false)}>
               <Text style={styles.modalCancel}>取消</Text>
@@ -347,23 +513,23 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>食物名称 *</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.backgroundCard, color: colors.text }]}
+                style={styles.input}
                 value={newFood.name}
                 onChangeText={(text) => setNewFood({...newFood, name: text})}
                 placeholder="请输入食物名称"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor="#9CA3AF"
               />
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>热量 (kcal) *</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.backgroundCard, color: colors.text }]}
+                style={styles.input}
                 value={newFood.calories}
                 onChangeText={(text) => setNewFood({...newFood, calories: text})}
                 placeholder="0"
                 keyboardType="numeric"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor="#9CA3AF"
               />
             </View>
 
@@ -371,24 +537,24 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.inputLabel}>蛋白质 (g)</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.backgroundCard, color: colors.text }]}
+                  style={styles.input}
                   value={newFood.protein}
                   onChangeText={(text) => setNewFood({...newFood, protein: text})}
                   placeholder="0"
                   keyboardType="numeric"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 16 }]}>
                 <Text style={styles.inputLabel}>碳水 (g)</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.backgroundCard, color: colors.text }]}
+                  style={styles.input}
                   value={newFood.carbs}
                   onChangeText={(text) => setNewFood({...newFood, carbs: text})}
                   placeholder="0"
                   keyboardType="numeric"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
             </View>
@@ -397,23 +563,23 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.inputLabel}>脂肪 (g)</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.backgroundCard, color: colors.text }]}
+                  style={styles.input}
                   value={newFood.fat}
                   onChangeText={(text) => setNewFood({...newFood, fat: text})}
                   placeholder="0"
                   keyboardType="numeric"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 16 }]}>
                 <Text style={styles.inputLabel}>分量</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.backgroundCard, color: colors.text }]}
+                  style={styles.input}
                   value={newFood.serving}
                   onChangeText={(text) => setNewFood({...newFood, serving: text})}
                   placeholder="1份"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
             </View>
@@ -427,252 +593,416 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8FAFB',
   },
+
+  // 顶部渐变头部
   headerGradient: {
     paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  headerContent: {
-    flex: 1,
-  },
-  headerTop: {
+
+  navBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+
+  navTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
-  caloriesOverview: {
+
+  // 仪表盘
+  dashboard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    paddingHorizontal: 8,
   },
-  caloriesCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+
+  circularProgress: {
+    width: 128,
+    height: 128,
+    marginRight: 32,
+  },
+
+  progressRing: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
-  caloriesCurrent: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+
+  progressRingInner: {
+    alignItems: 'center',
   },
-  caloriesGoal: {
+
+  progressSmallText: {
     fontSize: 12,
-    color: '#6B7280',
-  },
-  caloriesInfo: {
-    flex: 1,
-  },
-  caloriesTitle: {
-    fontSize: 16,
-    color: '#374151',
+    color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 4,
   },
-  caloriesPercentage: {
-    fontSize: 14,
-    color: '#1F2937',
-    fontWeight: '600',
+
+  progressBigText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  macrosContainer: {
+
+  progressBars: {
+    flex: 1,
     gap: 12,
   },
-  macroItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  macroLabel: {
-    width: 60,
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  macroProgress: {
-    flex: 1,
-    height: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  macroFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  macroValue: {
-    width: 80,
-    fontSize: 12,
-    color: '#374151',
-    textAlign: 'right',
-  },
-  mealTabs: {
-    flexDirection: 'row',
-    marginHorizontal: 24,
-    marginTop: 24,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 16,
-    padding: 4,
-  },
-  mealTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+
+  progressItem: {
     gap: 4,
   },
-  mealTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  foodsList: {
-    flex: 1,
-    marginHorizontal: 24,
-    marginTop: 24,
-  },
-  foodsHeader: {
+
+  progressLabel: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+
+  progressLabelText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+
+  progressValueText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+
+  progressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 3,
+  },
+
+  // 主要内容区域
+  mainContent: {
+    flex: 1,
+    marginTop: -16,
+    paddingTop: 16,
+  },
+
+  // 日期选择器
+  dateSelector: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
     marginBottom: 16,
   },
-  foodsTitle: {
+
+  dateItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+
+  dateItemActive: {
+    backgroundColor: '#4ABAB8',
+    shadowColor: '#4ABAB8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  dateDay: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+
+  dateDayActive: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+
+  dateNumber: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+
+  dateNumberActive: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+
+  dateDot: {
+    width: 4,
+    height: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 2,
+    marginTop: 4,
+  },
+
+  // 餐食标签
+  mealTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 8,
+    gap: 24,
+  },
+
+  mealTab: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+
+  mealTabText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+
+  mealTabTextActive: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4ABAB8',
+  },
+
+  mealTabIndicator: {
+    width: 20,
+    height: 4,
+    borderRadius: 2,
+  },
+
+  mealTabIndicatorActive: {
+    backgroundColor: '#4ABAB8',
+  },
+
+  // 摄入总结
+  intakeSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+
+  intakeLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+
+  intakeCalories: {
+    fontSize: 20,
+    fontWeight: '800',
     color: '#1F2937',
   },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  intakeUnit: {
+    fontSize: 12,
+    fontWeight: 'normal',
+    color: '#9CA3AF',
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+
+  // 食物列表
+  foodList: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+    gap: 12,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  addFirstButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  addFirstText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+
   foodItem: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#F9FAFB',
   },
+
+  foodIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+
+  foodEmoji: {
+    fontSize: 24,
+  },
+
   foodInfo: {
-    flex: 2,
-    marginRight: 12,
+    flex: 1,
   },
+
   foodName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 4,
   },
-  foodServing: {
+
+  foodDetails: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#9CA3AF',
   },
-  foodNutrients: {
-    flex: 1,
+
+  foodCaloriesContainer: {
     alignItems: 'flex-end',
   },
+
   foodCalories: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4ABAB8',
+  },
+
+  foodUnit: {
+    fontSize: 10,
+    color: '#9CA3AF',
+  },
+
+  // 空状态
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+
+  emptyText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
+    color: '#9CA3AF',
+    marginBottom: 16,
   },
-  foodMacros: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
+
+  addFirstButton: {
+    backgroundColor: '#4ABAB8',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
   },
-  deleteButton: {
-    padding: 8,
-    marginLeft: 8,
+
+  addFirstText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
+
+  // 悬浮按钮
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    shadowColor: '#4ABAB8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  fabGradient: {
+    flex: 1,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // 模态框
   modalContainer: {
     flex: 1,
   },
+
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+
   modalCancel: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#9CA3AF',
   },
+
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: '#1F2937',
   },
+
   modalSave: {
     fontSize: 16,
-    color: '#10B981',
+    color: '#4ABAB8',
     fontWeight: '600',
   },
+
   modalContent: {
     padding: 24,
   },
+
   inputGroup: {
     marginBottom: 20,
   },
+
   inputRow: {
     flexDirection: 'row',
+    gap: 16,
     marginBottom: 20,
   },
+
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 8,
   },
+
   input: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -680,5 +1010,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+    backgroundColor: '#FFFFFF',
+    color: '#1F2937',
   },
 });

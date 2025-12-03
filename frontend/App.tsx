@@ -13,7 +13,8 @@ import RegisterScreen from './src/screens/RegisterScreen';
 // 主要功能屏幕
 import HomeScreen from './src/screens/main/HomeScreen';
 import NutritionScreen from './src/screens/main/NutritionScreen';
-import WorkoutScreen from './src/screens/main/WorkoutScreen';
+import SportsTrainingScreen from './src/screens/main/SportsTrainingScreen';
+import CourseCenterScreen from './src/screens/main/CourseCenterScreen';
 import CommunityScreen from './src/screens/main/CommunityScreen';
 import ShopScreen from './src/screens/main/ShopScreen';
 import AIAssistantScreen from './src/screens/main/AIAssistantScreen';
@@ -34,8 +35,11 @@ export type RootStackParamList = {
   // 主应用流程
   MainTabs: undefined;
 
-  // 营养记录页面
+  // 快捷功能页面
   Nutrition: undefined;
+  Workout: undefined;
+  SportsTraining: undefined;
+  CourseCenter: undefined;
 
   // 旧版屏幕（向后兼容）
   HealthTrackerDashboard: undefined;
@@ -80,7 +84,7 @@ function MainTabs() {
               iconName = focused ? 'storefront' : 'storefront-outline';
               break;
             case 'AI':
-              iconName = focused ? 'chatbot' : 'chatbot-outline';
+              iconName = focused ? 'chatbubble' : 'chatbubble-outline';
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
@@ -144,7 +148,7 @@ function MainTabs() {
       />
       <Tab.Screen
         name="Workout"
-        component={WorkoutScreen}
+        component={CourseCenterScreen}
         options={{
           title: '运动',
           headerShown: true,
@@ -236,12 +240,20 @@ export default function App() {
             }}
           />
 
-          {/* 营养记录页面 */}
+          {/* 快捷功能页面 */}
           <Stack.Screen
             name="Nutrition"
             component={NutritionScreen}
             options={{
               title: '营养记录',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="SportsTraining"
+            component={SportsTrainingScreen}
+            options={{
+              title: '运动健身',
               headerShown: false
             }}
           />

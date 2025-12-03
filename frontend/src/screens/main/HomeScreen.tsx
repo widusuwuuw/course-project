@@ -282,6 +282,9 @@ export default function HomeScreen() {
                   // 实现页面跳转
                   if (action.route === 'Nutrition') {
                     navigation.navigate('Nutrition');
+                  } else if (action.route === 'Workout') {
+                    // 跳转到运动健身页面
+                    navigation.navigate('SportsTraining');
                   } else {
                     Alert.alert(
                       '功能开发中',

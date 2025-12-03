@@ -207,7 +207,7 @@ export default function AIAssistantScreen() {
             colors={['#4ABAB8', '#B8E5E5']}
             style={styles.avatar}
           >
-            <Ionicons name="chatbot" size={20} color="#FFFFFF" />
+            <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
           </LinearGradient>
         </View>
       )}
@@ -338,7 +338,7 @@ export default function AIAssistantScreen() {
                   colors={['#4ABAB8', '#B8E5E5']}
                   style={styles.avatar}
                 >
-                  <Ionicons name="chatbot" size={20} color="#FFFFFF" />
+                  <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
                 </LinearGradient>
               </View>
               <View style={styles.loadingBubble}>

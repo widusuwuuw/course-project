@@ -33,7 +33,7 @@ interface Course {
   tags: string[];
 }
 
-export default function WorkoutScreen() {
+export default function CourseCenterScreen() {
   const { colors } = useTheme();
 
   const [selectedCategory, setSelectedCategory] = useState('全部');

@@ -26,7 +26,9 @@
       "Bash(.venvScriptsActivate.ps1)",
       "Bash(.venv/Scripts/activate)",
       "Bash(pip install:*)",
-      "Bash(uvicorn:*)"
+      "Bash(uvicorn:*)",
+      "WebFetch(domain:gemini.google.com)",
+      "Bash(npm run typecheck:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

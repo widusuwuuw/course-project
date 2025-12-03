@@ -30,3 +30,6 @@ build/
 
 # PDF
 *.pdf
+
+.claude/settings.local.json
+photos/
