@@ -17,6 +17,9 @@ import BloodRoutineScreen from './BloodRoutineScreen';
 import LiverFunctionScreen from './LiverFunctionScreen';
 import KidneyFunctionScreen from './KidneyFunctionScreen';
 import OtherMetricsScreen from './OtherMetricsScreen';
+import LipidMetabolismScreen from './LipidMetabolismScreen';
+import GlucoseMetabolismScreen from './GlucoseMetabolismScreen';
+import ElectrolyteScreen from './ElectrolyteScreen';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -56,7 +59,7 @@ interface AnalysisResponse {
   };
 }
 
-type ScreenType = 'main' | 'blood-routine' | 'liver-function' | 'kidney-function' | 'other-metrics' | 'results';
+type ScreenType = 'main' | 'blood-routine' | 'liver-function' | 'kidney-function' | 'other-metrics' | 'lipid-metabolism' | 'glucose-metabolism' | 'electrolyte' | 'results';
 
 export default function LabAnalysisScreen() {
   const { colors } = useTheme();
@@ -128,7 +131,7 @@ export default function LabAnalysisScreen() {
         >
           <View style={styles.cardHeader}>
             <View style={styles.iconContainer}>
-              <Ionicons name="water-outline" size={32} color="#FFFFFF" />
+              <Ionicons name="color-filter-outline" size={32} color="#FFFFFF" />
             </View>
             <View style={styles.cardTextContainer}>
               <Text style={styles.cardTitle}>血常规检测</Text>
@@ -207,6 +210,93 @@ export default function LabAnalysisScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* 血脂代谢检测卡片 */}
+        <TouchableOpacity
+          style={[styles.categoryCard, { backgroundColor: '#059669' }]}
+          onPress={() => setCurrentScreen('lipid-metabolism')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="heart-outline" size={32} color="#FFFFFF" />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.cardTitle}>血脂代谢检测</Text>
+              <Text style={styles.cardSubtitle}>7项血脂指标</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+          </View>
+          <View style={styles.cardDescription}>
+            <Text style={styles.descriptionText}>
+              总胆固醇、甘油三酯、高/低密度脂蛋白等心血管健康关键指标评估
+            </Text>
+          </View>
+          <View style={styles.cardFooter}>
+            <View style={styles.metricCount}>
+              <Ionicons name="analytics-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.metricCountText}>7项指标</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* 血糖代谢检测卡片 */}
+        <TouchableOpacity
+          style={[styles.categoryCard, { backgroundColor: '#DC2626' }]}
+          onPress={() => setCurrentScreen('glucose-metabolism')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="cube-outline" size={32} color="#FFFFFF" />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.cardTitle}>血糖代谢检测</Text>
+              <Text style={styles.cardSubtitle}>5项血糖指标</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+          </View>
+          <View style={styles.cardDescription}>
+            <Text style={styles.descriptionText}>
+              空腹血糖、糖化血红蛋白、胰岛素等糖尿病风险评估重要指标检测
+            </Text>
+          </View>
+          <View style={styles.cardFooter}>
+            <View style={styles.metricCount}>
+              <Ionicons name="analytics-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.metricCountText}>5项指标</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* 电解质检测卡片 */}
+        <TouchableOpacity
+          style={[styles.categoryCard, { backgroundColor: '#7C3AED' }]}
+          onPress={() => setCurrentScreen('electrolyte')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="flash-outline" size={32} color="#FFFFFF" />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.cardTitle}>电解质检测</Text>
+              <Text style={styles.cardSubtitle}>6项电解质指标</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+          </View>
+          <View style={styles.cardDescription}>
+            <Text style={styles.descriptionText}>
+              钠、钾、钙、镁等6项关键离子检测，评估体内水电解质平衡状况
+            </Text>
+          </View>
+          <View style={styles.cardFooter}>
+            <View style={styles.metricCount}>
+              <Ionicons name="analytics-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.metricCountText}>6项指标</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {/* 其他指标检测卡片 */}
         <TouchableOpacity
           style={[styles.categoryCard, { backgroundColor: '#8B5CF6' }]}
@@ -244,8 +334,8 @@ export default function LabAnalysisScreen() {
           <Text style={styles.summaryTitle}>检测总览</Text>
         </View>
         <Text style={styles.summaryText}>
-          系统共支持<Text style={{fontWeight: 'bold'}}>29</Text>项医学检测指标分析，
-          涵盖血液常规、肝功能、肾功能等重要健康指标。
+          系统共支持<Text style={{fontWeight: 'bold'}}>47</Text>项医学检测指标分析，
+          涵盖血液常规、肝功能、肾功能、血脂代谢、血糖代谢、电解质等七大健康模块。
         </Text>
       </View>
     </ScrollView>
@@ -381,6 +471,27 @@ export default function LabAnalysisScreen() {
     case 'other-metrics':
       return (
         <OtherMetricsScreen
+          onBack={handleBack}
+          onAnalysisComplete={handleAnalysisComplete}
+        />
+      );
+    case 'lipid-metabolism':
+      return (
+        <LipidMetabolismScreen
+          onBack={handleBack}
+          onAnalysisComplete={handleAnalysisComplete}
+        />
+      );
+    case 'glucose-metabolism':
+      return (
+        <GlucoseMetabolismScreen
+          onBack={handleBack}
+          onAnalysisComplete={handleAnalysisComplete}
+        />
+      );
+    case 'electrolyte':
+      return (
+        <ElectrolyteScreen
           onBack={handleBack}
           onAnalysisComplete={handleAnalysisComplete}
         />

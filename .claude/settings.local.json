@@ -29,7 +29,8 @@
       "Bash(uvicorn:*)",
       "WebFetch(domain:gemini.google.com)",
       "Bash(npm run typecheck:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebSearch"
     ]
   },
   "enableAllProjectMcpServers": true,

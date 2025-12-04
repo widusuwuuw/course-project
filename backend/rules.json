@@ -993,11 +993,1039 @@
           ]
         }
       ]
+    },
+    "tc": {
+      "name": "总胆固醇",
+      "name_en": "Total Cholesterol",
+      "unit": "mmol/L",
+      "reference_limit": 5.2,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [2.8, 5.2],
+          "high_threshold": 5.2,
+          "description": "成人总胆固醇正常范围 (基于2024年AHA/ACC指南)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 5.2,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypercholesterolemia",
+          "message": "总胆固醇升高，心脑血管疾病风险增加",
+          "reference": {
+            "source": "American Heart Association / American College of Cardiology",
+            "title": "2024 ACC/AHA Guideline Update: Primary Prevention of Cardiovascular Disease",
+            "evidence_level": "A"
+          },
+          "recommendations": [
+            "控制饱和脂肪酸摄入，避免反式脂肪酸",
+            "增加膳食纤维摄入，多吃全谷物、蔬菜水果",
+            "规律有氧运动，每周至少150分钟中等强度运动",
+            "控制体重，维持健康BMI",
+            "戒烟限酒，减少心血管风险因素",
+            "定期复查血脂，必要时药物治疗"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 6.2,
+          "condition_type": "very_high",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Severe_Hypercholesterolemia",
+          "message": "总胆固醇严重升高，心脑血管疾病高危",
+          "recommendations": [
+            "立即就医进行心血管风险评估",
+            "严格控制饮食，低脂、低胆固醇饮食",
+            "强化运动干预，每周至少300分钟中等强度运动",
+            "考虑降脂药物治疗（如他汀类药物）",
+            "监测血糖、血压等其他心血管危险因素"
+          ]
+        }
+      ]
+    },
+    "tg": {
+      "name": "甘油三酯",
+      "name_en": "Triglycerides",
+      "unit": "mmol/L",
+      "reference_limit": 1.7,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [0.5, 1.7],
+          "high_threshold": 1.7,
+          "description": "成人甘油三酯正常范围 (基于2024年中国成人血脂异常防治指南)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 1.7,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypertriglyceridemia",
+          "message": "甘油三酯升高，心血管疾病和胰腺炎风险增加",
+          "reference": {
+            "source": "中华医学会心血管病学分会",
+            "title": "中国成人血脂异常防治指南(2023年修订版)",
+            "evidence_level": "A"
+          },
+          "recommendations": [
+            "严格控制简单碳水化合物摄入，减少糖分",
+            "限制饮酒，最好完全戒酒",
+            "增加Omega-3脂肪酸摄入（深海鱼、亚麻籽油）",
+            "规律运动，重点进行有氧运动",
+            "控制总热量摄入，减重5-10%可显著降低甘油三酯"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 5.6,
+          "condition_type": "very_high",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Severe_Hypertriglyceridemia",
+          "message": "甘油三酯严重升高，胰腺炎高危风险",
+          "recommendations": [
+            "紧急就医，评估胰腺炎风险",
+            "立即极低脂饮食，脂肪摄入<15%",
+            "完全戒酒，避免任何含酒精饮品",
+            "可能需要药物降甘油三酯治疗（贝特类药物）",
+            "监测淀粉酶、脂肪酶等胰腺功能指标"
+          ]
+        }
+      ]
+    },
+    "hdl_c": {
+      "name": "高密度脂蛋白胆固醇",
+      "name_en": "HDL Cholesterol",
+      "unit": "mmol/L",
+      "reference_limit": 1.0,
+      "gender_specific": {
+        "male": {
+          "normal_range": [1.0, 2.0],
+          "low_threshold": 1.0,
+          "description": "男性HDL胆固醇正常范围"
+        },
+        "female": {
+          "normal_range": [1.2, 2.5],
+          "low_threshold": 1.2,
+          "description": "女性HDL胆固醇正常范围"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 1.0,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Low_HDL_C",
+          "message": "高密度脂蛋白胆固醇偏低，心血管保护作用减弱",
+          "reference": {
+            "source": "中华医学会心血管病学分会",
+            "title": "中国成人血脂异常防治指南(2023年修订版)",
+            "evidence_level": "A"
+          },
+          "recommendations": [
+            "增加有氧运动，每周至少150分钟中等强度运动",
+            "戒烟，吸烟显著降低HDL水平",
+            "增加单不饱和脂肪酸摄入（橄榄油、坚果）",
+            "减重，超重者减重可提高HDL水平",
+            "适量饮酒（如已饮酒）可适度提高HDL"
+          ]
+        }
+      ]
+    },
+    "ldl_c": {
+      "name": "低密度脂蛋白胆固醇",
+      "name_en": "LDL Cholesterol",
+      "unit": "mmol/L",
+      "reference_limit": 3.4,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [1.8, 3.4],
+          "high_threshold": 3.4,
+          "description": "成人LDL胆固醇正常范围 (基于2024年AHA/ACC指南)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 3.4,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "High_LDL_C",
+          "message": "低密度脂蛋白胆固醇升高，动脉粥样硬化风险显著增加",
+          "reference": {
+            "source": "American Heart Association / American College of Cardiology",
+            "title": "2024 ACC/AHA Guideline Update: Primary Prevention of Cardiovascular Disease",
+            "evidence_level": "A"
+          },
+          "recommendations": [
+            "严格控制饱和脂肪和反式脂肪摄入",
+            "增加可溶性膳食纤维（燕麦、苹果、豆类）",
+            "植物固醇和stanols补充（如植物甾醇强化食品）",
+            "强化生活方式干预，必要时启动他汀类药物治疗",
+            "根据整体心血管风险确定个体化LDL目标值"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 4.9,
+          "condition_type": "very_high",
+          "status": "abnormal",
+          "risk_level": "critical",
+          "abnormal_tag": "Very_High_LDL_C",
+          "message": "LDL胆固醇严重升高，心血管疾病极高危",
+          "recommendations": [
+            "立即心血管专科就诊",
+            "强化降脂治疗，可能需要联合用药",
+            "极低脂饮食配合药物治疗",
+            "全面心血管风险评估（包括颈动脉超声等）",
+            "定期监测肝功能、肌酸激酶等药物安全性指标"
+          ]
+        }
+      ]
+    },
+    "vldl_c": {
+      "name": "极低密度脂蛋白胆固醇",
+      "name_en": "VLDL Cholesterol",
+      "unit": "mmol/L",
+      "reference_limit": 0.8,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [0.2, 0.8],
+          "high_threshold": 0.8,
+          "description": "成人VLDL胆固醇正常范围"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 0.8,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "High_VLDL_C",
+          "message": "极低密度脂蛋白胆固醇升高，与甘油三酯升高相关",
+          "recommendations": [
+            "重点控制甘油三酯水平",
+            "低糖低脂饮食，减少精制碳水化合物",
+            "加强运动，减少内脏脂肪",
+            "监测胰岛素抵抗和代谢综合征指标"
+          ]
+        }
+      ]
+    },
+    "apolipoprotein_a": {
+      "name": "载脂蛋白A1",
+      "name_en": "Apolipoprotein A1",
+      "unit": "g/L",
+      "reference_limit": 1.2,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [1.2, 2.0],
+          "low_threshold": 1.2,
+          "description": "成人载脂蛋白A1正常范围"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 1.2,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Low_Apo_A1",
+          "message": "载脂蛋白A1偏低，HDL功能和心血管保护能力下降",
+          "recommendations": [
+            "增强心血管健康生活方式",
+            "规律有氧运动提高HDL功能",
+            "抗氧化营养素补充（维生素C、E）",
+            "定期监测心血管风险指标"
+          ]
+        }
+      ]
+    },
+    "apolipoprotein_b": {
+      "name": "载脂蛋白B",
+      "name_en": "Apolipoprotein B",
+      "unit": "g/L",
+      "reference_limit": 1.1,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [0.6, 1.1],
+          "high_threshold": 1.1,
+          "description": "成人载脂蛋白B正常范围"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 1.1,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "High_Apo_B",
+          "message": "载脂蛋白B升高，致动脉粥样硬化脂蛋白颗粒增加",
+          "recommendations": [
+            "积极降脂治疗，重点关注LDL控制",
+            "评估Apo B/Apo A1比值，优化心血管风险评估",
+            "强化生活方式干预配合必要药物治疗",
+            "定期监测动脉粥样硬化进展情况"
+          ]
+        }
+      ]
+    },
+    "glu": {
+      "name": "空腹血糖",
+      "name_en": "Fasting Blood Glucose",
+      "unit": "mmol/L",
+      "reference_limit": 6.1,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [3.9, 6.1],
+          "high_threshold": 6.1,
+          "description": "成人空腹血糖正常范围 (基于2024年ADA标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 6.1,
+          "condition_type": "impaired",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Impaired_Fasting_Glucose",
+          "message": "空腹血糖受损，糖尿病前期状态",
+          "reference": {
+            "source": "American Diabetes Association",
+            "title": "Standards of Care in Diabetes—2024",
+            "evidence_level": "A"
+          },
+          "recommendations": [
+            "控制饮食，减少精制碳水化合物摄入",
+            "增加运动量，每周至少150分钟中等强度运动",
+            "控制体重，减重5-7%可显著降低糖尿病风险",
+            "定期监测血糖，每3-6个月复查一次",
+            "监测糖化血红蛋白，评估长期血糖控制"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 7.0,
+          "condition_type": "diabetes",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Diabetes_Mellitus",
+          "message": "空腹血糖达到糖尿病诊断标准",
+          "recommendations": [
+            "立即就医进行糖尿病确诊检查",
+            "严格饮食控制，低GI食物为主",
+            "强化运动干预，规律有氧运动",
+            "考虑降糖药物治疗（二甲双胍等）",
+            "监测并发症：眼底、肾功能、神经病变"
+          ]
+        }
+      ]
+    },
+    "hba1c": {
+      "name": "糖化血红蛋白",
+      "name_en": "Hemoglobin A1c (HbA1c)",
+      "unit": "%",
+      "reference_limit": 6.5,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [4.0, 6.5],
+          "high_threshold": 6.5,
+          "description": "成人糖化血红蛋白正常范围 (基于2024年ADA标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 5.7,
+          "condition_type": "prediabetes",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Prediabetes_HbA1c",
+          "message": "糖化血红蛋白升高，糖尿病前期风险",
+          "reference": {
+            "source": "American Diabetes Association",
+            "title": "Standards of Care in Diabetes—2024",
+            "evidence_level": "A"
+          },
+          "recommendations": [
+            "生活方式干预，饮食控制和规律运动",
+            "减重7%以上可预防或延缓糖尿病发生",
+            "每3个月复查HbA1c监测进展",
+            "评估心血管风险因素（血压、血脂）",
+            "考虑使用二甲双胍预防（高危人群）"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 6.5,
+          "condition_type": "diabetes",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Diabetes_HbA1c",
+          "message": "糖化血红蛋白达到糖尿病诊断标准",
+          "recommendations": [
+            "立即内分泌科就诊，制定个体化治疗方案",
+            "血糖控制目标：个体化HbA1c目标（通常<7.0%）",
+            "综合管理：饮食、运动、药物、教育",
+            "定期监测并发症和心血管风险",
+            "建立自我血糖监测和管理计划"
+          ]
+        }
+      ]
+    },
+    "fasting_insulin": {
+      "name": "空腹胰岛素",
+      "name_en": "Fasting Insulin",
+      "unit": "μIU/mL",
+      "reference_limit": 25,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [5, 25],
+          "high_threshold": 25,
+          "description": "成人空腹胰岛素正常范围"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 25,
+          "condition_type": "hyperinsulinemia",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hyperinsulinemia",
+          "message": "空腹胰岛素升高，提示胰岛素抵抗",
+          "recommendations": [
+            "评估胰岛素抵抗程度（计算HOMA-IR指数）",
+            "改善胰岛素敏感性：运动和减重",
+            "低胰岛素饮食，减少精制碳水化物",
+            "监测血糖和糖尿病风险",
+            "考虑药物改善胰岛素敏感性"
+          ]
+        }
+      ]
+    },
+    "c_peptide": {
+      "name": "C肽",
+      "name_en": "C-Peptide",
+      "unit": "ng/mL",
+      "reference_limit": 2.0,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [0.8, 2.0],
+          "high_threshold": 2.0,
+          "description": "成人C肽正常范围"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 0.5,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Low_C_Peptide",
+          "message": "C肽偏低，提示胰岛β细胞功能不足",
+          "recommendations": [
+            "评估胰腺β细胞功能",
+            "考虑胰岛素分泌不足可能",
+            "血糖监测和糖尿病风险评估",
+            "内分泌科就诊评估胰腺功能",
+            "必要时胰岛素替代治疗"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 2.0,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "High_C_Peptide",
+          "message": "C肽升高，提示胰岛素抵抗或高胰岛素血症",
+          "recommendations": [
+            "评估胰岛素抵抗程度",
+            "生活方式干预改善胰岛素敏感性",
+            "体重管理，减少内脏脂肪",
+            "定期监测血糖和胰岛功能"
+          ]
+        }
+      ]
+    },
+    "homa_ir": {
+      "name": "胰岛素抵抗指数",
+      "name_en": "HOMA-IR",
+      "unit": "指数",
+      "reference_limit": 2.5,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [0.5, 2.5],
+          "high_threshold": 2.5,
+          "description": "成人HOMA-IR正常范围 (计算公式: 空腹血糖×空腹胰岛素/22.5)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "gt",
+          "value": 2.5,
+          "condition_type": "moderate_resistance",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Moderate_Insulin_Resistance",
+          "message": "胰岛素抵抗，代谢综合征风险增加",
+          "recommendations": [
+            "强化生活方式干预：运动+饮食控制",
+            "减重10-15%可显著改善胰岛素敏感性",
+            "地中海饮食或低碳水化合物饮食",
+            "增加纤维素摄入，减少精制糖类",
+            "考虑二甲双胍治疗（如适用）"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 4.0,
+          "condition_type": "severe_resistance",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Severe_Insulin_Resistance",
+          "message": "严重胰岛素抵抗，糖尿病和心血管疾病高危",
+          "recommendations": [
+            "立即内分泌科就诊",
+            "综合代谢异常管理计划",
+            "药物治疗：二甲双胍+GLP-1受体激动剂等",
+            "体重管理：医疗营养治疗+行为干预",
+            "密切监测心血管并发症"
+          ]
+        }
+      ]
+    },
+    "na": {
+      "name": "钠",
+      "name_en": "Sodium",
+      "unit": "mmol/L",
+      "reference_limit": 145,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [135, 145],
+          "low_threshold": 135,
+          "high_threshold": 145,
+          "description": "成人钠离子正常范围 (基于CLSI 2024标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 135,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Hyponatremia",
+          "message": "低钠血症，可能影响神经功能和意识状态",
+          "recommendations": [
+            "查找低钠原因（如利尿剂、心衰、肝肾疾病）",
+            "避免过度饮水，特别是运动后",
+            "监测神经系统症状（头痛、意识模糊）",
+            "严重低钠需紧急就医，可能需要静脉补钠",
+            "定期复查电解质，调整相关治疗方案"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 145,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypernatremia",
+          "message": "高钠血症，提示脱水或肾功能异常",
+          "recommendations": [
+            "适当增加水分摄入",
+            "查找高钠原因（饮水不足、发热、腹泻）",
+            "监测血压和心功能",
+            "避免高盐饮食，每日盐摄入<5g",
+            "定期监测肾功能和电解质"
+          ]
+        }
+      ]
+    },
+    "k": {
+      "name": "钾",
+      "name_en": "Potassium",
+      "unit": "mmol/L",
+      "reference_limit": 5.0,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [3.5, 5.0],
+          "low_threshold": 3.5,
+          "high_threshold": 5.0,
+          "description": "成人钾离子正常范围 (基于CLSI 2024标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 3.5,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Hypokalemia",
+          "message": "低钾血症，可引起心律失常和肌肉无力",
+          "recommendations": [
+            "查找低钾原因（利尿剂、腹泻、呕吐）",
+            "增加富含钾食物（香蕉、橙子、土豆、菠菜）",
+            "监测心电图，警惕心律失常",
+            "避免使用影响血钾的药物",
+            "严重低钾需静脉补钾治疗"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 5.0,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Hyperkalemia",
+          "message": "高钾血症，可致心脏传导阻滞",
+          "recommendations": [
+            "立即查找高钾原因（肾衰竭、药物、组织损伤）",
+            "避免高钾食物（香蕉、橙子、番茄酱）",
+            "监测心电图和心律",
+            "停用保钾药物和钾补充剂",
+            "严重高钾需紧急治疗（钙剂、胰岛素、透析）"
+          ]
+        }
+      ]
+    },
+    "cl": {
+      "name": "氯",
+      "name_en": "Chloride",
+      "unit": "mmol/L",
+      "reference_limit": 106,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [98, 106],
+          "low_threshold": 98,
+          "high_threshold": 106,
+          "description": "成人氯离子正常范围 (基于CLSI 2024标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 98,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypochloremia",
+          "message": "低氯血症，可能与代谢性碱中毒相关",
+          "recommendations": [
+            "查找低氯原因（呕吐、利尿剂、肾功能异常）",
+            "监测血气分析和酸碱平衡",
+            "适当补充氯化钠（生理盐水）",
+            "纠正原发病因",
+            "定期复查电解质平衡"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 106,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hyperchloremia",
+          "message": "高氯血症，可能与代谢性酸中毒相关",
+          "recommendations": [
+            "查找高氯原因（脱水、肾功能异常）",
+            "监测血气分析和肾功能",
+            "适当限制氯化物摄入",
+            "纠正脱水和酸碱失衡",
+            "治疗原发疾病"
+          ]
+        }
+      ]
+    },
+    "ca": {
+      "name": "钙",
+      "name_en": "Calcium",
+      "unit": "mmol/L",
+      "reference_limit": 2.6,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [2.1, 2.6],
+          "low_threshold": 2.1,
+          "high_threshold": 2.6,
+          "description": "成人钙离子正常范围 (基于CLSI 2024标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 2.1,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypocalcemia",
+          "message": "低钙血症，可引起手足抽搐和心律失常",
+          "recommendations": [
+            "查找低钙原因（维生素D缺乏、甲状旁腺功能异常）",
+            "增加富含钙食物（奶制品、豆制品、绿叶蔬菜）",
+            "补充维生素D促进钙吸收",
+            "监测手足抽搐症状",
+            "严重低钙需静脉补充钙剂"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 2.6,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypercalcemia",
+          "message": "高钙血症，影响肾脏和心脏功能",
+          "recommendations": [
+            "查找高钙原因（甲状旁腺功能亢进、恶性肿瘤）",
+            "增加水分摄入促进钙排泄",
+            "限制钙和维生素D摄入",
+            "监测肾功能和心电图",
+            "治疗原发病因，必要时使用降钙药物"
+          ]
+        }
+      ]
+    },
+    "p": {
+      "name": "磷",
+      "name_en": "Phosphorus",
+      "unit": "mmol/L",
+      "reference_limit": 1.5,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [0.8, 1.5],
+          "low_threshold": 0.8,
+          "high_threshold": 1.5,
+          "description": "成人磷正常范围 (基于CLSI 2024标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 0.8,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypophosphatemia",
+          "message": "低磷血症，可引起肌肉无力",
+          "recommendations": [
+            "查找低磷原因（营养不良、吸收障碍）",
+            "增加富含磷食物（肉、鱼、奶、坚果）",
+            "监测肌肉功能和骨密度",
+            "补充磷制剂（如需要）",
+            "治疗原发疾病"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 1.5,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hyperphosphatemia",
+          "message": "高磷血症，常与肾功能不全相关",
+          "recommendations": [
+            "查找高磷原因（肾功能衰竭、甲状旁腺功能异常）",
+            "限制高磷食物（奶制品、坚果、可乐）",
+            "使用磷结合剂（肾功能不全患者）",
+            "监测血钙和甲状旁腺激素",
+            "治疗原发病因"
+          ]
+        }
+      ]
+    },
+    "mg": {
+      "name": "镁",
+      "name_en": "Magnesium",
+      "unit": "mmol/L",
+      "reference_limit": 1.1,
+      "gender_specific": {
+        "adult": {
+          "normal_range": [0.7, 1.1],
+          "low_threshold": 0.7,
+          "high_threshold": 1.1,
+          "description": "成人镁离子正常范围 (基于CLSI 2024标准)"
+        }
+      },
+      "conditions": [
+        {
+          "operator": "lt",
+          "value": 0.7,
+          "condition_type": "low",
+          "status": "abnormal",
+          "risk_level": "high",
+          "abnormal_tag": "Hypomagnesemia",
+          "message": "低镁血症，可引起心律失常和肌肉抽搐",
+          "recommendations": [
+            "查找低镁原因（营养不良、腹泻、利尿剂）",
+            "增加富含镁食物（坚果、全谷物、绿叶蔬菜）",
+            "补充镁剂（口服或静脉）",
+            "监测心电图和心律",
+            "纠正同时存在的低钾和低钙"
+          ]
+        },
+        {
+          "operator": "gt",
+          "value": 1.1,
+          "condition_type": "high",
+          "status": "abnormal",
+          "risk_level": "moderate",
+          "abnormal_tag": "Hypermagnesemia",
+          "message": "高镁血症，主要影响神经肌肉功能",
+          "recommendations": [
+            "查找高镁原因（肾功能衰竭、镁补充剂过量）",
+            "避免镁补充剂和含镁药物",
+            "监测神经肌肉功能和血压",
+            "严重高镁需钙剂拮抗治疗",
+            "治疗原发疾病（通常为肾功能问题）"
+          ]
+        }
+      ]
+    }
+  },
+  "cardiovascular_composite_rules": {
+    "ascvd_10_year_risk": {
+      "description": "10年ASCVD（动脉粥样硬化性心血管疾病）风险评估",
+      "source": "2018 ACC/AHA指南",
+      "reference": "2018 ACC/AHA/AACVPR/AAPA/ABC/ACPM/ADA/AGS/APhA/ASPC/NLA/PCNA Guideline on the Management of Blood Cholesterol",
+      "conditions": [
+        {
+          "name": "age_risk_enhancement",
+          "if": [
+            {"metric": "age", "operator": ">=", "value": 45, "gender": "male"},
+            {"metric": "age", "operator": ">=", "value": 55, "gender": "female"}
+          ],
+          "risk_level": "moderate",
+          "message": "年龄是心血管疾病的重要风险因素，建议加强血脂和血压管理",
+          "recommendations": [
+            "每年进行血脂和心血管健康检查",
+            "保持健康的生活方式，包括规律运动和均衡饮食",
+            "控制血压和血脂在理想范围内"
+          ]
+        },
+        {
+          "name": "high_ldl_risk",
+          "if": [
+            {"metric": "ldl_c", "operator": ">", "value": 4.9}
+          ],
+          "risk_level": "high",
+          "message": "LDL-C显著升高，心血管疾病风险极高",
+          "recommendations": [
+            "立即启动他汀类药物治疗",
+            "严格控制饮食中饱和脂肪和胆固醇摄入",
+            "增加有氧运动，每周至少150分钟",
+            "3-6个月后复查血脂"
+          ],
+          "evidence_level": "A"
+        },
+        {
+          "name": "metabolic_syndrome_cardiovascular_risk",
+          "if": [
+            {"and": [
+              {"metric": "tg", "operator": ">=", "value": 1.7},
+              {"metric": "hdl_c", "operator": "<", "value": 1.0, "gender": "male"},
+              {"metric": "hdl_c", "operator": "<", "value": 1.3, "gender": "female"}
+            ]}
+          ],
+          "risk_level": "high",
+          "message": "血脂异常模式提示代谢综合征，心血管疾病风险显著增加",
+          "recommendations": [
+            "全面评估心血管风险因素",
+            "强化生活方式干预：减重5-10%，规律运动",
+            "考虑使用贝特类药物降低甘油三酯",
+            "监测血糖和血压变化"
+          ]
+        }
+      ]
+    },
+    "atherogenic_index": {
+      "description": "致动脉粥样硬化指数评估",
+      "source": "Atherosclerosis期刊 2023",
+      "reference": "Atherogenic Index of Plasma (AIP) as a predictor of cardiovascular risk: A systematic review and meta-analysis",
+      "conditions": [
+        {
+          "name": "high_atherogenic_risk",
+          "if": [
+            {"calculate": "log(tg/hdl_c)", "operator": ">", "value": 0.24}
+          ],
+          "risk_level": "high",
+          "message": "致动脉粥样硬化指数升高，提示心血管疾病风险增加",
+          "recommendations": [
+            "重点关注LDL-C和HDL-C的比值改善",
+            "增加omega-3脂肪酸摄入",
+            "考虑使用复合他汀治疗",
+            "定期进行颈动脉超声检查"
+          ]
+        }
+      ]
+    }
+  },
+  "metabolic_syndrome_rules": {
+    "ncep_atp_iii_criteria": {
+      "description": "NCEP ATP III代谢综合征诊断标准（2001年修订）",
+      "source": "National Cholesterol Education Program (NCEP) Adult Treatment Panel III",
+      "reference": "Third Report of the National Cholesterol Education Program (NCEP) Expert Panel on Detection, Evaluation, and Treatment of High Blood Cholesterol in Adults (Adult Treatment Panel III) 2001",
+      "conditions": [
+        {
+          "name": "metabolic_syndrome_diagnosis",
+          "if": [
+            "or",
+            [
+              {"and": [
+                {"metric": "waist_circumference", "operator": ">=", "value": 90, "gender": "male"},
+                {"metric": "waist_circumference", "operator": ">=", "value": 80, "gender": "female"},
+                {"metric": "bp_systolic", "operator": ">=", "value": 130},
+                {"metric": "glu", "operator": ">=", "value": 6.1}
+              ]},
+              {"and": [
+                {"metric": "tg", "operator": ">=", "value": 1.7},
+                {"metric": "hdl_c", "operator": "<", "value": 1.0, "gender": "male"},
+                {"metric": "hdl_c", "operator": "<", "value": 1.3, "gender": "female"}
+              ]}
+            ]
+          ],
+          "risk_level": "high",
+          "message": "符合NCEP ATP III代谢综合征诊断标准，心血管疾病和糖尿病风险显著增加",
+          "recommendations": [
+            "减重5-10%作为首要治疗目标",
+            "每周至少150分钟中等强度有氧运动",
+            "采用地中海饮食或DASH饮食模式",
+            "严格控制血压、血糖和血脂",
+            "每3-6个月监测代谢指标"
+          ],
+          "evidence_level": "A"
+        }
+      ]
+    },
+    "idf_criteria_2024": {
+      "description": "IDF代谢综合征诊断标准（2024年中国更新版）",
+      "source": "中华医学会糖尿病学分会",
+      "reference": "中国代谢综合征诊断标准2024年版",
+      "conditions": [
+        {
+          "name": "idf_metabolic_syndrome",
+          "if": [
+            {"and": [
+              {"metric": "waist_circumference", "operator": ">=", "value": 90, "gender": "male"},
+              {"metric": "waist_circumference", "operator": ">=", "value": 85, "gender": "female"}
+            ]},
+            {"count": [
+              {"metric": "tg", "operator": ">=", "value": 1.7},
+              {"metric": "hdl_c", "operator": "<", "value": 1.0, "gender": "male"},
+              {"metric": "hdl_c", "operator": "<", "value": 1.3, "gender": "female"},
+              {"metric": "bp_systolic", "operator": ">=", "value": 130},
+              {"metric": "glu", "operator": ">=", "value": 6.1}
+            ], "operator": ">=", "value": 2}
+          ],
+          "risk_level": "high",
+          "message": "符合IDF（2024中国版）代谢综合征诊断标准，需要综合干预",
+          "recommendations": [
+            "中心性肥胖是治疗核心，目标体重下降7-10%",
+            "生活方式干预：饮食控制+规律运动+戒烟限酒",
+            "药物治疗：针对各项异常指标个体化治疗",
+            "定期筛查心血管并发症和糖尿病并发症",
+            "多学科协作管理"
+          ]
+        }
+      ]
+    },
+    "insulin_resistance_assessment": {
+      "description": "胰岛素抵抗评估（HOMA-IR）",
+      "source": "Diabetes Care期刊 2023",
+      "reference": "HOMA-IR as a predictor of insulin resistance and metabolic syndrome: Systematic review",
+      "conditions": [
+        {
+          "name": "significant_insulin_resistance",
+          "if": [
+            {"metric": "homa_ir", "operator": ">=", "value": 2.5}
+          ],
+          "risk_level": "moderate",
+          "message": "存在显著胰岛素抵抗，是代谢综合征的核心病理生理改变",
+          "recommendations": [
+            "减重是最有效的改善胰岛素抵抗的措施",
+            "增加肌肉量，进行阻抗训练",
+            "减少精制碳水化合物摄入",
+            "保证充足睡眠，管理慢性压力",
+            "考虑二甲双胍等胰岛素增敏剂治疗"
+          ]
+        }
+      ]
+    }
+  },
+  "composite_risk_stratification": {
+    "overall_cardiovascular_metabolic_risk": {
+      "description": "综合心血管代谢风险分层",
+      "source": "Lancet Diabetes & Endocrinology 2023",
+      "reference": "Comprehensive risk assessment for cardiometabolic diseases: A multidisciplinary approach",
+      "conditions": [
+        {
+          "name": "very_high_risk_profile",
+          "if": [
+            {"and": [
+              {"metric": "ldl_c", "operator": ">", "value": 4.1},
+              {"metric": "hba1c", "operator": ">=", "value": 6.5},
+              {"metric": "bp_systolic", "operator": ">=", "value": 140}
+            ]}
+          ],
+          "risk_level": "very_high",
+          "message": "多重危险因素聚集，心血管事件风险极高，需要立即强化干预",
+          "recommendations": [
+            "立即启动强化降脂治疗（高强度他汀）",
+            "严格控制血糖（HbA1c<7.0%）",
+            "强化血压控制（目标<130/80 mmHg）",
+            "低盐低脂饮食，戒烟限酒",
+            "考虑心血管专科会诊",
+            "每3个月随访评估治疗效果"
+          ]
+        },
+        {
+          "name": "moderate_risk_accumulation",
+          "if": [
+            {"count": [
+              {"metric": "ldl_c", "operator": ">", "value": 3.4},
+              {"metric": "hba1c", "operator": ">=", "value": 6.0},
+              {"metric": "bp_systolic", "operator": ">=", "value": 130},
+              {"metric": "bmi", "operator": ">=", "value": 28}
+            ], "operator": ">=", "value": 2}
+          ],
+          "risk_level": "moderate",
+          "message": "存在多个代谢危险因素，需要早期干预预防疾病进展",
+          "recommendations": [
+            "生活方式干预作为一线治疗",
+            "设定具体的减重和运动目标",
+            "监测各项危险因素的动态变化",
+            "考虑预防性药物治疗",
+            "每年进行全面健康评估"
+          ]
+        }
+      ]
     }
   },
   "metadata": {
     "source": "中华医学会检验医学分会",
     "reference": "临床检验参考区间",
-    "disclaimer": "本规则仅供参考，具体诊断请咨询专业医师"
+    "disclaimer": "本规则仅供参考，具体诊断请咨询专业医师",
+    "composite_rules_note": "复合规则基于多个指标的综合评估，提供更全面的健康风险预测",
+    "evidence_grading": {
+      "A": "多项随机对照试验或荟萃分析支持",
+      "B": "单个随机对照试验或观察性研究支持",
+      "C": "专家共识或病例系列支持"
+    }
   }
 }
