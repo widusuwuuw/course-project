@@ -28,7 +28,8 @@
       "Bash(pip install:*)",
       "Bash(uvicorn:*)",
       "WebFetch(domain:gemini.google.com)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "Bash(curl:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

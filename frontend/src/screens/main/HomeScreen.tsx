@@ -96,12 +96,12 @@ export default function HomeScreen() {
       route: 'Medication'
     },
     {
-      icon: 'clipboard-outline',
-      iconFilled: 'clipboard',
-      label: '健康报告',
+      icon: 'analytics-outline',
+      iconFilled: 'analytics',
+      label: '体检解读',
       color: '#06B6D4',
-      description: '查看健康趋势',
-      route: 'Reports'
+      description: '智能分析风险画像',
+      route: 'LabAnalysis'
     },
   ];
 
@@ -285,6 +285,8 @@ export default function HomeScreen() {
                   } else if (action.route === 'Workout') {
                     // 跳转到运动健身页面
                     navigation.navigate('SportsTraining');
+                  } else if (action.route === 'LabAnalysis') {
+                    navigation.navigate('LabAnalysis');
                   } else {
                     Alert.alert(
                       '功能开发中',

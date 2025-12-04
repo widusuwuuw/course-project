@@ -17,19 +17,31 @@ def _load_env():
 
 _load_env()
 
-from .db import Base, engine
+from .db import Base, engine, get_db
+from .models import User
 from .auth import router as auth_router
 from .routers.health_logs import router as health_logs_router
+from .routers.lab import router as lab_router
 from .assistant import router as assistant_router
 from .testing import router as testing_router
+from .utils import EmailCheckRequest, EmailCheckResponse
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Omnihealth API", version="0.1.0")
 
+    # 邮箱检查接口
+    @app.post("/check-email", response_model=EmailCheckResponse)
+    def check_email_exists(payload: EmailCheckRequest, db: Session = Depends(get_db)):
+        user = db.query(User).filter(User.email == payload.email).first()
+        return EmailCheckResponse(exists=user is not None)
+
     # Routers
     app.include_router(auth_router, tags=["auth"])
     app.include_router(health_logs_router)
+    app.include_router(lab_router)
     app.include_router(assistant_router)
     # Testing utilities (enabled only when TESTING=1)
     if os.getenv("TESTING") == "1":

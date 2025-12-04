@@ -2,36 +2,36 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Image, Dimensions, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { registerRequest } from '../api/client';
+import { registerRequest, checkEmailExists } from '../api/client';
 
 // 类型定义 - 导入App.tsx中定义的类型
 import { RootStackParamList } from '../../App';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-// 注册页面轮播图片 - 使用生成的高质量图片
+// 注册页面轮播图片 - 使用Replicate生成的高质量图片
 const registerCarouselImages = [
   {
     id: 0,
-    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/145439c2-9a79-4ded-a09f-1924874b21b5/22289326a03b705cf6918673513de4f1.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763398365&Signature=eLodmdI4v+sFae4wTAMCryYHbX4=' },
+    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/f8b9dc4c-343f-4b09-b94c-a2ca57338a74/f4caba0d583dcf0a4da7c8fe871fad9b.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1764770929&Signature=D%2BNY6lJr1x8fTd6ZWtk7oW6U3mY%3D' },
     title: '专业健康管理',
     subtitle: '数字化医疗注册，开启智能健康生活'
   },
   {
     id: 1,
-    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/145439c2-9a79-4ded-a09f-1924874b21b5/8edeed4b0a06e8719808aceecbf76b5b.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763398365&Signature=OUTbsG746gFOygcausHF79i0YbA=' },
+    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/f8b9dc4c-343f-4b09-b94c-a2ca57338a74/7af69c6290d9009d63be010527e4c35d.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1764770929&Signature=xFPjyWOAeMzu%2BDMjS43VdXaMj%2B4%3D' },
     title: '智能健康追踪',
     subtitle: '个性化健康数据记录与分析'
   },
   {
     id: 2,
-    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/145439c2-9a79-4ded-a09f-1924874b21b5/5de2491fa6c734d236213e1a96b18751.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763398365&Signature=88EKqXR2kzVDdB8Zl62DQES%2FAWI=' },
+    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/f8b9dc4c-343f-4b09-b94c-a2ca57338a74/ed7c1ea7c942b5859ddbfb587e3d8868.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1764770929&Signature=IzrAd2c9XKQZfEoqHmv0Lt2Pa6E%3D' },
     title: '医疗级服务',
     subtitle: '专业医护人员为您保驾护航'
   },
   {
     id: 3,
-    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/145439c2-9a79-4ded-a09f-1924874b21b5/4fc7195ed06ccce9482eb2dd5b81bcd4.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763398365&Signature=VyDFfhDgs%2Fw%2FhodQTPiYy4gVd1I=' },
+    source: { uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/f8b9dc4c-343f-4b09-b94c-a2ca57338a74/159cc58c3ef80bbbc6b3479ccbab7c42.webp?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1764770929&Signature=1eSLm0MdMkj4gwMm5oY5RJ86Nn4%3D' },
     title: '科学健康生活',
     subtitle: '基于数据的健康管理与建议'
   }
@@ -43,10 +43,66 @@ export default function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const backgroundAnim = useRef(new Animated.Value(0)).current;
 
+  // 防抖引用
+  const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // 实时验证函数
+  const validateEmail = async (email: string) => {
+    if (!email.trim()) {
+      setEmailError('');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(email.trim());
+
+    if (!isValid) {
+      setEmailError('请输入有效的邮箱地址（如：user@example.com）');
+      return false;
+    }
+
+    // 检查邮箱是否已注册
+    try {
+      setCheckingEmail(true);
+      const exists = await checkEmailExists(email.trim());
+      if (exists) {
+        setEmailError('该邮箱已被注册，请使用其他邮箱或直接登录');
+        return false;
+      }
+    } catch (error) {
+      // 如果检查失败，继续允许注册
+      console.log('Email check failed, allowing registration');
+    } finally {
+      setCheckingEmail(false);
+    }
+
+    setEmailError('');
+    return true;
+  };
+
+  const validatePassword = (password: string) => {
+    if (!password.trim()) {
+      setPasswordError('');
+      return false;
+    }
+
+    if (password.length < 6) {
+      setPasswordError('密码至少需要6位字符');
+      return false;
+    }
+
+    setPasswordError('');
+    return true;
+  };
+
+  
   // 背景色动画逻辑 - 与登录页面相同，但使用不同的颜色方案
   useEffect(() => {
     const backgroundAnimation = Animated.loop(
@@ -92,13 +148,55 @@ export default function RegisterScreen({ navigation }: Props) {
   }, [fadeAnim]);
 
   const onRegister = async () => {
+    // 前端验证
+    if (!email.trim()) {
+      Alert.alert('注册失败', '请输入邮箱地址');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('注册失败', '请输入密码');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('注册失败', '密码至少需要6位字符');
+      return;
+    }
+
+    // 邮箱格式验证
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('注册失败', '请输入有效的邮箱地址（如：user@example.com）');
+      return;
+    }
+
     setLoading(true);
     try {
       await registerRequest(email.trim(), password);
-      Alert.alert('注册成功', '请使用刚刚的账号密码登录');
-      navigation.replace('Login');
+
+      // 注册成功，直接跳转到登录页面并填充数据
+      navigation.navigate('Login', {
+        prefilledEmail: email.trim(),
+        prefilledPassword: password,
+        showRegistrationSuccess: true
+      });
     } catch (e: any) {
-      Alert.alert('注册失败', e?.message || '未知错误');
+      let errorMessage = '注册失败，请稍后重试';
+
+      if (e?.message) {
+        if (e.message.includes('already registered')) {
+          errorMessage = '该邮箱已被注册，请使用其他邮箱或直接登录';
+        } else if (e.message.includes('network') || e.message.includes('fetch')) {
+          errorMessage = '网络连接失败，请检查后端服务是否运行';
+        } else if (e.message.includes('validation')) {
+          errorMessage = '输入数据格式不正确';
+        } else {
+          errorMessage = e.message;
+        }
+      }
+
+      Alert.alert('注册失败', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -139,32 +237,75 @@ export default function RegisterScreen({ navigation }: Props) {
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>邮箱</Text>
                 <TextInput
-                  style={styles.input}
+                  style={emailError ? [styles.input, styles.inputError] : styles.input}
                   placeholder="请输入邮箱"
                   placeholderTextColor="#9CA3AF"
                   autoCapitalize="none"
                   keyboardType="email-address"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(text) => {
+                    setEmail(text);
+
+                    // 取消之前的检查
+                    if (emailCheckTimeout.current) {
+                      clearTimeout(emailCheckTimeout.current);
+                    }
+
+                    // 基本格式验证
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    const isValidFormat = emailRegex.test(text.trim());
+
+                    if (!isValidFormat && text.trim() !== '') {
+                      setEmailError('请输入有效的邮箱地址（如：user@example.com）');
+                      return;
+                    }
+
+                    if (isValidFormat) {
+                      // 延迟检查邮箱是否已注册（防抖）
+                      emailCheckTimeout.current = setTimeout(() => {
+                        validateEmail(text);
+                      }, 800);
+                    } else {
+                      setEmailError('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (emailCheckTimeout.current) {
+                      clearTimeout(emailCheckTimeout.current);
+                    }
+                    validateEmail(email);
+                  }}
                 />
+                {checkingEmail ? (
+                  <Text style={styles.checkingText}>正在检查邮箱...</Text>
+                ) : emailError ? (
+                  <Text style={styles.errorText}>{emailError}</Text>
+                ) : null}
               </View>
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>密码</Text>
                 <TextInput
-                  style={styles.input}
+                  style={passwordError ? [styles.input, styles.inputError] : styles.input}
                   placeholder="请输入密码（至少6位）"
                   placeholderTextColor="#9CA3AF"
                   secureTextEntry
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    validatePassword(text);
+                  }}
+                  onBlur={() => validatePassword(password)}
                 />
+                {passwordError ? (
+                  <Text style={styles.errorText}>{passwordError}</Text>
+                ) : null}
               </View>
 
               <TouchableOpacity
                 style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={onRegister}
-                disabled={loading}
+                disabled={loading || emailError !== '' || passwordError !== ''}
                 activeOpacity={0.8}
               >
                 <Text style={styles.buttonText}>{loading ? '注册中...' : '注册'}</Text>
@@ -444,6 +585,23 @@ const styles = StyleSheet.create({
         outlineStyle: 'none',
       },
     }),
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  checkingText: {
+    color: '#6B7280',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontStyle: 'italic',
   },
   button: {
     backgroundColor: '#10B981',

@@ -40,13 +40,29 @@ const loginCarouselImages = [
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
-export default function LoginScreen({ navigation }: Props) {
+export default function LoginScreen({ navigation, route }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const backgroundAnim = useRef(new Animated.Value(0)).current;
+
+  // 处理从注册页面传递过来的数据
+  useEffect(() => {
+    if (route.params?.prefilledEmail) {
+      setEmail(route.params.prefilledEmail);
+    }
+    if (route.params?.prefilledPassword) {
+      setPassword(route.params.prefilledPassword);
+    }
+    if (route.params?.showRegistrationSuccess) {
+      // 显示注册成功提示
+      setTimeout(() => {
+        Alert.alert('注册成功', '账号已创建成功！请使用刚刚的账号密码登录');
+      }, 500);
+    }
+  }, [route.params]);
 
   // 背景色动画逻辑 - 与图片轮播完全同步
   useEffect(() => {
@@ -115,7 +131,26 @@ export default function LoginScreen({ navigation }: Props) {
       await AsyncStorage.setItem('token', data.access_token);
       navigation.replace('MainTabs');
     } catch (e: any) {
-      Alert.alert('登录失败', e?.message || '未知错误');
+      // 根据不同的错误类型显示不同的提示
+      let errorMessage = e?.message || '未知错误';
+      let title = '登录失败';
+
+      // 根据错误消息提供更友好的提示
+      if (errorMessage.includes('尚未注册')) {
+        title = '账户不存在';
+        errorMessage = `${errorMessage}\n\n点击下方"立即注册"创建新账户`;
+      } else if (errorMessage.includes('密码错误')) {
+        title = '密码错误';
+        errorMessage = `${errorMessage}\n\n请检查密码是否正确，或点击"忘记密码"进行重置`;
+      } else if (errorMessage.includes('404')) {
+        title = '账户不存在';
+        errorMessage = '该邮箱尚未注册，请先注册账户';
+      } else if (errorMessage.includes('401')) {
+        title = '密码错误';
+        errorMessage = '密码错误，请重新输入';
+      }
+
+      Alert.alert(title, errorMessage);
     } finally {
       setLoading(false);
     }

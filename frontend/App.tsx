@@ -19,6 +19,7 @@ import CommunityScreen from './src/screens/main/CommunityScreen';
 import ShopScreen from './src/screens/main/ShopScreen';
 import AIAssistantScreen from './src/screens/main/AIAssistantScreen';
 import ProfileScreen from './src/screens/main/ProfileScreen';
+import LabAnalysisScreen from './src/screens/main/LabAnalysisScreen';
 
 // 旧版屏幕（保留作为备用）
 import HealthTrackerDashboard from './src/screens/HealthTrackerDashboard';
@@ -29,7 +30,11 @@ import AchievementsScreen from './src/screens/AchievementsScreen';
 // 类型定义
 export type RootStackParamList = {
   // 认证流程
-  Login: undefined;
+  Login: {
+    prefilledEmail?: string;
+    prefilledPassword?: string;
+    showRegistrationSuccess?: boolean;
+  };
   Register: undefined;
 
   // 主应用流程
@@ -40,6 +45,7 @@ export type RootStackParamList = {
   Workout: undefined;
   SportsTraining: undefined;
   CourseCenter: undefined;
+  LabAnalysis: undefined;
 
   // 旧版屏幕（向后兼容）
   HealthTrackerDashboard: undefined;
@@ -254,6 +260,14 @@ export default function App() {
             component={SportsTrainingScreen}
             options={{
               title: '运动健身',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="LabAnalysis"
+            component={LabAnalysisScreen}
+            options={{
+              title: '体检解读',
               headerShown: false
             }}
           />
