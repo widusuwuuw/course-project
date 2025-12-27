@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getAvailableLabMetrics, analyzeLabResults } from '../../api/client';
+import { getAvailableLabMetrics, analyzeLabResults, getUserGender } from '../../api/client';
 import { MetricInfo } from '../../types/health';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -79,6 +79,9 @@ export default function OtherMetricsScreen({ onBack, onAnalysisComplete }: Other
 
     setLoading(true);
     try {
+      // 获取用户性别信息
+      const userGender = await getUserGender();
+
       // 映射完整英文名称到后端期望的短代码
       const nameToCodeMap: {[key: string]: string} = {
         'Uric Acid': 'uric_acid'
@@ -93,7 +96,7 @@ export default function OtherMetricsScreen({ onBack, onAnalysisComplete }: Other
 
       console.log('📊 Other Metrics Sending for analysis:', metrics);
 
-      const results = await analyzeLabResults(metrics, 'default');
+      const results = await analyzeLabResults(metrics, userGender);
       console.log('📈 Other Metrics Analysis results:', results);
 
       onAnalysisComplete(results, metricValues);

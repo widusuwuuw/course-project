@@ -32,7 +32,7 @@ MODEL_DEFAULT = os.getenv("DASHSCOPE_MODEL", "qwen-turbo")
 API_KEY = os.getenv("DASHSCOPE_API_KEY") or os.getenv("DASH_SCOPE_API_KEY")
 MAX_RETRIES = int(os.getenv("LLM_RETRIES", "2"))
 RETRY_SLEEP = float(os.getenv("LLM_RETRY_SLEEP", "0.8"))
-TIMEOUT_SEC = float(os.getenv("LLM_TIMEOUT", "15"))  # soft timeout we enforce manually
+TIMEOUT_SEC = float(os.getenv("LLM_TIMEOUT", "120"))  # 增加到120秒以适应长报告生成
 
 # 调试信息
 print(f"LLM Client Debug:")
@@ -86,7 +86,7 @@ def generate_answer(question: str, system_prompt: Optional[str] = None) -> str:
                         {"role": "user", "content": question},
                     ],
                     temperature=float(os.getenv("LLM_TEMPERATURE", "0.7")),
-                    max_tokens=int(os.getenv("LLM_MAX_TOKENS", "512")),
+                    max_tokens=None,  # 不限制输出长度
                 )
                 latency = time.time() - start
                 logger.info("LLM success attempt=%d latency=%.2fs", attempt, latency)
@@ -119,7 +119,7 @@ def generate_answer(question: str, system_prompt: Optional[str] = None) -> str:
             },
             "parameters": {
                 "temperature": float(os.getenv("LLM_TEMPERATURE", "0.7")),
-                "max_tokens": int(os.getenv("LLM_MAX_TOKENS", "512")),
+                "max_tokens": 8000,  # 设置为8000个token的上限
             }
         }
 

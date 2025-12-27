@@ -33,10 +33,7 @@ function MainTabs() {
             case 'Community':
               iconName = focused ? 'people' : 'people-outline';
               break;
-            case 'Shop':
-              iconName = focused ? 'storefront' : 'storefront-outline';
-              break;
-            case 'AI':
+                        case 'AI':
               iconName = focused ? 'chatbubble' : 'chatbubble-outline';
               break;
             case 'Profile':
@@ -75,12 +72,7 @@ function MainTabs() {
         component={() => <TestScreen title="社区" />}
         options={{ title: '社区' }}
       />
-      <Tab.Screen
-        name="Shop"
-        component={() => <TestScreen title="商城" />}
-        options={{ title: '商城' }}
-      />
-      <Tab.Screen
+            <Tab.Screen
         name="AI"
         component={() => <TestScreen title="AI" />}
         options={{ title: 'AI' }}

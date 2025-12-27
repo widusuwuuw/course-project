@@ -8,11 +8,12 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
-import { analyzeLabResults } from '../../api/client';
+import { analyzeLabResults, getUserGender } from '../../api/client';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -72,6 +73,9 @@ export default function ElectrolyteScreen({ onBack, onAnalysisComplete }: Electr
 
     setLoading(true);
     try {
+      // 获取用户性别信息
+      const userGender = await getUserGender();
+
       // 构建分析请求
       const metrics = Object.entries(metricValues)
         .filter(([_, value]) => value.trim())
@@ -81,7 +85,7 @@ export default function ElectrolyteScreen({ onBack, onAnalysisComplete }: Electr
           unit: ELECTROLYTE_METRICS.find(m => m.key === key)?.unit || ''
         }));
 
-      const analysisResult = await analyzeLabResults(metrics, 'default');
+      const analysisResult = await analyzeLabResults(metrics, userGender, 'electrolyte');
 
       if (analysisResult.success) {
         onAnalysisComplete(analysisResult, metricValues);

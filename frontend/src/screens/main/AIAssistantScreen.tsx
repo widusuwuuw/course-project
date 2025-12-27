@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -78,6 +79,7 @@ const presetQuestions = [
 
 export default function AIAssistantScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -251,6 +253,12 @@ export default function AIAssistantScreen() {
             style={styles.headerGradient}
           >
             <View style={styles.headerContent}>
+              <TouchableOpacity 
+                style={styles.headerBackButton} 
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
               <View style={styles.headerInfo}>
                 <Text style={styles.headerTitle}>AI健康助手</Text>
                 <Text style={styles.headerSubtitle}>专业的健康管理建议</Text>
@@ -417,6 +425,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   headerInfo: {
     flex: 1,

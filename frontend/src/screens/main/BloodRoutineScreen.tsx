@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getAvailableLabMetrics, analyzeLabResults } from '../../api/client';
+import { getAvailableLabMetrics, analyzeLabResults, getUserGender } from '../../api/client';
 import { MetricInfo } from '../../types/health';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -115,6 +115,9 @@ export default function BloodRoutineScreen({ onBack, onAnalysisComplete }: Blood
 
     setLoading(true);
     try {
+      // 获取用户性别信息
+      const userGender = await getUserGender();
+
       // 映射完整英文名称到后端期望的短代码
       const nameToCodeMap: {[key: string]: string} = {
         'White Blood Cell Count': 'wbc',
@@ -139,7 +142,7 @@ export default function BloodRoutineScreen({ onBack, onAnalysisComplete }: Blood
 
       console.log('📊 Sending metrics for analysis:', metrics);
 
-      const results = await analyzeLabResults(metrics, 'default');
+      const results = await analyzeLabResults(metrics, userGender, 'blood-routine');
       console.log('📈 Analysis results:', results);
 
       onAnalysisComplete(results, metricValues);

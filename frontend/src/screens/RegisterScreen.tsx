@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Image, Dimensions, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { registerRequest, checkEmailExists } from '../api/client';
 
 // 类型定义 - 导入App.tsx中定义的类型
@@ -42,6 +43,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 export default function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [gender, setGender] = useState('default');
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -173,7 +175,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await registerRequest(email.trim(), password);
+      await registerRequest(email.trim(), password, gender);
 
       // 注册成功，直接跳转到登录页面并填充数据
       navigation.navigate('Login', {
@@ -300,6 +302,72 @@ export default function RegisterScreen({ navigation }: Props) {
                 {passwordError ? (
                   <Text style={styles.errorText}>{passwordError}</Text>
                 ) : null}
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>性别</Text>
+                <Text style={styles.helperText}>选择性别以获得更精准的医学评估参考值</Text>
+                <View style={styles.genderContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      gender === 'male' && styles.genderButtonSelected
+                    ]}
+                    onPress={() => setGender('male')}
+                  >
+                    <Ionicons
+                      name="male"
+                      size={20}
+                      color={gender === 'male' ? '#ffffff' : '#475569'}
+                    />
+                    <Text style={[
+                      styles.genderButtonText,
+                      gender === 'male' && styles.genderButtonTextSelected
+                    ]}>
+                      男性
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      gender === 'female' && styles.genderButtonSelected
+                    ]}
+                    onPress={() => setGender('female')}
+                  >
+                    <Ionicons
+                      name="female"
+                      size={20}
+                      color={gender === 'female' ? '#ffffff' : '#475569'}
+                    />
+                    <Text style={[
+                      styles.genderButtonText,
+                      gender === 'female' && styles.genderButtonTextSelected
+                    ]}>
+                      女性
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      gender === 'other' && styles.genderButtonSelected
+                    ]}
+                    onPress={() => setGender('other')}
+                  >
+                    <Ionicons
+                      name="person"
+                      size={20}
+                      color={gender === 'other' ? '#ffffff' : '#475569'}
+                    />
+                    <Text style={[
+                      styles.genderButtonText,
+                      gender === 'other' && styles.genderButtonTextSelected
+                    ]}>
+                      其他
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <TouchableOpacity
@@ -636,6 +704,45 @@ const styles = StyleSheet.create({
   registerTextBold: {
     color: '#10B981',
     fontWeight: '700',
+  },
+
+  // 性别选择相关样式
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  genderButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    minHeight: 48,
+    gap: 8,
+  },
+  genderButtonSelected: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  genderButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  genderButtonTextSelected: {
+    color: '#ffffff',
   },
 
   // 右侧面板 - 图片轮播

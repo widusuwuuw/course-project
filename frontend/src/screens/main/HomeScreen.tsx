@@ -88,20 +88,20 @@ export default function HomeScreen() {
       route: 'Workout'
     },
     {
-      icon: 'medkit-outline',
-      iconFilled: 'medkit',
-      label: '用药管理',
-      color: '#8B5CF6',
-      description: '智能用药提醒',
-      route: 'Medication'
-    },
-    {
       icon: 'analytics-outline',
       iconFilled: 'analytics',
       label: '体检解读',
       color: '#06B6D4',
       description: '智能分析风险画像',
       route: 'LabAnalysis'
+    },
+    {
+      icon: 'calendar-outline',
+      iconFilled: 'calendar',
+      label: '月度计划',
+      color: '#8B5CF6',
+      description: 'AI生成健康计划',
+      route: 'MonthlyPlan'
     },
   ];
 
@@ -287,6 +287,8 @@ export default function HomeScreen() {
                     navigation.navigate('SportsTraining');
                   } else if (action.route === 'LabAnalysis') {
                     navigation.navigate('LabAnalysis');
+                  } else if (action.route === 'MonthlyPlan') {
+                    navigation.navigate('MonthlyPlan');
                   } else {
                     Alert.alert(
                       '功能开发中',

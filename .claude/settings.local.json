@@ -30,7 +30,8 @@
       "WebFetch(domain:gemini.google.com)",
       "Bash(npm run typecheck:*)",
       "Bash(curl:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(find:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

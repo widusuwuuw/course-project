@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
@@ -35,6 +36,7 @@ interface Course {
 
 export default function WorkoutScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
 
   const [selectedCategory, setSelectedCategory] = useState('全部');
   const [searchQuery, setSearchQuery] = useState('');
@@ -205,6 +207,12 @@ export default function WorkoutScreen() {
 
       {/* 头部搜索栏 */}
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.headerBackButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>运动课程</Text>
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.searchIcon} />
@@ -310,6 +318,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  headerBackButton: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 24,

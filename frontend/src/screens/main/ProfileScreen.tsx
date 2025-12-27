@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
+  const navigation = useNavigation();
   const { colors, themeMode, toggleTheme } = useTheme();
 
   // 用户数据
@@ -59,10 +61,24 @@ export default function ProfileScreen() {
           description: '生成健康分析报告',
         },
         {
+          id: 'health-preferences',
+          title: '健康偏好',
+          icon: 'options-outline',
+          color: '#D4EDD4',
+          description: '设置饮食运动偏好',
+        },
+        {
+          id: 'generate-weekly-plan',
+          title: '生成周计划',
+          icon: 'calendar-outline',
+          color: '#A78BFA',
+          description: '基于月计划生成周计划',
+        },
+        {
           id: 'data-export',
           title: '数据导出',
           icon: 'download-outline',
-          color: '#D4EDD4',
+          color: '#B8E5E5',
           description: '导出个人健康数据',
         },
       ],
@@ -161,6 +177,12 @@ export default function ProfileScreen() {
   // 处理菜单项点击
   const handleMenuPress = (itemId: string) => {
     switch (itemId) {
+      case 'health-preferences':
+        navigation.navigate('Preferences' as never);
+        break;
+      case 'generate-weekly-plan':
+        navigation.navigate('GenerateWeeklyPlan' as never);
+        break;
       case 'logout':
         Alert.alert(
           '退出登录',

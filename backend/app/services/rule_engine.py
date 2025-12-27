@@ -19,6 +19,7 @@ class RiskLevel(Enum):
     LOW = "low"
     MODERATE = "moderate"
     HIGH = "high"
+    VERY_HIGH = "very_high"
     CRITICAL = "critical"
 
 
@@ -117,6 +118,7 @@ class MedicalRuleEngine:
 
         if not rule_config:
             return {
+                "metric_key": metric_name,
                 "metric_name": metric_name,
                 "value": value,
                 "status": "unknown",
@@ -135,6 +137,7 @@ class MedicalRuleEngine:
             normal_range = gender_config["normal_range"]
             if normal_range[0] <= value <= normal_range[1]:
                 return {
+                    "metric_key": metric_name,
                     "metric_name": rule_config.get("name", metric_name),
                     "metric_name_en": rule_config.get("name_en", metric_name),
                     "value": value,
@@ -152,6 +155,7 @@ class MedicalRuleEngine:
         for condition in conditions:
             if self.evaluate_condition(value, condition["operator"], condition["value"]):
                 return {
+                    "metric_key": metric_name,
                     "metric_name": rule_config.get("name", metric_name),
                     "metric_name_en": rule_config.get("name_en", metric_name),
                     "value": value,
@@ -166,6 +170,7 @@ class MedicalRuleEngine:
 
         # 默认正常结果
         return {
+            "metric_key": metric_name,
             "metric_name": rule_config.get("name", metric_name),
             "metric_name_en": rule_config.get("name_en", metric_name),
             "value": value,

@@ -1808,8 +1808,8 @@
         {
           "name": "age_risk_enhancement",
           "if": [
-            {"metric": "age", "operator": ">=", "value": 45, "gender": "male"},
-            {"metric": "age", "operator": ">=", "value": 55, "gender": "female"}
+            {"metric": "age", "operator": "gte", "value": 45, "gender": "male"},
+            {"metric": "age", "operator": "gte", "value": 55, "gender": "female"}
           ],
           "risk_level": "moderate",
           "message": "年龄是心血管疾病的重要风险因素，建议加强血脂和血压管理",
@@ -1822,7 +1822,7 @@
         {
           "name": "high_ldl_risk",
           "if": [
-            {"metric": "ldl_c", "operator": ">", "value": 4.9}
+            {"metric": "ldl_c", "operator": "gt", "value": 4.9}
           ],
           "risk_level": "high",
           "message": "LDL-C显著升高，心血管疾病风险极高",
@@ -1838,9 +1838,9 @@
           "name": "metabolic_syndrome_cardiovascular_risk",
           "if": [
             {"and": [
-              {"metric": "tg", "operator": ">=", "value": 1.7},
-              {"metric": "hdl_c", "operator": "<", "value": 1.0, "gender": "male"},
-              {"metric": "hdl_c", "operator": "<", "value": 1.3, "gender": "female"}
+              {"metric": "tg", "operator": "gte", "value": 1.7},
+              {"metric": "hdl_c", "operator": "lt", "value": 1.0, "gender": "male"},
+              {"metric": "hdl_c", "operator": "lt", "value": 1.3, "gender": "female"}
             ]}
           ],
           "risk_level": "high",
@@ -1862,7 +1862,7 @@
         {
           "name": "high_atherogenic_risk",
           "if": [
-            {"calculate": "log(tg/hdl_c)", "operator": ">", "value": 0.24}
+            {"calculate": "log(tg/hdl_c)", "operator": "gt", "value": 0.24}
           ],
           "risk_level": "high",
           "message": "致动脉粥样硬化指数升高，提示心血管疾病风险增加",
@@ -1888,15 +1888,15 @@
             "or",
             [
               {"and": [
-                {"metric": "waist_circumference", "operator": ">=", "value": 90, "gender": "male"},
-                {"metric": "waist_circumference", "operator": ">=", "value": 80, "gender": "female"},
-                {"metric": "bp_systolic", "operator": ">=", "value": 130},
-                {"metric": "glu", "operator": ">=", "value": 6.1}
+                {"metric": "waist_circumference", "operator": "gte", "value": 90, "gender": "male"},
+                {"metric": "waist_circumference", "operator": "gte", "value": 80, "gender": "female"},
+                {"metric": "bp_systolic", "operator": "gte", "value": 130},
+                {"metric": "glu", "operator": "gte", "value": 6.1}
               ]},
               {"and": [
-                {"metric": "tg", "operator": ">=", "value": 1.7},
-                {"metric": "hdl_c", "operator": "<", "value": 1.0, "gender": "male"},
-                {"metric": "hdl_c", "operator": "<", "value": 1.3, "gender": "female"}
+                {"metric": "tg", "operator": "gte", "value": 1.7},
+                {"metric": "hdl_c", "operator": "lt", "value": 1.0, "gender": "male"},
+                {"metric": "hdl_c", "operator": "lt", "value": 1.3, "gender": "female"}
               ]}
             ]
           ],
@@ -1922,16 +1922,16 @@
           "name": "idf_metabolic_syndrome",
           "if": [
             {"and": [
-              {"metric": "waist_circumference", "operator": ">=", "value": 90, "gender": "male"},
-              {"metric": "waist_circumference", "operator": ">=", "value": 85, "gender": "female"}
+              {"metric": "waist_circumference", "operator": "gte", "value": 90, "gender": "male"},
+              {"metric": "waist_circumference", "operator": "gte", "value": 85, "gender": "female"}
             ]},
             {"count": [
-              {"metric": "tg", "operator": ">=", "value": 1.7},
-              {"metric": "hdl_c", "operator": "<", "value": 1.0, "gender": "male"},
-              {"metric": "hdl_c", "operator": "<", "value": 1.3, "gender": "female"},
-              {"metric": "bp_systolic", "operator": ">=", "value": 130},
-              {"metric": "glu", "operator": ">=", "value": 6.1}
-            ], "operator": ">=", "value": 2}
+              {"metric": "tg", "operator": "gte", "value": 1.7},
+              {"metric": "hdl_c", "operator": "lt", "value": 1.0, "gender": "male"},
+              {"metric": "hdl_c", "operator": "lt", "value": 1.3, "gender": "female"},
+              {"metric": "bp_systolic", "operator": "gte", "value": 130},
+              {"metric": "glu", "operator": "gte", "value": 6.1}
+            ], "operator": "gte", "value": 2}
           ],
           "risk_level": "high",
           "message": "符合IDF（2024中国版）代谢综合征诊断标准，需要综合干预",
@@ -1953,7 +1953,7 @@
         {
           "name": "significant_insulin_resistance",
           "if": [
-            {"metric": "homa_ir", "operator": ">=", "value": 2.5}
+            {"metric": "homa_ir", "operator": "gte", "value": 2.5}
           ],
           "risk_level": "moderate",
           "message": "存在显著胰岛素抵抗，是代谢综合征的核心病理生理改变",
@@ -1978,9 +1978,9 @@
           "name": "very_high_risk_profile",
           "if": [
             {"and": [
-              {"metric": "ldl_c", "operator": ">", "value": 4.1},
-              {"metric": "hba1c", "operator": ">=", "value": 6.5},
-              {"metric": "bp_systolic", "operator": ">=", "value": 140}
+              {"metric": "ldl_c", "operator": "gt", "value": 4.1},
+              {"metric": "hba1c", "operator": "gte", "value": 6.5},
+              {"metric": "bp_systolic", "operator": "gte", "value": 140}
             ]}
           ],
           "risk_level": "very_high",
@@ -1998,11 +1998,11 @@
           "name": "moderate_risk_accumulation",
           "if": [
             {"count": [
-              {"metric": "ldl_c", "operator": ">", "value": 3.4},
-              {"metric": "hba1c", "operator": ">=", "value": 6.0},
-              {"metric": "bp_systolic", "operator": ">=", "value": 130},
-              {"metric": "bmi", "operator": ">=", "value": 28}
-            ], "operator": ">=", "value": 2}
+              {"metric": "ldl_c", "operator": "gt", "value": 3.4},
+              {"metric": "hba1c", "operator": "gte", "value": 6.0},
+              {"metric": "bp_systolic", "operator": "gte", "value": 130},
+              {"metric": "bmi", "operator": "gte", "value": 28}
+            ], "operator": "gte", "value": 2}
           ],
           "risk_level": "moderate",
           "message": "存在多个代谢危险因素，需要早期干预预防疾病进展",

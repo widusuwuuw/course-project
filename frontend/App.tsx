@@ -16,10 +16,12 @@ import NutritionScreen from './src/screens/main/NutritionScreen';
 import SportsTrainingScreen from './src/screens/main/SportsTrainingScreen';
 import CourseCenterScreen from './src/screens/main/CourseCenterScreen';
 import CommunityScreen from './src/screens/main/CommunityScreen';
-import ShopScreen from './src/screens/main/ShopScreen';
 import AIAssistantScreen from './src/screens/main/AIAssistantScreen';
 import ProfileScreen from './src/screens/main/ProfileScreen';
 import LabAnalysisScreen from './src/screens/main/LabAnalysisScreen';
+import MonthlyPlanScreen from './src/screens/main/MonthlyPlanScreen';
+import PreferencesScreen from './src/screens/main/PreferencesScreen';
+import GenerateWeeklyPlanScreen from './src/screens/main/GenerateWeeklyPlanScreen';
 
 // 旧版屏幕（保留作为备用）
 import HealthTrackerDashboard from './src/screens/HealthTrackerDashboard';
@@ -46,6 +48,9 @@ export type RootStackParamList = {
   SportsTraining: undefined;
   CourseCenter: undefined;
   LabAnalysis: undefined;
+  MonthlyPlan: undefined;
+  Preferences: undefined;
+  GenerateWeeklyPlan: undefined;
 
   // 旧版屏幕（向后兼容）
   HealthTrackerDashboard: undefined;
@@ -61,8 +66,7 @@ export type MainTabParamList = {
   Home: undefined;
   Workout: undefined;
   Community: undefined;
-  Shop: undefined;
-  AI: undefined;
+    AI: undefined;
   Profile: undefined;
 };
 
@@ -86,10 +90,7 @@ function MainTabs() {
             case 'Community':
               iconName = focused ? 'people' : 'people-outline';
               break;
-            case 'Shop':
-              iconName = focused ? 'storefront' : 'storefront-outline';
-              break;
-            case 'AI':
+                        case 'AI':
               iconName = focused ? 'chatbubble' : 'chatbubble-outline';
               break;
             case 'Profile':
@@ -170,16 +171,7 @@ function MainTabs() {
           headerTitle: '健康社区',
         }}
       />
-      <Tab.Screen
-        name="Shop"
-        component={ShopScreen}
-        options={{
-          title: '商城',
-          headerShown: true,
-          headerTitle: '健康商城',
-        }}
-      />
-      <Tab.Screen
+            <Tab.Screen
         name="AI"
         component={AIAssistantScreen}
         options={{
@@ -268,6 +260,30 @@ export default function App() {
             component={LabAnalysisScreen}
             options={{
               title: '体检解读',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="MonthlyPlan"
+            component={MonthlyPlanScreen}
+            options={{
+              title: '月度计划',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="Preferences"
+            component={PreferencesScreen}
+            options={{
+              title: '偏好设置',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="GenerateWeeklyPlan"
+            component={GenerateWeeklyPlanScreen}
+            options={{
+              title: '生成周计划',
               headerShown: false
             }}
           />

@@ -22,8 +22,18 @@ from .models import User
 from .auth import router as auth_router
 from .routers.health_logs import router as health_logs_router
 from .routers.lab import router as lab_router
+from .routers.plans import router as plans_router
+from .routers.preferences import router as preferences_router
+from .routers.weekly_plans import router as weekly_plans_router
+from .routers.nutrition import router as nutrition_router
 from .assistant import router as assistant_router
 from .testing import router as testing_router
+from .api.exercise_prescription import router as exercise_prescription_router
+from .api.food_ingredients import router as food_ingredients_router
+
+# Import and initialize food ingredients data
+from .data import food_ingredients_data
+food_ingredients_data.initialize_core_foods()
 from .utils import EmailCheckRequest, EmailCheckResponse
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -42,7 +52,13 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, tags=["auth"])
     app.include_router(health_logs_router)
     app.include_router(lab_router)
+    app.include_router(plans_router)
+    app.include_router(preferences_router)
+    app.include_router(weekly_plans_router)
+    app.include_router(nutrition_router)
     app.include_router(assistant_router)
+    app.include_router(exercise_prescription_router)
+    app.include_router(food_ingredients_router)
     # Testing utilities (enabled only when TESTING=1)
     if os.getenv("TESTING") == "1":
         app.include_router(testing_router)

@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
-import { analyzeLabResults } from '../../api/client';
+import { analyzeLabResults, getUserGender } from '../../api/client';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -74,6 +74,9 @@ export default function LipidMetabolismScreen({ onBack, onAnalysisComplete }: Li
 
     setLoading(true);
     try {
+      // 获取用户性别信息
+      const userGender = await getUserGender();
+
       // 构建分析请求
       const metrics = Object.entries(metricValues)
         .filter(([_, value]) => value.trim())
@@ -83,7 +86,7 @@ export default function LipidMetabolismScreen({ onBack, onAnalysisComplete }: Li
           unit: LIPID_METRICS.find(m => m.key === key)?.unit || ''
         }));
 
-      const analysisResult = await analyzeLabResults(metrics, 'default');
+      const analysisResult = await analyzeLabResults(metrics, userGender, 'lipid_metabolism');
 
       if (analysisResult.success) {
         onAnalysisComplete(analysisResult, metricValues);
