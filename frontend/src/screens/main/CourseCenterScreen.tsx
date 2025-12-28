@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,16 @@ import {
   Dimensions,
   StatusBar,
   SafeAreaView,
-  TextInput,
   FlatList,
+  Modal,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
+import { apiGet, apiPost } from '../../api/client';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +25,7 @@ const { width } = Dimensions.get('window');
 interface Course {
   id: string;
   title: string;
+  exercise_id: string;
   instructor: string;
   duration: number;
   difficulty: '初级' | '中级' | '高级';
@@ -28,128 +33,156 @@ interface Course {
   rating: number;
   students: number;
   price: number;
-  image: string;
+  is_free: boolean;
+  cover_image: string;
   description: string;
   tags: string[];
+  calories: number;
+  equipment: string[];
+  suitable_for: string[];
+  preview_steps: string[];
 }
+
+// 分类图标映射（与后端exercise_database保持一致）
+const categoryIcons: { [key: string]: string } = {
+  '全部': 'grid-outline',
+  '有氧运动': 'walk-outline',
+  '力量训练': 'fitness-outline',
+  '柔韧性训练': 'body-outline',
+  '传统中式': 'leaf-outline',
+  '高强度间歇': 'flash-outline',
+  '水中运动': 'water-outline',
+  '功能性训练': 'barbell-outline',
+};
+
+// 分类颜色映射（与后端exercise_database保持一致）
+const categoryColors: { [key: string]: string } = {
+  '全部': '#4ABAB8',
+  '有氧运动': '#10B981',
+  '力量训练': '#F59E0B',
+  '柔韧性训练': '#A78BFA',
+  '传统中式': '#84CC16',
+  '高强度间歇': '#EF4444',
+  '水中运动': '#06B6D4',
+  '功能性训练': '#8B5CF6',
+};
+
+// 课程封面emoji映射（与后端exercise_database保持一致）
+const courseEmojis: { [key: string]: string } = {
+  '有氧运动': '🏃',
+  '力量训练': '💪',
+  '柔韧性训练': '🧘',
+  '传统中式': '🥋',
+  '高强度间歇': '🔥',
+  '水中运动': '🏊',
+  '功能性训练': '🏋️',
+};
 
 export default function CourseCenterScreen() {
   const { colors } = useTheme();
 
   const [selectedCategory, setSelectedCategory] = useState('全部');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // 课程详情弹窗
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [recording, setRecording] = useState(false);
 
-  // 课程分类
+  // 课程分类（与后端exercise_database保持一致）
   const categories = [
-    { id: '全部', name: '全部', icon: 'grid-outline', color: '#4ABAB8' },
-    { id: '瑜伽', name: '瑜伽', icon: 'flower-outline', color: '#A78BFA' },
-    { id: '力量', name: '力量训练', icon: 'fitness-outline', color: '#F59E0B' },
-    { id: '有氧', name: '有氧运动', icon: 'walk-outline', color: '#10B981' },
-    { id: 'HIIT', name: 'HIIT', icon: 'flash-outline', color: '#EF4444' },
-    { id: '舞蹈', name: '舞蹈', icon: 'musical-notes-outline', color: '#EC4899' },
+    { id: '全部', name: '全部' },
+    { id: '有氧运动', name: '有氧运动' },
+    { id: '力量训练', name: '力量训练' },
+    { id: '柔韧性训练', name: '柔韧性训练' },
+    { id: '传统中式', name: '传统中式' },
+    { id: '高强度间歇', name: '高强度间歇' },
+    { id: '水中运动', name: '水中运动' },
+    { id: '功能性训练', name: '功能性训练' },
   ];
 
-  // 课程数据
-  const courses: Course[] = [
-    {
-      id: '1',
-      title: '初学者瑜伽入门',
-      instructor: '李教练',
-      duration: 30,
-      difficulty: '初级',
-      category: '瑜伽',
-      rating: 4.8,
-      students: 2340,
-      price: 0,
-      image: '🧘',
-      description: '适合零基础学员的瑜伽入门课程',
-      tags: ['零基础', '拉伸', '放松']
-    },
-    {
-      id: '2',
-      title: '腹肌撕裂者训练',
-      instructor: '王教练',
-      duration: 20,
-      difficulty: '高级',
-      category: '力量',
-      rating: 4.9,
-      students: 1820,
-      price: 19.9,
-      image: '💪',
-      description: '高强度腹肌训练计划',
-      tags: ['腹肌', '核心力量', '塑形']
-    },
-    {
-      id: '3',
-      title: '燃脂HIIT训练',
-      instructor: '张教练',
-      duration: 45,
-      difficulty: '中级',
-      category: 'HIIT',
-      rating: 4.7,
-      students: 3100,
-      price: 29.9,
-      image: '🔥',
-      description: '高效燃脂的间歇训练',
-      tags: ['燃脂', '减重', '心肺功能']
-    },
-    {
-      id: '4',
-      title: '有氧舞蹈派对',
-      instructor: '陈教练',
-      duration: 40,
-      difficulty: '初级',
-      category: '舞蹈',
-      rating: 4.6,
-      students: 1560,
-      price: 0,
-      image: '💃',
-      description: '在音乐中享受运动的乐趣',
-      tags: ['舞蹈', '有氧', '有趣']
-    },
-    {
-      id: '5',
-      title: '全身力量训练',
-      instructor: '刘教练',
-      duration: 50,
-      difficulty: '中级',
-      category: '力量',
-      rating: 4.8,
-      students: 2100,
-      price: 39.9,
-      image: '🏋️',
-      description: '系统性全身肌肉训练',
-      tags: ['力量', '增肌', '塑形']
-    },
-    {
-      id: '6',
-      title: '晨间瑜伽唤醒',
-      instructor: '赵教练',
-      duration: 15,
-      difficulty: '初级',
-      category: '瑜伽',
-      rating: 4.9,
-      students: 980,
-      price: 0,
-      image: '🌅',
-      description: '清晨的温柔唤醒练习',
-      tags: ['早晨', '唤醒', '温和']
-    },
-  ];
+  // 从API加载课程
+  const loadCourses = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory !== '全部') {
+        params.append('category', selectedCategory);
+      }
+      
+      const response = await apiGet(`/logs/courses?${params.toString()}`);
+      setCourses(response.courses || []);
+    } catch (error) {
+      console.error('加载课程失败:', error);
+      Alert.alert('错误', '加载课程失败，请稍后重试');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  // 筛选课程
-  const filteredCourses = courses.filter(course => {
-    const matchesCategory = selectedCategory === '全部' || course.category === selectedCategory;
-    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.instructor.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    loadCourses();
+  }, [selectedCategory]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadCourses();
+  };
+
+  // 打开课程详情
+  const openCourseDetail = (course: Course) => {
+    setSelectedCourse(course);
+    setShowDetailModal(true);
+  };
+
+  // 记录完成课程
+  const recordCourseCompletion = async () => {
+    if (!selectedCourse) return;
+    
+    setRecording(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const courseRecord = {
+        course_id: selectedCourse.id,
+        course_title: selectedCourse.title,
+        exercise_id: selectedCourse.exercise_id,
+        instructor: selectedCourse.instructor,
+        duration: selectedCourse.duration,
+        difficulty: selectedCourse.difficulty,
+        calories: selectedCourse.calories,
+        completed_at: new Date().toISOString(),
+        from_plan: false,
+      };
+
+      const response = await apiPost('/logs/exercise', {
+        log_date: today,
+        courses: [courseRecord],
+        mood: 'good',
+      });
+
+      Alert.alert(
+        '✅ 记录成功！',
+        `恭喜完成"${selectedCourse.title}"！\n消耗了 ${selectedCourse.calories} 卡路里\n今日总消耗: ${response.total_calories} 卡路里`,
+        [{ text: '好的', onPress: () => setShowDetailModal(false) }]
+      );
+    } catch (error) {
+      console.error('记录失败:', error);
+      Alert.alert('错误', '记录失败，请稍后重试');
+    } finally {
+      setRecording(false);
+    }
+  };
 
   const renderCourseItem = ({ item }: { item: Course }) => (
-    <TouchableOpacity style={styles.courseCard}>
-      <View style={styles.courseImageContainer}>
-        <Text style={styles.courseImage}>{item.image}</Text>
-        {item.price === 0 && (
+    <TouchableOpacity 
+      style={styles.courseCard}
+      onPress={() => openCourseDetail(item)}
+    >
+      <View style={[styles.courseImageContainer, { backgroundColor: `${categoryColors[item.category] || '#4ABAB8'}15` }]}>
+        <Text style={styles.courseImage}>{courseEmojis[item.category] || '🏃'}</Text>
+        {item.is_free && (
           <View style={styles.freeTag}>
             <Text style={styles.freeTagText}>免费</Text>
           </View>
@@ -166,7 +199,11 @@ export default function CourseCenterScreen() {
             <Text style={styles.courseMetaText}>{item.duration}分钟</Text>
           </View>
           <View style={styles.courseMetaItem}>
-            <Ionicons name="signal-cellular-1" size={12} color="#6B7280" />
+            <Ionicons name="flame-outline" size={12} color="#EF4444" />
+            <Text style={[styles.courseMetaText, { color: '#EF4444' }]}>{item.calories}卡</Text>
+          </View>
+          <View style={styles.courseMetaItem}>
+            <Ionicons name="speedometer-outline" size={12} color="#6B7280" />
             <Text style={styles.courseMetaText}>{item.difficulty}</Text>
           </View>
         </View>
@@ -190,7 +227,7 @@ export default function CourseCenterScreen() {
           ))}
         </View>
 
-        {item.price > 0 && (
+        {!item.is_free && item.price > 0 && (
           <View style={styles.priceContainer}>
             <Text style={styles.price}>¥{item.price}</Text>
           </View>
@@ -199,26 +236,131 @@ export default function CourseCenterScreen() {
     </TouchableOpacity>
   );
 
+  // 课程详情弹窗
+  const renderDetailModal = () => (
+    <Modal
+      visible={showDetailModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowDetailModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {selectedCourse && (
+            <>
+              {/* 课程封面 */}
+              <View style={[styles.detailHeader, { backgroundColor: `${categoryColors[selectedCourse.category] || '#4ABAB8'}20` }]}>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowDetailModal(false)}
+                >
+                  <Ionicons name="close" size={24} color="#6B7280" />
+                </TouchableOpacity>
+                <Text style={styles.detailEmoji}>{courseEmojis[selectedCourse.category] || '🏃'}</Text>
+                <Text style={styles.detailTitle}>{selectedCourse.title}</Text>
+                <Text style={styles.detailInstructor}>{selectedCourse.instructor}</Text>
+              </View>
+
+              <ScrollView style={styles.detailBody}>
+                {/* 核心数据 */}
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{selectedCourse.duration}</Text>
+                    <Text style={styles.statLabel}>分钟</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: '#EF4444' }]}>{selectedCourse.calories}</Text>
+                    <Text style={styles.statLabel}>卡路里</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{selectedCourse.difficulty}</Text>
+                    <Text style={styles.statLabel}>难度</Text>
+                  </View>
+                </View>
+
+                {/* 课程描述 */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitleDetail}>课程介绍</Text>
+                  <Text style={styles.description}>{selectedCourse.description}</Text>
+                </View>
+
+                {/* 课程标签 */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitleDetail}>课程标签</Text>
+                  <View style={styles.tagList}>
+                    {selectedCourse.tags.map((tag: string, index: number) => (
+                      <View key={index} style={styles.suitableTag}>
+                        <Ionicons name="pricetag-outline" size={14} color="#10B981" />
+                        <Text style={styles.suitableText}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* 课程信息 */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitleDetail}>课程信息</Text>
+                  <View style={styles.infoList}>
+                    <View style={styles.infoItem}>
+                      <Ionicons name="star" size={16} color="#FBBF24" />
+                      <Text style={styles.infoText}>评分：{selectedCourse.rating}</Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                      <Ionicons name="people-outline" size={16} color="#6B7280" />
+                      <Text style={styles.infoText}>{selectedCourse.students}人已学习</Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                      <Ionicons name="pricetag-outline" size={16} color="#6B7280" />
+                      <Text style={styles.infoText}>
+                        {selectedCourse.is_free ? '免费课程' : `¥${selectedCourse.price}`}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* 底部按钮 */}
+              <View style={styles.detailFooter}>
+                <TouchableOpacity
+                  style={[styles.recordButton, recording && styles.recordButtonDisabled]}
+                  onPress={recordCourseCompletion}
+                  disabled={recording}
+                >
+                  {recording ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                      <Text style={styles.recordButtonText}>完成课程并记录</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#F8FAFB' }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* 头部搜索栏 */}
+      {/* 头部标题 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>运动课程</Text>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="搜索课程或教练"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#9CA3AF"
-          />
-        </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* 分类选择 */}
         <View style={styles.categoriesSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
@@ -228,16 +370,16 @@ export default function CourseCenterScreen() {
                 style={[
                   styles.categoryItem,
                   selectedCategory === category.id && {
-                    backgroundColor: category.color,
-                    borderColor: category.color,
+                    backgroundColor: categoryColors[category.id] || '#4ABAB8',
+                    borderColor: categoryColors[category.id] || '#4ABAB8',
                   }
                 ]}
                 onPress={() => setSelectedCategory(category.id)}
               >
                 <Ionicons
-                  name={category.icon as keyof typeof Ionicons.glyphMap}
+                  name={categoryIcons[category.id] as keyof typeof Ionicons.glyphMap || 'grid-outline'}
                   size={16}
-                  color={selectedCategory === category.id ? '#FFFFFF' : category.color}
+                  color={selectedCategory === category.id ? '#FFFFFF' : categoryColors[category.id] || '#4ABAB8'}
                 />
                 <Text style={[
                   styles.categoryText,
@@ -272,26 +414,36 @@ export default function CourseCenterScreen() {
             <Text style={styles.sectionTitle}>
               {selectedCategory === '全部' ? '全部课程' : `${selectedCategory}课程`}
             </Text>
-            <Text style={styles.courseCount}>{filteredCourses.length}个课程</Text>
+            <Text style={styles.courseCount}>{courses.length}个课程</Text>
           </View>
 
-          <FlatList
-            data={filteredCourses}
-            renderItem={renderCourseItem}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            contentContainerStyle={styles.coursesList}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={48} color="#D1D5DB" />
-                <Text style={styles.emptyText}>没有找到相关课程</Text>
-                <Text style={styles.emptySubtext}>试试调整搜索条件或分类</Text>
-              </View>
-            }
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4ABAB8" />
+              <Text style={styles.loadingText}>加载课程中...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={courses}
+              renderItem={renderCourseItem}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              contentContainerStyle={styles.coursesList}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="search-outline" size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyText}>没有找到相关课程</Text>
+                  <Text style={styles.emptySubtext}>试试调整搜索条件或分类</Text>
+                </View>
+              }
+            />
+          )}
         </View>
 
       </ScrollView>
+
+      {/* 课程详情弹窗 */}
+      {renderDetailModal()}
     </SafeAreaView>
   );
 }
@@ -522,13 +674,22 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 0,
+    right: 0,
   },
   price: {
     fontSize: 16,
     fontWeight: '700',
     color: '#EF4444',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -543,5 +704,181 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#9CA3AF',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  detailHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  detailTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  detailInstructor: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  detailBody: {
+    paddingHorizontal: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    marginBottom: 8,
+  },
+  statItem: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#E5E7EB',
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitleDetail: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 22,
+  },
+  tagList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  suitableTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  suitableText: {
+    fontSize: 13,
+    color: '#059669',
+  },
+  equipmentTag: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  equipmentText: {
+    fontSize: 13,
+    color: '#4B5563',
+  },
+  infoList: {
+    gap: 12,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  stepsList: {
+    gap: 12,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#4ABAB8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumberText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  stepText: {
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  detailFooter: {
+    padding: 16,
+    paddingBottom: 32,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  recordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#4ABAB8',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  recordButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  recordButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

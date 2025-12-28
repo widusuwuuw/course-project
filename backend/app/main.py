@@ -26,6 +26,8 @@ from .routers.plans import router as plans_router
 from .routers.preferences import router as preferences_router
 from .routers.weekly_plans import router as weekly_plans_router
 from .routers.nutrition import router as nutrition_router
+from .routers.diet_logs import router as diet_logs_router
+from .routers.logs import router as logs_router
 from .assistant import router as assistant_router
 from .testing import router as testing_router
 from .api.exercise_prescription import router as exercise_prescription_router
@@ -56,6 +58,8 @@ def create_app() -> FastAPI:
     app.include_router(preferences_router)
     app.include_router(weekly_plans_router)
     app.include_router(nutrition_router)
+    app.include_router(diet_logs_router)
+    app.include_router(logs_router)
     app.include_router(assistant_router)
     app.include_router(exercise_prescription_router)
     app.include_router(food_ingredients_router)

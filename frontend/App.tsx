@@ -22,6 +22,8 @@ import LabAnalysisScreen from './src/screens/main/LabAnalysisScreen';
 import MonthlyPlanScreen from './src/screens/main/MonthlyPlanScreen';
 import PreferencesScreen from './src/screens/main/PreferencesScreen';
 import GenerateWeeklyPlanScreen from './src/screens/main/GenerateWeeklyPlanScreen';
+import StatsComparisonScreen from './src/screens/main/StatsComparisonScreen';
+import DietRecordScreen from './src/screens/main/DietRecordScreen';
 
 // 旧版屏幕（保留作为备用）
 import HealthTrackerDashboard from './src/screens/HealthTrackerDashboard';
@@ -51,6 +53,8 @@ export type RootStackParamList = {
   MonthlyPlan: undefined;
   Preferences: undefined;
   GenerateWeeklyPlan: undefined;
+  StatsComparison: undefined;
+  DietRecord: undefined;
 
   // 旧版屏幕（向后兼容）
   HealthTrackerDashboard: undefined;
@@ -284,6 +288,22 @@ export default function App() {
             component={GenerateWeeklyPlanScreen}
             options={{
               title: '生成周计划',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="StatsComparison"
+            component={StatsComparisonScreen}
+            options={{
+              title: '执行统计',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="DietRecord"
+            component={DietRecordScreen}
+            options={{
+              title: '营养记录',
               headerShown: false
             }}
           />

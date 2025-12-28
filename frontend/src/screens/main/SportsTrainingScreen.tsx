@@ -17,13 +17,45 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Svg, Circle } from 'react-native-svg';
 import { useCurrentWeeklyPlan, useGenerateWeeklyPlan, convertWeeklyPlanToExerciseData } from '../../hooks/useWeeklyPlan';
-import { apiGet, aiAdjustWeeklyPlan } from '../../api/client';
+import { apiGet, apiPost, apiPut, apiDelete, aiAdjustWeeklyPlan } from '../../api/client';
 
 const { width } = Dimensions.get('window');
+
+// 课程类型定义
+interface Course {
+  id: string;
+  exercise_id: string;
+  category: string;
+  title: string;
+  instructor: string;
+  duration: number;
+  calories: number;
+  difficulty: string;
+  cover_image: string;
+  description: string;
+  tags: string[];
+  rating: number;
+  students: number;
+  is_free: boolean;
+  price: number;
+}
+
+// 运动记录类型
+interface ExerciseRecord {
+  course_id: string;
+  course_title: string;
+  exercise_id: string;
+  instructor: string;
+  duration: number;
+  difficulty: string;
+  calories: number;
+  completed_at?: string;
+  is_completed: boolean;
+}
 
 // 运动项目类型定义
 interface ExerciseItem {
@@ -97,6 +129,180 @@ export default function SportsTrainingScreen() {
   // 获取当前日期
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(today.getDate());
+
+  // ========== 实际运动记录相关状态 ==========
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [todayExerciseLog, setTodayExerciseLog] = useState<any>(null);
+  const [savingExercise, setSavingExercise] = useState(false);
+  const [completingExercise, setCompletingExercise] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 选中的课程分类
+  const [deletingExercise, setDeletingExercise] = useState<string | null>(null); // 正在删除的运动
+
+  // 课程分类列表
+  const COURSE_CATEGORIES = [
+    { id: '有氧运动', name: '有氧运动', icon: 'heart-outline', color: '#EF4444' },
+    { id: '力量训练', name: '力量训练', icon: 'barbell-outline', color: '#8B5CF6' },
+    { id: '柔韧性训练', name: '柔韧性训练', icon: 'body-outline', color: '#10B981' },
+    { id: '传统中式', name: '传统中式', icon: 'leaf-outline', color: '#F59E0B' },
+    { id: '高强度间歇', name: '高强度间歇', icon: 'flash-outline', color: '#EC4899' },
+    { id: '水中运动', name: '水中运动', icon: 'water-outline', color: '#06B6D4' },
+    { id: '功能性训练', name: '功能性训练', icon: 'fitness-outline', color: '#6366F1' },
+  ];
+
+  // 获取选中日期的字符串格式
+  const getSelectedDateStr = () => {
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    return `${year}-${month.toString().padStart(2, '0')}-${selectedDate.toString().padStart(2, '0')}`;
+  };
+
+  // 加载当天的运动记录
+  const loadTodayExerciseLog = async () => {
+    try {
+      const dateStr = getSelectedDateStr();
+      const response = await apiGet(`/logs/exercise?date=${dateStr}`);
+      if (response.logs && response.logs.length > 0) {
+        setTodayExerciseLog(response.logs[0]);
+      } else {
+        setTodayExerciseLog(null);
+      }
+    } catch (error) {
+      console.error('加载运动记录失败:', error);
+    }
+  };
+
+  // 加载课程列表
+  const loadCourses = async () => {
+    setLoadingCourses(true);
+    try {
+      const response = await apiGet('/logs/courses');
+      setCourses(response.courses || []);
+    } catch (error) {
+      console.error('加载课程失败:', error);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
+  // 添加运动到今日记录
+  const addExerciseToday = async (course: Course) => {
+    setSavingExercise(true);
+    try {
+      const dateStr = getSelectedDateStr();
+      const courseRecord = {
+        course_id: course.id,
+        course_title: course.title,
+        exercise_id: course.exercise_id,
+        instructor: course.instructor,
+        duration: course.duration,
+        difficulty: course.difficulty,
+        calories: course.calories,
+        is_completed: false, // 添加时未完成
+      };
+
+      await apiPost('/logs/exercise', {
+        log_date: dateStr,
+        courses: [courseRecord],
+      });
+
+      Alert.alert('成功', `已添加"${course.title}"到今日运动`);
+      setShowCourseModal(false);
+      await loadTodayExerciseLog(); // 刷新记录
+    } catch (error) {
+      console.error('添加运动失败:', error);
+      Alert.alert('错误', '添加运动失败，请重试');
+    } finally {
+      setSavingExercise(false);
+    }
+  };
+
+  // 删除运动记录
+  const deleteExerciseFromToday = async (courseId: string, courseTitle: string) => {
+    console.log('删除按钮点击:', courseId, courseTitle, todayExerciseLog);
+    
+    if (!todayExerciseLog) {
+      console.log('todayExerciseLog 为空');
+      return;
+    }
+    
+    // 使用 window.confirm 兼容 Web 平台
+    const confirmed = window.confirm(`确定要删除"${courseTitle}"吗？`);
+    if (!confirmed) return;
+    
+    setDeletingExercise(courseId);
+    try {
+      // 过滤掉要删除的课程
+      const updatedCourses = todayExerciseLog.courses.filter(
+        (c: any) => c.course_id !== courseId
+      );
+      
+      if (updatedCourses.length === 0) {
+        // 如果没有课程了，删除整个记录
+        await apiDelete(`/logs/exercise/${todayExerciseLog.id}`);
+        // 立即更新本地状态
+        setTodayExerciseLog(null);
+      } else {
+        // 否则更新记录
+        await apiPut(`/logs/exercise/${todayExerciseLog.id}`, {
+          courses: updatedCourses,
+        });
+        // 立即更新本地状态
+        setTodayExerciseLog({
+          ...todayExerciseLog,
+          courses: updatedCourses,
+        });
+      }
+    } catch (error) {
+      console.error('删除运动失败:', error);
+      alert('删除失败，请重试');
+    } finally {
+      setDeletingExercise(null);
+    }
+  };
+
+  // 标记运动为完成
+  const markExerciseCompleted = async (courseId: string) => {
+    if (!todayExerciseLog) return;
+    
+    setCompletingExercise(courseId);
+    try {
+      // 更新记录中该课程的完成状态
+      const updatedCourses = todayExerciseLog.courses.map((c: any) => {
+        if (c.course_id === courseId) {
+          return { ...c, is_completed: true, completed_at: new Date().toISOString() };
+        }
+        return c;
+      });
+
+      // 使用PUT API更新记录
+      await apiPut(`/logs/exercise/${todayExerciseLog.id}`, {
+        courses: updatedCourses,
+      });
+
+      const course = todayExerciseLog.courses.find((c: any) => c.course_id === courseId);
+      Alert.alert('🎉 完成！', `恭喜完成"${course?.course_title}"！消耗了 ${course?.calories} 卡路里`);
+      await loadTodayExerciseLog(); // 刷新记录
+    } catch (error) {
+      console.error('标记完成失败:', error);
+      Alert.alert('错误', '操作失败，请重试');
+    } finally {
+      setCompletingExercise(null);
+    }
+  };
+
+  // 页面获得焦点时刷新运动记录
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTodayExerciseLog();
+    }, [selectedDate])
+  );
+
+  // 当选择日期变化时刷新
+  useEffect(() => {
+    loadTodayExerciseLog();
+  }, [selectedDate]);
 
   // 检查前置条件（月计划和偏好设置）
   useEffect(() => {
@@ -594,13 +800,106 @@ export default function SportsTrainingScreen() {
 
             {/* 休息日显示 */}
             {currentDayData && currentDayData.isRestDay && (
-              <View style={styles.restDayContainer}>
-                <Ionicons name="moon-outline" size={48} color="#F59E0B" />
-                <Text style={styles.restDayTitle}>今日休息</Text>
-                <Text style={styles.restDayDescription}>
-                  今天是休息日，让身体充分恢复。可以进行轻度的伸展活动，保持良好的作息习惯。
-                </Text>
-              </View>
+              <>
+                <View style={styles.restDayContainer}>
+                  <Ionicons name="moon-outline" size={48} color="#F59E0B" />
+                  <Text style={styles.restDayTitle}>今日休息</Text>
+                  <Text style={styles.restDayDescription}>
+                    今天是休息日，让身体充分恢复。可以进行轻度的伸展活动，保持良好的作息习惯。
+                  </Text>
+                </View>
+
+                {/* 休息日也可以记录运动 */}
+                <View style={styles.exercisesSection}>
+                  <View style={styles.exercisesHeader}>
+                    <Text style={styles.exercisesTitle}>今日运动记录</Text>
+                    <TouchableOpacity 
+                      style={styles.addExerciseBtn}
+                      onPress={() => {
+                        loadCourses();
+                        setSelectedCategory(null);
+                        setShowCourseModal(true);
+                      }}
+                    >
+                      <Ionicons name="add-circle" size={20} color="#4ABAB8" />
+                      <Text style={styles.addExerciseBtnText}>添加运动</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {todayExerciseLog && todayExerciseLog.courses && todayExerciseLog.courses.length > 0 ? (
+                    <View style={styles.recordedExercisesList}>
+                      {todayExerciseLog.courses.map((course: any, index: number) => (
+                        <View key={`${course.course_id}-${index}`} style={[
+                          styles.recordedExerciseItem,
+                          course.is_completed && styles.completedExerciseItem
+                        ]}>
+                          <View style={styles.recordedExerciseInfo}>
+                            <View style={styles.recordedExerciseHeader}>
+                              <Text style={styles.recordedExerciseName}>{course.course_title}</Text>
+                              {course.is_completed && (
+                                <View style={styles.completedBadge}>
+                                  <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                                  <Text style={styles.completedBadgeText}>已完成</Text>
+                                </View>
+                              )}
+                            </View>
+                            <View style={styles.recordedExerciseMeta}>
+                              <Text style={styles.recordedExerciseMetaText}>
+                                <Ionicons name="time-outline" size={12} color="#9CA3AF" /> {course.duration}分钟
+                              </Text>
+                              <Text style={styles.recordedExerciseMetaText}>
+                                <Ionicons name="flame-outline" size={12} color="#F59E0B" /> {course.calories}千卡
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.exerciseActions}>
+                            {!course.is_completed && (
+                              <TouchableOpacity 
+                                style={styles.completeBtn}
+                                onPress={() => markExerciseCompleted(course.course_id)}
+                              >
+                                <Text style={styles.completeBtnText}>完成</Text>
+                              </TouchableOpacity>
+                            )}
+                            <TouchableOpacity 
+                              style={styles.deleteExerciseBtn}
+                              onPress={() => {
+                                console.log('点击删除(休息日):', course.course_id);
+                                deleteExerciseFromToday(course.course_id, course.course_title);
+                              }}
+                              activeOpacity={0.6}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                      
+                      {/* 统计信息 */}
+                      {(() => {
+                        const completedCourses = todayExerciseLog.courses.filter((c: any) => c.is_completed);
+                        const totalCalories = completedCourses.reduce((sum: number, c: any) => sum + (c.calories || 0), 0);
+                        const totalDuration = completedCourses.reduce((sum: number, c: any) => sum + (c.duration || 0), 0);
+                        return (
+                          <View style={styles.recordSummary}>
+                            <Text style={styles.recordSummaryText}>
+                              已完成 {completedCourses.length}/{todayExerciseLog.courses.length} 项运动
+                              {completedCourses.length > 0 && ` · ${totalDuration}分钟 · ${totalCalories}千卡`}
+                            </Text>
+                          </View>
+                        );
+                      })()}
+                    </View>
+                  ) : (
+                    <View style={styles.emptyRecords}>
+                      <Ionicons name="add-circle-outline" size={40} color="#9CA3AF" />
+                      <Text style={styles.emptyRecordsText}>休息日也可以记录运动</Text>
+                      <Text style={styles.emptyRecordsHint}>点击"添加运动"开始记录</Text>
+                    </View>
+                  )}
+                </View>
+              </>
             )}
 
             {/* 运动进度 */}
@@ -742,6 +1041,97 @@ export default function SportsTrainingScreen() {
                     </View>
                   )}
                 </View>
+
+                {/* 今日运动记录 - 用户实际完成的运动 */}
+                <View style={styles.exercisesSection}>
+                  <View style={styles.exercisesHeader}>
+                    <Text style={styles.exercisesTitle}>今日运动记录</Text>
+                    <TouchableOpacity 
+                      style={styles.addExerciseBtn}
+                      onPress={() => {
+                        loadCourses();
+                        setSelectedCategory(null);
+                        setShowCourseModal(true);
+                      }}
+                    >
+                      <Ionicons name="add-circle" size={20} color="#4ABAB8" />
+                      <Text style={styles.addExerciseBtnText}>添加运动</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {todayExerciseLog && todayExerciseLog.courses && todayExerciseLog.courses.length > 0 ? (
+                    <View style={styles.recordedExercisesList}>
+                      {todayExerciseLog.courses.map((course: any, index: number) => (
+                        <View key={`${course.course_id}-${index}`} style={[
+                          styles.recordedExerciseItem,
+                          course.is_completed && styles.completedExerciseItem
+                        ]}>
+                          <View style={styles.recordedExerciseInfo}>
+                            <View style={styles.recordedExerciseHeader}>
+                              <Text style={styles.recordedExerciseName}>{course.course_title}</Text>
+                              {course.is_completed && (
+                                <View style={styles.completedBadge}>
+                                  <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                                  <Text style={styles.completedBadgeText}>已完成</Text>
+                                </View>
+                              )}
+                            </View>
+                            <View style={styles.recordedExerciseMeta}>
+                              <Text style={styles.recordedExerciseMetaText}>
+                                <Ionicons name="time-outline" size={12} color="#9CA3AF" /> {course.duration}分钟
+                              </Text>
+                              <Text style={styles.recordedExerciseMetaText}>
+                                <Ionicons name="flame-outline" size={12} color="#F59E0B" /> {course.calories}千卡
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.exerciseActions}>
+                            {!course.is_completed && (
+                              <TouchableOpacity 
+                                style={styles.completeBtn}
+                                onPress={() => markExerciseCompleted(course.course_id)}
+                              >
+                                <Text style={styles.completeBtnText}>完成</Text>
+                              </TouchableOpacity>
+                            )}
+                            <TouchableOpacity 
+                              style={styles.deleteExerciseBtn}
+                              onPress={() => {
+                                console.log('点击删除(非休息日):', course.course_id);
+                                deleteExerciseFromToday(course.course_id, course.course_title);
+                              }}
+                              activeOpacity={0.6}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                      
+                      {/* 统计信息 */}
+                      {(() => {
+                        const completedCourses = todayExerciseLog.courses.filter((c: any) => c.is_completed);
+                        const totalCalories = completedCourses.reduce((sum: number, c: any) => sum + (c.calories || 0), 0);
+                        const totalDuration = completedCourses.reduce((sum: number, c: any) => sum + (c.duration || 0), 0);
+                        return (
+                          <View style={styles.recordSummary}>
+                            <Text style={styles.recordSummaryText}>
+                              已完成 {completedCourses.length}/{todayExerciseLog.courses.length} 项运动
+                              {completedCourses.length > 0 && ` · ${totalDuration}分钟 · ${totalCalories}千卡`}
+                            </Text>
+                          </View>
+                        );
+                      })()}
+                    </View>
+                  ) : (
+                    <View style={styles.emptyRecords}>
+                      <Ionicons name="add-circle-outline" size={40} color="#9CA3AF" />
+                      <Text style={styles.emptyRecordsText}>还没有记录今日运动</Text>
+                      <Text style={styles.emptyRecordsHint}>点击"添加运动"开始记录</Text>
+                    </View>
+                  )}
+                </View>
               </>
             )}
           </>
@@ -824,6 +1214,112 @@ export default function SportsTrainingScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 课程选择对话框 */}
+      <Modal
+        visible={showCourseModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowCourseModal(false);
+          setSelectedCategory(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.courseModalContent]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                {selectedCategory ? (
+                  <TouchableOpacity 
+                    style={styles.backToCategoryBtn}
+                    onPress={() => setSelectedCategory(null)}
+                  >
+                    <Ionicons name="arrow-back" size={20} color="#4ABAB8" />
+                  </TouchableOpacity>
+                ) : (
+                  <Ionicons name="fitness" size={24} color="#4ABAB8" />
+                )}
+                <Text style={styles.modalTitle}>
+                  {selectedCategory ? selectedCategory : '选择运动类型'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => {
+                setShowCourseModal(false);
+                setSelectedCategory(null);
+              }}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {loadingCourses ? (
+              <View style={styles.loadingCourses}>
+                <ActivityIndicator size="large" color="#4ABAB8" />
+                <Text style={styles.loadingCoursesText}>加载课程中...</Text>
+              </View>
+            ) : !selectedCategory ? (
+              /* 第一步：选择分类 */
+              <ScrollView style={styles.categoryList} showsVerticalScrollIndicator={false}>
+                {COURSE_CATEGORIES.map((category) => {
+                  const categoryCount = courses.filter(c => c.category === category.id).length;
+                  return (
+                    <TouchableOpacity 
+                      key={category.id}
+                      style={styles.categorySelectItem}
+                      onPress={() => setSelectedCategory(category.id)}
+                    >
+                      <View style={[styles.categoryIcon, { backgroundColor: `${category.color}20` }]}>
+                        <Ionicons name={category.icon as any} size={24} color={category.color} />
+                      </View>
+                      <View style={styles.categorySelectInfo}>
+                        <Text style={styles.categorySelectName}>{category.name}</Text>
+                        <Text style={styles.categorySelectCount}>{categoryCount}门课程</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              /* 第二步：选择具体课程 */
+              <FlatList
+                data={courses.filter(c => c.category === selectedCategory)}
+                keyExtractor={(item) => item.id}
+                style={styles.coursesList}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={styles.courseSelectItem}
+                    onPress={() => addExerciseToday(item)}
+                  >
+                    <View style={styles.courseSelectInfo}>
+                      <Text style={styles.courseSelectName}>{item.title}</Text>
+                      <View style={styles.courseSelectMeta}>
+                        <Text style={styles.courseSelectMetaText}>
+                          <Ionicons name="time-outline" size={12} color="#9CA3AF" /> {item.duration}分钟
+                        </Text>
+                        <Text style={styles.courseSelectMetaText}>
+                          <Ionicons name="flame-outline" size={12} color="#F59E0B" /> {item.calories}千卡
+                        </Text>
+                        <Text style={styles.courseSelectMetaText}>
+                          <Ionicons name="star" size={12} color="#FBBF24" /> {item.difficulty}
+                        </Text>
+                      </View>
+                      <Text style={styles.courseInstructor}>教练: {item.instructor}</Text>
+                    </View>
+                    <Ionicons name="add-circle" size={28} color="#4ABAB8" />
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyCoursesModal}>
+                    <Ionicons name="search-outline" size={48} color="#9CA3AF" />
+                    <Text style={styles.emptyCoursesModalText}>该分类暂无课程</Text>
+                  </View>
+                }
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -1496,5 +1992,238 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginLeft: 6,
+  },
+  // 添加运动按钮样式
+  addExerciseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E0F7F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  addExerciseBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4ABAB8',
+    marginLeft: 4,
+  },
+  // 已记录运动列表样式
+  recordedExercisesList: {
+    gap: 12,
+  },
+  recordedExerciseItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  completedExerciseItem: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  recordedExerciseInfo: {
+    flex: 1,
+  },
+  recordedExerciseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  recordedExerciseName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginRight: 8,
+  },
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  completedBadgeText: {
+    fontSize: 11,
+    color: '#10B981',
+    marginLeft: 2,
+    fontWeight: '500',
+  },
+  recordedExerciseMeta: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  recordedExerciseMetaText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  completeBtn: {
+    backgroundColor: '#4ABAB8',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  completeBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  recordSummary: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 4,
+  },
+  recordSummaryText: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  emptyRecords: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyRecordsText: {
+    fontSize: 15,
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  emptyRecordsHint: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  // 课程选择Modal样式
+  courseModalContent: {
+    maxHeight: '70%',
+  },
+  loadingCourses: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingCoursesText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  coursesList: {
+    maxHeight: 400,
+  },
+  courseSelectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  courseSelectInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  courseSelectName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  courseSelectCategory: {
+    fontSize: 12,
+    color: '#8B5CF6',
+    backgroundColor: '#EDE9FE',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  courseSelectMeta: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  courseSelectMetaText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  emptyCoursesModal: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyCoursesModalText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  // 删除按钮和操作区域样式
+  exerciseActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteExerciseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  // 分类选择样式
+  categoryList: {
+    maxHeight: 400,
+  },
+  categorySelectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  categoryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  categorySelectInfo: {
+    flex: 1,
+  },
+  categorySelectName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  categorySelectCount: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  backToCategoryBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E0F7F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  courseInstructor: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
 });

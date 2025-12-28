@@ -25,17 +25,56 @@ export interface ExercisePlan {
 }
 
 export interface MealPlan {
-  foods: Array<{ food_id: string; name: string; portion: string }>;
+  foods: Array<{ 
+    food_id: string; 
+    name: string; 
+    portion: string;
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  }>;
   calories: number;
+  nutrition?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
 }
 
 export interface DietPlan {
   calories_target: number;
+  nutrition_targets?: {
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber?: number;
+  };
   breakfast: MealPlan;
   lunch: MealPlan;
   dinner: MealPlan;
   snacks: MealPlan;
   hydration_goal: string;
+  daily_totals?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber?: number;
+  };
+  // 健康档案联动 - 饮食限制和建议
+  dietary_restrictions?: string[];
+  health_advice?: string[];
+  // 运动-饮食联动信息
+  exercise_diet_link?: {
+    exercise_calories: number;      // 运动消耗卡路里
+    calorie_adjustment: number;     // 热量调整量
+    has_strength_training: boolean; // 是否包含力量训练
+    is_high_intensity: boolean;     // 是否高强度
+    primary_time_slot: string;      // 主要运动时段
+    post_exercise_tips: string[];   // 运动后饮食建议
+  };
 }
 
 export interface DayPlan {
@@ -338,27 +377,82 @@ export function convertWeeklyPlanToExerciseData(weeklyPlan: WeeklyPlanData | nul
   return weekData;
 }
 
+// 营养食物数据类型
+export interface NutritionFood {
+  food_id: string;
+  name: string;
+  portion: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+// 餐食数据类型
+export interface MealData {
+  foods: NutritionFood[];
+  calories: number;
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+
+// 每日营养数据类型
+export interface DayNutritionData {
+  date: number;
+  dayName: string;
+  meals: {
+    breakfast: MealData;
+    lunch: MealData;
+    dinner: MealData;
+    snacks: MealData;
+  };
+  dailyTotals: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber?: number;
+  };
+  targetCalories: number;
+  // 新增：营养目标
+  nutritionTargets: {
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber?: number;
+  };
+  hydrationGoal: string;
+  // 健康档案联动
+  dietaryRestrictions?: string[];
+  healthAdvice?: string[];
+  // 运动-饮食联动
+  exerciseDietLink?: {
+    exercise_calories: number;
+    calorie_adjustment: number;
+    has_strength_training: boolean;
+    is_high_intensity: boolean;
+    primary_time_slot: string;
+    post_exercise_tips: string[];
+  } | null;
+}
+
 // 将周计划数据转换为营养页面需要的格式
-export function convertWeeklyPlanToNutritionData(weeklyPlan: WeeklyPlanData | null) {
+export function convertWeeklyPlanToNutritionData(weeklyPlan: WeeklyPlanData | null): Record<number, DayNutritionData> | null {
+  console.log('[convertWeeklyPlanToNutritionData] 输入:', weeklyPlan ? { id: weeklyPlan.id } : null);
+  
   if (!weeklyPlan?.daily_plans) {
+    console.log('[convertWeeklyPlanToNutritionData] 没有 daily_plans，返回 null');
     return null;
   }
 
   const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   
-  const weekData: Record<number, {
-    date: number;
-    meals: {
-      breakfast: { foods: Array<{ name: string; portion: string }>; calories: number };
-      lunch: { foods: Array<{ name: string; portion: string }>; calories: number };
-      dinner: { foods: Array<{ name: string; portion: string }>; calories: number };
-      snacks: { foods: Array<{ name: string; portion: string }>; calories: number };
-    };
-    totalCalories: number;
-    targetCalories: number;
-    hydrationGoal: string;
-  }> = {};
-
+  const weekData: Record<number, DayNutritionData> = {};
   const weekStart = new Date(weeklyPlan.week_start_date);
 
   WEEKDAYS.forEach((day, index) => {
@@ -371,31 +465,94 @@ export function convertWeeklyPlanToNutritionData(weeklyPlan: WeeklyPlanData | nu
 
     const diet = dayPlan.diet;
 
+    // 转换食物数据，确保包含完整的营养信息
+    const convertFoods = (foods: any[]): NutritionFood[] => {
+      return foods.map(f => ({
+        food_id: f.food_id || '',
+        name: f.name || '',
+        portion: f.portion || '',
+        calories: f.calories || 0,
+        protein: f.protein || 0,
+        carbs: f.carbs || 0,
+        fat: f.fat || 0,
+      }));
+    };
+
+    // 转换餐食数据
+    const convertMeal = (meal: any): MealData => ({
+      foods: convertFoods(meal?.foods || []),
+      calories: meal?.calories || 0,
+      nutrition: meal?.nutrition || {
+        calories: meal?.calories || 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      },
+    });
+
+    // 计算每日营养总计（从所有餐食的食物中实时计算）
+    const calculateDailyTotals = (diet: any) => {
+      const allMeals = ['breakfast', 'lunch', 'dinner', 'snacks'];
+      let totalCalories = 0;
+      let totalProtein = 0;
+      let totalCarbs = 0;
+      let totalFat = 0;
+      let totalFiber = 0;
+      
+      allMeals.forEach(mealType => {
+        const meal = diet[mealType];
+        if (meal?.foods) {
+          meal.foods.forEach((food: any) => {
+            totalCalories += food.calories || 0;
+            totalProtein += food.protein || 0;
+            totalCarbs += food.carbs || 0;
+            totalFat += food.fat || 0;
+            totalFiber += food.fiber || 0;
+          });
+        }
+      });
+      
+      return {
+        calories: Math.round(totalCalories),
+        protein: Math.round(totalProtein),
+        carbs: Math.round(totalCarbs),
+        fat: Math.round(totalFat),
+        fiber: Math.round(totalFiber),
+      };
+    };
+
+    // 实时计算每日营养总计
+    const dailyTotals = calculateDailyTotals(diet);
+
     weekData[dateNum] = {
       date: dateNum,
+      dayName: DAY_NAMES[index],
       meals: {
-        breakfast: {
-          foods: diet.breakfast.foods.map(f => ({ name: f.name, portion: f.portion })),
-          calories: diet.breakfast.calories,
-        },
-        lunch: {
-          foods: diet.lunch.foods.map(f => ({ name: f.name, portion: f.portion })),
-          calories: diet.lunch.calories,
-        },
-        dinner: {
-          foods: diet.dinner.foods.map(f => ({ name: f.name, portion: f.portion })),
-          calories: diet.dinner.calories,
-        },
-        snacks: {
-          foods: diet.snacks.foods.map(f => ({ name: f.name, portion: f.portion })),
-          calories: diet.snacks.calories,
-        },
+        breakfast: convertMeal(diet.breakfast),
+        lunch: convertMeal(diet.lunch),
+        dinner: convertMeal(diet.dinner),
+        snacks: convertMeal(diet.snacks),
       },
-      totalCalories: diet.breakfast.calories + diet.lunch.calories + diet.dinner.calories + diet.snacks.calories,
-      targetCalories: diet.calories_target,
-      hydrationGoal: diet.hydration_goal,
+      dailyTotals: dailyTotals,
+      targetCalories: diet.calories_target || 2000,
+      // 新增：营养目标（从后端获取，或根据卡路里计算默认值）
+      nutritionTargets: diet.nutrition_targets || {
+        protein: Math.round((diet.calories_target || 2000) * 0.18 / 4),
+        carbs: Math.round((diet.calories_target || 2000) * 0.55 / 4),
+        fat: Math.round((diet.calories_target || 2000) * 0.27 / 9),
+        fiber: 25,
+      },
+      hydrationGoal: diet.hydration_goal || '2000ml',
+      // 健康档案联动数据
+      dietaryRestrictions: diet.dietary_restrictions || [],
+      healthAdvice: diet.health_advice || [],
+      // 运动-饮食联动数据
+      exerciseDietLink: diet.exercise_diet_link || null,
     };
+    
+    console.log(`[convertWeeklyPlanToNutritionData] ${day} (${dateNum}): 目标${diet.calories_target}kcal, 早餐${diet.breakfast?.foods?.length || 0}项, 运动消耗${diet.exercise_diet_link?.exercise_calories || 0}kcal`);
   });
 
+  console.log('[convertWeeklyPlanToNutritionData] 输出 weekData keys:', Object.keys(weekData));
   return weekData;
 }

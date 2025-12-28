@@ -720,6 +720,245 @@ EXERCISE_DATABASE = [
         ),
         created_at=datetime.now(),
         updated_at=datetime.now()
+    ),
+
+    # ========== 新增运动：健身房器械与高强度训练 ==========
+    ExerciseResource(
+        id='elliptical_machine',
+        name='椭圆机训练',
+        category=ExerciseCategory.AEROBIC,
+        met_value=5.0,
+        intensity=IntensityLevel.MODERATE,
+        duration=30,
+        calorie_burn=175,
+        medical_tags=MedicalTags(
+            contraindications=['严重膝关节损伤', '平衡功能障碍'],
+            suitable_conditions=['健康人群', '关节保护需求', '体重管理', '心血管健康'],
+            monitoring_required=False,
+            impact_level=ImpactLevel.LOW
+        ),
+        requirements=Requirements(
+            equipment=['椭圆机'],
+            space_required='medium',
+            difficulty_level=DifficultyLevel.BEGINNER,
+            learning_curve=LearningCurve.EASY
+        ),
+        details=ExerciseDetails(
+            description='低冲击有氧运动，模拟跑步和 climbing 动作，对关节压力小',
+            benefits=['提高心肺功能', '燃烧卡路里', '保护关节', '全身协调'],
+            proper_form=['保持挺胸', '全脚掌踩踏板', '手臂协调摆动'],
+            common_mistakes=['身体前倾过度', '仅用脚尖踩踏', '手臂不动'],
+            modifications=Modifications(
+                easier=['降低阻力', '缩短时间', '降低坡度'],
+                harder=['增加阻力', '增加坡度', '手握不扶扶手']
+            )
+        ),
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    ),
+
+    ExerciseResource(
+        id='rowing_machine',
+        name='划船机训练',
+        category=ExerciseCategory.AEROBIC,
+        met_value=7.0,
+        intensity=IntensityLevel.VIGOROUS,
+        duration=20,
+        calorie_burn=245,
+        medical_tags=MedicalTags(
+            contraindications=['腰椎间盘突出', '肩袖损伤', '严重腰背痛'],
+            suitable_conditions=['健康人群', '全身有氧', '上肢力量', '背部健康'],
+            monitoring_required=False,
+            impact_level=ImpactLevel.LOW
+        ),
+        requirements=Requirements(
+            equipment=['划船机'],
+            space_required='medium',
+            difficulty_level=DifficultyLevel.INTERMEDIATE,
+            learning_curve=LearningCurve.MODERATE
+        ),
+        details=ExerciseDetails(
+            description='全身有氧运动，模拟划船动作，锻炼心肺和肌肉力量',
+            benefits=['全身肌肉参与', '高卡路里消耗', '低冲击', '改善体态'],
+            proper_form=['用腿部发力启动', '保持背部挺直', '拉手至胸部'],
+            common_mistakes=['过度使用手臂', '弓背', '过度后仰'],
+            modifications=Modifications(
+                easier=['降低阻力', '缩短时间', '降低速度'],
+                harder=['增加阻力', '间歇训练', '增加速度']
+            )
+        ),
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    ),
+
+    ExerciseResource(
+        id='stair_climber',
+        name='登山机训练',
+        category=ExerciseCategory.AEROBIC,
+        met_value=9.0,
+        intensity=IntensityLevel.VIGOROUS,
+        duration=15,
+        calorie_burn=236,
+        medical_tags=MedicalTags(
+            contraindications=['膝关节严重损伤', '踝关节不稳定', '下肢关节炎'],
+            suitable_conditions=['健康人群', '下肢力量', '心肺功能', '体重管理'],
+            monitoring_required=False,
+            impact_level=ImpactLevel.MODERATE
+        ),
+        requirements=Requirements(
+            equipment=['登山机'],
+            space_required='medium',
+            difficulty_level=DifficultyLevel.INTERMEDIATE,
+            learning_curve=LearningCurve.MODERATE
+        ),
+        details=ExerciseDetails(
+            description='模拟爬楼梯动作，高强度有氧和下肢训练',
+            benefits=['强化下肢', '高卡路里消耗', '提升心肺', '塑形腿部'],
+            proper_form=['全脚掌踩踏板', '保持挺胸', '不要手扶扶手过度承重'],
+            common_mistakes=['仅用前脚掌', '身体过度前倾', '手扶扶手承重'],
+            modifications=Modifications(
+                easier=['降低速度', '缩短时间', '间歇休息'],
+                harder=['增加速度', '携带负重', '侧向爬楼梯']
+            )
+        ),
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    ),
+
+    ExerciseResource(
+        id='burpees',
+        name='波比跳',
+        category=ExerciseCategory.HIIT,
+        met_value=8.0,
+        intensity=IntensityLevel.VIGOROUS,
+        duration=10,
+        calorie_burn=112,
+        medical_tags=MedicalTags(
+            contraindications=['膝关节损伤', '腕关节损伤', '高血压', '腰椎问题'],
+            suitable_conditions=['健康人群', '高强度训练', '全身燃脂', '时间效率高'],
+            monitoring_required=True,
+            impact_level=ImpactLevel.HIGH
+        ),
+        requirements=Requirements(
+            equipment=[],
+            space_required='small',
+            difficulty_level=DifficultyLevel.INTERMEDIATE,
+            learning_curve=LearningCurve.MODERATE
+        ),
+        details=ExerciseDetails(
+            description='高强度全身运动，结合深蹲、俯卧撑和跳跃',
+            benefits=['全身肌肉参与', '高卡路里消耗', '提升爆发力', '时间效率'],
+            proper_form=['落地轻盈', '核心收紧', '动作连贯'],
+            common_mistakes=['落地过重', '弓背', '膝盖内扣'],
+            modifications=Modifications(
+                easier=['去掉跳跃', '慢速完成', '减少次数'],
+                harder=['增加跳跃高度', '加入俯卧撑', '加快速度']
+            )
+        ),
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    ),
+
+    ExerciseResource(
+        id='pilates',
+        name='普拉提',
+        category=ExerciseCategory.FLEXIBILITY,
+        met_value=3.0,
+        intensity=IntensityLevel.LIGHT,
+        duration=45,
+        calorie_burn=127,
+        medical_tags=MedicalTags(
+            contraindications=['骨质疏松严重', '椎间盘突出急性期', '怀孕初期'],
+            suitable_conditions=['健康人群', '核心力量', '姿态改善', '康复期'],
+            monitoring_required=False,
+            impact_level=ImpactLevel.LOW
+        ),
+        requirements=Requirements(
+            equipment=['瑜伽垫'],
+            space_required='small',
+            difficulty_level=DifficultyLevel.INTERMEDIATE,
+            learning_curve=LearningCurve.MODERATE
+        ),
+        details=ExerciseDetails(
+            description='强调核心力量、姿态控制和呼吸的训练方法',
+            benefits=['强化核心', '改善姿态', '增强柔韧性', '缓解腰背痛'],
+            proper_form=['专注呼吸', '动作控制精确', '核心持续收紧'],
+            common_mistakes=['憋气', '过度代偿', '追求幅度牺牲质量'],
+            modifications=Modifications(
+                easier=['简化动作', '使用辅助工具', '增加休息'],
+                harder=['增加难度', '延长保持时间', '复合动作']
+            )
+        ),
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    ),
+
+    ExerciseResource(
+        id='battle_ropes',
+        name='战绳训练',
+        category=ExerciseCategory.HIIT,
+        met_value=10.0,
+        intensity=IntensityLevel.VIGOROUS,
+        duration=8,
+        calorie_burn=112,
+        medical_tags=MedicalTags(
+            contraindications=['肩关节损伤', '高血压', '腕管综合征'],
+            suitable_conditions=['健康人群', '高强度间歇', '上肢力量', '爆发力训练'],
+            monitoring_required=True,
+            impact_level=ImpactLevel.MODERATE
+        ),
+        requirements=Requirements(
+            equipment=['战绳'],
+            space_required='medium',
+            difficulty_level=DifficultyLevel.INTERMEDIATE,
+            learning_curve=LearningCurve.MODERATE
+        ),
+        details=ExerciseDetails(
+            description='使用重型绳索进行高强度的波浪和甩动训练',
+            benefits=['全身协调', '高卡路里消耗', '提升爆发力', '增强握力'],
+            proper_form=['核心收紧', '利用全身力量', '保持节奏'],
+            common_mistakes=['仅用手臂', '核心松弛', '呼吸屏住'],
+            modifications=Modifications(
+                easier=['降低绳重', '缩短时间', '间歇延长'],
+                harder=['增加绳重', '复合动作', '缩短间歇']
+            )
+        ),
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    ),
+
+    ExerciseResource(
+        id='kettlebell_swing',
+        name='壶铃摆动',
+        category=ExerciseCategory.FUNCTIONAL,
+        met_value=6.0,
+        intensity=IntensityLevel.VIGOROUS,
+        duration=15,
+        calorie_burn=126,
+        medical_tags=MedicalTags(
+            contraindications=['腰椎间盘突出', '肩关节损伤', '孕期'],
+            suitable_conditions=['健康人群', '爆发力训练', '后链力量', '功能性运动'],
+            monitoring_required=True,
+            impact_level=ImpactLevel.MODERATE
+        ),
+        requirements=Requirements(
+            equipment=['壶铃'],
+            space_required='medium',
+            difficulty_level=DifficultyLevel.INTERMEDIATE,
+            learning_curve=LearningCurve.DIFFICULT
+        ),
+        details=ExerciseDetails(
+            description='使用壶铃进行摆动动作，强化后链肌肉群和爆发力',
+            benefits=['强化臀腿', '提升爆发力', '改善姿势', '全身协调'],
+            proper_form=['臀部发力', '背部挺直', '手臂仅作为摆锤'],
+            common_mistakes=['过度依赖手臂', '弓背', '膝盖过度内扣'],
+            modifications=Modifications(
+                easier=['减轻壶铃重量', '降低摆动高度', '增加休息'],
+                harder=['增加壶铃重量', '单腿摆动', '增加次数']
+            )
+        ),
+        created_at=datetime.now(),
+        updated_at=datetime.now()
     )
 ]
 

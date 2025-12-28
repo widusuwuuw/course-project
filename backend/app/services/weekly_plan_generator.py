@@ -4,12 +4,13 @@
 架构设计：
 1. 读取月度计划（运动框架+饮食框架+医学约束）
 2. 读取用户偏好（时间段、强度、禁忌等）
-3. 将运动分配到7天（考虑休息日、工作强度）
-4. 将食材组合成每日三餐
-5. AI生成每日小贴士（可选）
+3. 读取用户健康档案（联动饮食限制）
+4. 将运动分配到7天（考虑休息日、工作强度）
+5. 将食材组合成每日三餐（考虑健康限制）
+6. AI生成每日小贴士（可选）
 
 流程：
-月度计划 + 用户偏好 → 运动分配算法 → 饮食分配算法 → AI润色 → 周计划
+月度计划 + 用户偏好 + 健康档案 → 运动分配算法 → 饮食分配算法 → AI润色 → 周计划
 """
 
 import json
@@ -20,6 +21,13 @@ from datetime import datetime, timedelta
 from dataclasses import asdict
 
 from .deepseek_client import generate_answer, is_enabled as deepseek_enabled
+from .health_diet_service import (
+    analyze_health_profile, 
+    filter_foods_by_health,
+    get_diet_advice_for_user,
+    should_use_low_gi,
+    DietaryRestriction
+)
 from ..data.exercise_database import EXERCISE_DATABASE
 from ..data.food_ingredients_data import CORE_FOODS_DATA
 
@@ -61,7 +69,9 @@ class WeeklyPlanGenerator:
         user_preferences: Optional[Dict] = None,
         week_number: int = 1,
         week_start_date: datetime = None,
-        user_adjustments: Optional[Dict] = None
+        user_adjustments: Optional[Dict] = None,
+        health_metrics: Optional[Dict] = None,
+        user_gender: str = "male"
     ) -> Dict:
         """
         生成周计划
@@ -72,11 +82,21 @@ class WeeklyPlanGenerator:
             week_number: 当月第几周（1-5）
             week_start_date: 周一日期
             user_adjustments: 用户对某些天的微调请求
+            health_metrics: 用户健康指标（用于个性化饮食）
+            user_gender: 用户性别（male/female，用于健康指标阈值）
             
         Returns:
             Dict: 周计划数据
         """
         logger.info(f"开始生成第 {week_number} 周计划")
+        
+        # 分析健康档案，获取饮食限制
+        dietary_restrictions = []
+        if health_metrics:
+            dietary_restrictions = analyze_health_profile(health_metrics, user_gender)
+            if dietary_restrictions:
+                restriction_names = [r.condition for r in dietary_restrictions]
+                logger.info(f"检测到健康相关饮食限制: {restriction_names}")
         
         # 设置默认值
         if user_preferences is None:
@@ -144,13 +164,15 @@ class WeeklyPlanGenerator:
                 if exercises_plan:
                     exercise_plan = exercises_plan[0]
             
-            # 生成当天饮食计划
+            # 生成当天饮食计划（传入健康限制和运动计划）
             diet_plan = self._generate_day_diet(
                 day=day,
                 diet_framework=diet_framework,
                 user_preferences=user_preferences,
                 medical_constraints=medical_constraints,
-                is_rest_day=is_rest_day
+                is_rest_day=is_rest_day,
+                dietary_restrictions=dietary_restrictions,
+                exercises_plan=exercises_plan  # 新增：传入当天运动计划
             )
             
             # 生成当天提示
@@ -287,12 +309,23 @@ class WeeklyPlanGenerator:
                 if ex_id in disliked_exercises or ex_name in disliked_exercises:
                     continue
                 
+                # 【修复】从运动元数据库获取真实数据
+                db_exercise = self._get_exercise_from_database(ex_id)
+                
                 # 计算运动时长
                 suggested_duration = ex.get("duration_minutes", ex.get("duration", 30))
+                if db_exercise:
+                    suggested_duration = db_exercise.duration
                 actual_duration = min(suggested_duration, available_time)
                 
-                # 计算卡路里
-                met = ex.get("met_value", 4.0)
+                # 【修复】使用数据库中的真实MET值计算卡路里
+                if db_exercise:
+                    met = db_exercise.met_value
+                    real_intensity = db_exercise.intensity.value
+                else:
+                    met = ex.get("met_value", 4.0)
+                    real_intensity = ex.get("intensity", "moderate")
+                
                 calories = int(met * 70 * actual_duration / 60)
                 
                 # 生成替代方案
@@ -302,7 +335,7 @@ class WeeklyPlanGenerator:
                     "exercise_id": ex_id,
                     "name": ex_name,
                     "duration": actual_duration,
-                    "intensity": target_intensity,
+                    "intensity": real_intensity,  # 【修复】使用运动本身的真实强度
                     "calories_target": calories,
                     "time_slot": time_slot,
                     "execution_guide": self._get_execution_guide(ex_id),
@@ -310,7 +343,7 @@ class WeeklyPlanGenerator:
                 }
                 
                 exercises_for_day.append(exercise_item)
-                logger.info(f"  [{day}] {time_slot}: {ex_name} ({actual_duration}分钟)")
+                logger.info(f"  [{day}] {time_slot}: {ex_name} ({actual_duration}分钟, {real_intensity}, {calories}kcal)")
         
         return exercises_for_day
     
@@ -693,6 +726,21 @@ class WeeklyPlanGenerator:
             ]
         }
     
+    def _get_exercise_from_database(self, exercise_id: str):
+        """
+        从运动元数据库获取运动的真实数据
+        
+        Args:
+            exercise_id: 运动ID
+            
+        Returns:
+            ExerciseResource 或 None
+        """
+        for exercise in EXERCISE_DATABASE:
+            if exercise.id == exercise_id:
+                return exercise
+        return None
+    
     def _get_execution_guide(self, exercise_id: str) -> str:
         """获取运动执行指导"""
         guides = {
@@ -728,169 +776,790 @@ class WeeklyPlanGenerator:
         }
         return guides.get(exercise_id, "按照标准动作执行，注意安全，如有不适立即停止")
     
+    def _analyze_exercise_for_diet(self, exercises_plan: List[Dict]) -> Dict:
+        """
+        分析当天运动计划，为饮食调整提供依据
+        
+        返回：
+        - total_calories: 总运动消耗
+        - has_strength_training: 是否包含力量训练
+        - is_high_intensity: 是否为高强度运动
+        - primary_time_slot: 主要运动时段
+        - exercise_types: 运动类型列表
+        - post_exercise_tips: 运动后饮食建议
+        """
+        if not exercises_plan:
+            return {
+                "total_calories": 0,
+                "has_strength_training": False,
+                "is_high_intensity": False,
+                "primary_time_slot": "",
+                "exercise_types": [],
+                "post_exercise_tips": []
+            }
+        
+        total_calories = 0
+        exercise_types = set()
+        intensities = []
+        time_slots = []
+        
+        # 力量训练关键词
+        strength_keywords = ["力量", "strength", "resistance", "深蹲", "俯卧撑", "哑铃", "杠铃", "plank", "pushup", "squat"]
+        # 高强度关键词
+        high_intensity_keywords = ["hiit", "tabata", "高强度", "冲刺", "跑步", "jog", "run"]
+        
+        has_strength = False
+        has_high_intensity = False
+        
+        for ex in exercises_plan:
+            # 计算卡路里
+            calories = ex.get("calories_target", 0)
+            if not calories:
+                # 根据时长和强度估算
+                duration = ex.get("duration", 30)
+                intensity = ex.get("intensity", "moderate")
+                met_map = {"low": 3, "light": 3.5, "moderate": 5, "high": 7, "vigorous": 9}
+                met = met_map.get(intensity, 5)
+                calories = met * 65 * (duration / 60)  # 假设65kg体重
+            total_calories += calories
+            
+            # 检查运动类型
+            ex_name = ex.get("name", "").lower()
+            ex_id = ex.get("exercise_id", "").lower()
+            category = ex.get("category", "")
+            
+            exercise_types.add(category or "other")
+            
+            # 检查是否为力量训练
+            if any(kw in ex_name or kw in ex_id for kw in strength_keywords):
+                has_strength = True
+            if category in ["resistance", "strength", "力量训练"]:
+                has_strength = True
+            
+            # 检查是否为高强度
+            intensity = ex.get("intensity", "moderate")
+            intensities.append(intensity)
+            if intensity in ["high", "vigorous"] or any(kw in ex_name or kw in ex_id for kw in high_intensity_keywords):
+                has_high_intensity = True
+            
+            # 收集时段
+            time_slot = ex.get("time_slot", "")
+            if time_slot:
+                time_slots.append(time_slot)
+        
+        # 确定主要时段（出现最多的）
+        primary_time_slot = ""
+        if time_slots:
+            from collections import Counter
+            primary_time_slot = Counter(time_slots).most_common(1)[0][0]
+        
+        # 生成运动后饮食建议
+        post_tips = self._generate_post_exercise_tips(
+            total_calories=total_calories,
+            has_strength=has_strength,
+            has_high_intensity=has_high_intensity,
+            primary_time_slot=primary_time_slot
+        )
+        
+        return {
+            "total_calories": round(total_calories),
+            "has_strength_training": has_strength,
+            "is_high_intensity": has_high_intensity,
+            "primary_time_slot": primary_time_slot,
+            "exercise_types": list(exercise_types),
+            "post_exercise_tips": post_tips
+        }
+    
+    def _generate_post_exercise_tips(
+        self, 
+        total_calories: float,
+        has_strength: bool,
+        has_high_intensity: bool,
+        primary_time_slot: str
+    ) -> List[str]:
+        """生成运动后饮食建议"""
+        tips = []
+        
+        # 基础补水建议
+        if total_calories > 0:
+            tips.append("运动后30分钟内补充200-300ml水分")
+        
+        # 根据运动类型
+        if has_strength:
+            tips.append("力量训练后1小时内补充蛋白质，推荐鸡蛋、牛奶或鸡胸肉")
+            tips.append("蛋白质与碳水比例建议1:2，帮助肌肉修复")
+        
+        if has_high_intensity:
+            tips.append("高强度运动后补充快速吸收的碳水，如香蕉或全麦面包")
+            tips.append("注意补充电解质，可适量饮用淡盐水")
+        
+        # 根据运动时段
+        if "早" in primary_time_slot or primary_time_slot == "早晨":
+            tips.append("晨练前可吃少量易消化食物，如香蕉或全麦饼干")
+            tips.append("晨练后的正餐选择高蛋白+适量碳水的搭配")
+        elif "晚" in primary_time_slot or primary_time_slot == "晚上":
+            tips.append("晚间运动后避免大量进食，可选择清淡的蛋白质食物")
+            tips.append("睡前2小时内不建议摄入高碳水食物")
+        
+        # 根据消耗量
+        if total_calories >= 400:
+            tips.append(f"今日运动消耗约{round(total_calories)}kcal，可适当增加一份加餐")
+        elif total_calories >= 200:
+            tips.append(f"今日运动消耗约{round(total_calories)}kcal，正常饮食即可满足恢复需求")
+        
+        return tips
+    
+    def _create_exercise_snacks(
+        self,
+        proteins: List,
+        fruits: List,
+        nuts: List,
+        dairy: List,
+        day_index: int,
+        target_calories: int,
+        exercise_analysis: Dict
+    ) -> Dict:
+        """
+        创建运动相关的加餐
+        根据运动类型推荐不同的加餐组合
+        """
+        foods = []
+        total_cal = 0
+        
+        has_strength = exercise_analysis.get("has_strength_training", False)
+        has_high_intensity = exercise_analysis.get("is_high_intensity", False)
+        time_slot = exercise_analysis.get("primary_time_slot", "")
+        
+        # 力量训练后：优先蛋白质
+        if has_strength:
+            # 添加蛋白质类食物
+            if dairy:
+                item = dairy[day_index % len(dairy)]
+                portion = 200  # 200ml/g
+                cal = item["calories"] * portion / 100
+                foods.append({
+                    "food_id": item["food_id"],
+                    "name": item["name"],
+                    "portion": f"{portion}ml",
+                    "calories": round(cal),
+                    "protein": round(item["protein"] * portion / 100, 1),
+                    "carbs": round(item["carbs"] * portion / 100, 1),
+                    "fat": round(item["fat"] * portion / 100, 1),
+                    "note": "运动后蛋白质补充"
+                })
+                total_cal += cal
+            
+            # 如果还有热量余量，添加碳水（蛋白质:碳水 = 1:2）
+            if fruits and total_cal < target_calories * 0.7:
+                item = fruits[(day_index + 1) % len(fruits)]
+                portion = 150
+                cal = item["calories"] * portion / 100
+                foods.append({
+                    "food_id": item["food_id"],
+                    "name": item["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(item["protein"] * portion / 100, 1),
+                    "carbs": round(item["carbs"] * portion / 100, 1),
+                    "fat": round(item["fat"] * portion / 100, 1),
+                    "note": "快速补充能量"
+                })
+                total_cal += cal
+        
+        # 高强度运动后：优先碳水
+        elif has_high_intensity:
+            # 水果（快速碳水）
+            if fruits:
+                item = fruits[day_index % len(fruits)]
+                portion = 200
+                cal = item["calories"] * portion / 100
+                foods.append({
+                    "food_id": item["food_id"],
+                    "name": item["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(item["protein"] * portion / 100, 1),
+                    "carbs": round(item["carbs"] * portion / 100, 1),
+                    "fat": round(item["fat"] * portion / 100, 1),
+                    "note": "快速补充糖原"
+                })
+                total_cal += cal
+        
+        # 普通加餐：坚果+水果
+        else:
+            if nuts:
+                item = nuts[day_index % len(nuts)]
+                portion = 20  # 坚果不宜多吃
+                cal = item["calories"] * portion / 100
+                foods.append({
+                    "food_id": item["food_id"],
+                    "name": item["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(item["protein"] * portion / 100, 1),
+                    "carbs": round(item["carbs"] * portion / 100, 1),
+                    "fat": round(item["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            if fruits and total_cal < target_calories * 0.8:
+                item = fruits[(day_index + 2) % len(fruits)]
+                portion = 100
+                cal = item["calories"] * portion / 100
+                foods.append({
+                    "food_id": item["food_id"],
+                    "name": item["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(item["protein"] * portion / 100, 1),
+                    "carbs": round(item["carbs"] * portion / 100, 1),
+                    "fat": round(item["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+        
+        # 计算加餐营养
+        nutrition = {
+            "calories": sum(f.get("calories", 0) for f in foods),
+            "protein": sum(f.get("protein", 0) for f in foods),
+            "carbs": sum(f.get("carbs", 0) for f in foods),
+            "fat": sum(f.get("fat", 0) for f in foods)
+        }
+        
+        return {
+            "foods": foods,
+            "calories": nutrition["calories"],
+            "nutrition": nutrition,
+            "timing": self._get_snack_timing(exercise_analysis),
+            "note": "运动后加餐" if exercise_analysis.get("total_calories", 0) > 0 else "日常加餐"
+        }
+    
+    def _get_snack_timing(self, exercise_analysis: Dict) -> str:
+        """根据运动时段推荐加餐时间"""
+        time_slot = exercise_analysis.get("primary_time_slot", "")
+        
+        if "早" in time_slot or time_slot == "早晨":
+            return "上午10:00（晨练后1小时）"
+        elif "下午" in time_slot:
+            return "下午16:00（运动后30分钟）"
+        elif "晚" in time_slot or time_slot == "晚上":
+            return "晚上20:00（运动后30分钟，宜清淡）"
+        else:
+            return "下午15:00-16:00"
+
     def _generate_day_diet(
         self,
         day: str,
         diet_framework: Dict,
         user_preferences: Dict,
         medical_constraints: Dict,
-        is_rest_day: bool
+        is_rest_day: bool,
+        dietary_restrictions: List[DietaryRestriction] = None,
+        exercises_plan: List[Dict] = None  # 新增：当天运动计划
     ) -> Dict:
-        """生成当天饮食计划"""
+        """
+        生成当天饮食计划 - 从食材元数据库获取真实营养数据
         
-        # 从月度计划获取推荐食材
+        新增运动-饮食联动功能：
+        1. 根据运动消耗调整热量目标
+        2. 根据运动类型调整营养配比（力量训练增加蛋白质）
+        3. 根据运动时段调整餐食分配（晨练调整早餐）
+        4. 生成运动后饮食建议
+        """
+        
+        if dietary_restrictions is None:
+            dietary_restrictions = []
+        
+        if exercises_plan is None:
+            exercises_plan = []
+        
+        # ========== 运动-饮食联动分析 ==========
+        exercise_analysis = self._analyze_exercise_for_diet(exercises_plan)
+        
+        # 从月度计划获取推荐食材和禁忌
         recommended_foods = diet_framework.get("recommended_foods", [])
         foods_to_avoid = diet_framework.get("foods_to_avoid", [])
-        principles = diet_framework.get("principles", [])
         
         # 用户禁忌
         user_forbidden = user_preferences.get("forbidden_foods", [])
         user_allergens = user_preferences.get("allergens", [])
         
-        # 合并禁忌
+        # 合并禁忌（包括月度计划、用户设置）
         all_forbidden = set(foods_to_avoid + user_forbidden + user_allergens)
         
-        # 过滤可用食材
-        available_foods = []
-        for food in recommended_foods:
-            food_name = food.get("name", "")
-            food_id = food.get("food_id", food.get("id", ""))
-            if food_name not in all_forbidden and food_id not in all_forbidden:
-                available_foods.append(food)
+        # 从健康限制中收集需要避免的食材
+        health_foods_to_avoid = set()
+        health_foods_to_prefer = set()
+        health_advice_list = []
         
-        # 如果没有推荐食材，使用默认
-        if not available_foods:
-            available_foods = self._get_default_foods()
+        for restriction in dietary_restrictions:
+            health_foods_to_avoid.update(restriction.foods_to_avoid)
+            health_foods_to_prefer.update(restriction.foods_to_prefer)
+            if restriction.advice:
+                health_advice_list.append(restriction.advice)
         
-        # 按类别分组
-        grains = [f for f in available_foods if f.get("category") in ["grains", "谷物", "主食"]]
-        proteins = [f for f in available_foods if f.get("category") in ["protein", "proteins", "蛋白质", "肉类"]]
-        vegetables = [f for f in available_foods if f.get("category") in ["vegetables", "蔬菜"]]
-        fruits = [f for f in available_foods if f.get("category") in ["fruits", "水果"]]
+        # 从元数据库构建可用食材，按类别分组
+        # 使用 filter_foods_by_health 来智能过滤和优先排序
+        filtered_foods = filter_foods_by_health(CORE_FOODS_DATA, dietary_restrictions)
         
-        # 如果分类不足，补充默认
-        if not grains:
-            grains = [{"food_id": "brown_rice", "name": "糙米", "category": "grains"}]
-        if not proteins:
-            proteins = [{"food_id": "chicken_breast", "name": "鸡胸肉", "category": "protein"}]
-        if not vegetables:
-            vegetables = [{"food_id": "broccoli", "name": "西兰花", "category": "vegetables"}]
+        recommended_ids = {f.get("food_id", f.get("id", "")) for f in recommended_foods}
+        
+        grains = []
+        proteins = []
+        vegetables = []
+        fruits = []
+        dairy = []
+        nuts = []
+        
+        # 分类过滤后的食材
+        for food in filtered_foods:
+            # 跳过用户手动设置的禁忌
+            if food.name in all_forbidden or food.id in all_forbidden:
+                continue
+                
+            food_data = {
+                "food_id": food.id,
+                "name": food.name,
+                "category": food.category.value,
+                "calories": food.nutrients.calories,
+                "protein": food.nutrients.protein,
+                "carbs": food.nutrients.carbs,
+                "fat": food.nutrients.fat,
+                "fiber": food.nutrients.fiber,
+                "gi_value": getattr(food, 'gi_value', None),
+                "is_recommended": food.id in recommended_ids or food.name in [f.get("name") for f in recommended_foods],
+                "is_health_preferred": food.name in health_foods_to_prefer
+            }
+            
+            cat = food.category.value
+            if cat == "谷物类":
+                grains.append(food_data)
+            elif cat == "蛋白质类":
+                proteins.append(food_data)
+            elif cat == "蔬菜类":
+                vegetables.append(food_data)
+            elif cat == "水果类":
+                fruits.append(food_data)
+            elif cat == "乳制品类":
+                dairy.append(food_data)
+            elif cat in ["坚果种子类", "豆制品类"]:
+                nuts.append(food_data)
+        
+        # 优先排序：健康推荐 > 月度计划推荐 > 其他
+        def sort_priority(x):
+            if x.get("is_health_preferred"):
+                return 0
+            if x.get("is_recommended"):
+                return 1
+            return 2
+        
+        for lst in [grains, proteins, vegetables, fruits, dairy, nuts]:
+            lst.sort(key=sort_priority)
         
         # 根据星期几轮换食材
         day_index = WEEKDAYS.index(day)
         
-        # 计算每日卡路里目标
-        base_calories = 1800  # 基础代谢
-        if not is_rest_day:
-            base_calories += 200  # 运动日增加
+        # ========== 计算每日卡路里目标（考虑运动消耗）==========
+        base_calories = 2000  # 基础代谢约2000
+        if is_rest_day:
+            base_calories -= 100  # 休息日少吃点
         
-        # 餐食比例
+        # 【新增】根据运动消耗调整热量目标
+        exercise_calories = exercise_analysis.get("total_calories", 0)
+        if exercise_calories > 0:
+            # 补充运动消耗的80%（维持体重），可根据用户目标调整
+            calorie_adjustment = int(exercise_calories * 0.8)
+            base_calories += calorie_adjustment
+            logger.info(f"运动消耗 {exercise_calories}kcal，调整后热量目标：{base_calories}kcal (+{calorie_adjustment})")
+        
+        # 检查健康限制中是否有卡路里限制
+        for restriction in dietary_restrictions:
+            if restriction.nutrition_limits and "calories" in restriction.nutrition_limits:
+                limit_cal = restriction.nutrition_limits["calories"]
+                base_calories = min(base_calories, limit_cal)
+                logger.info(f"根据{restriction.condition}限制，调整卡路里目标为 {base_calories}")
+        
+        # ========== 营养配比（根据运动类型调整）==========
+        # 默认比例：蛋白质18% 碳水55% 脂肪27%
+        protein_ratio = 0.18
+        carbs_ratio = 0.55
+        fat_ratio = 0.27
+        
+        # 【新增】力量训练日增加蛋白质比例
+        if exercise_analysis.get("has_strength_training"):
+            protein_ratio = 0.22  # 提高到22%
+            carbs_ratio = 0.53
+            fat_ratio = 0.25
+            logger.info("力量训练日：提高蛋白质摄入比例至22%")
+        
+        # 【新增】高强度运动日增加碳水比例
+        if exercise_analysis.get("is_high_intensity"):
+            carbs_ratio += 0.03  # 碳水多3%
+            fat_ratio -= 0.03
+            logger.info("高强度运动日：增加碳水摄入比例")
+        
+        # ========== 餐食比例（根据运动时段调整）==========
         meal_structure = diet_framework.get("meal_structure", {
             "breakfast_ratio": 0.3,
             "lunch_ratio": 0.4,
-            "dinner_ratio": 0.25
+            "dinner_ratio": 0.3
         })
         
-        breakfast_cal = int(base_calories * meal_structure.get("breakfast_ratio", 0.3))
-        lunch_cal = int(base_calories * meal_structure.get("lunch_ratio", 0.4))
-        dinner_cal = int(base_calories * meal_structure.get("dinner_ratio", 0.25))
-        snack_cal = base_calories - breakfast_cal - lunch_cal - dinner_cal
+        breakfast_ratio = meal_structure.get("breakfast_ratio", 0.3)
+        lunch_ratio = meal_structure.get("lunch_ratio", 0.4)
+        dinner_ratio = meal_structure.get("dinner_ratio", 0.3)
+        snacks_ratio = 0.0
         
-        return {
-            "calories_target": base_calories,
-            "breakfast": {
-                "foods": self._select_meal_foods(grains, proteins, vegetables, fruits, "breakfast", day_index),
-                "calories": breakfast_cal
-            },
-            "lunch": {
-                "foods": self._select_meal_foods(grains, proteins, vegetables, fruits, "lunch", day_index),
-                "calories": lunch_cal
-            },
-            "dinner": {
-                "foods": self._select_meal_foods(grains, proteins, vegetables, fruits, "dinner", day_index),
-                "calories": dinner_cal
-            },
-            "snacks": {
-                "foods": self._select_snacks(fruits, day_index),
-                "calories": snack_cal
-            },
-            "hydration_goal": diet_framework.get("hydration_goal", "2000ml")
+        # 【新增】根据运动时段调整餐食分配
+        exercise_time_slot = exercise_analysis.get("primary_time_slot", "")
+        
+        if "早" in exercise_time_slot or exercise_time_slot == "早晨":
+            # 晨练：早餐要轻便易消化，运动后加餐补充
+            breakfast_ratio = 0.20  # 降低早餐（运动前轻食）
+            snacks_ratio = 0.15     # 增加加餐（运动后补充）
+            lunch_ratio = 0.35
+            dinner_ratio = 0.30
+            logger.info("晨练日：调整早餐比例，增加运动后加餐")
+        elif "晚" in exercise_time_slot or exercise_time_slot == "晚上":
+            # 晚间运动：晚餐要适量，运动后不宜大吃
+            breakfast_ratio = 0.30
+            lunch_ratio = 0.40
+            dinner_ratio = 0.25     # 降低晚餐
+            snacks_ratio = 0.05     # 少量加餐
+            logger.info("晚间运动日：降低晚餐比例，避免运动后过饱")
+        elif "下午" in exercise_time_slot:
+            # 下午运动：午餐适量，运动后可加餐
+            breakfast_ratio = 0.28
+            lunch_ratio = 0.35
+            snacks_ratio = 0.10     # 运动后加餐
+            dinner_ratio = 0.27
+            logger.info("下午运动日：调整午餐，增加运动后加餐")
+        
+        breakfast_cal = int(base_calories * breakfast_ratio)
+        lunch_cal = int(base_calories * lunch_ratio)
+        dinner_cal = int(base_calories * dinner_ratio)
+        snacks_cal = int(base_calories * snacks_ratio) if snacks_ratio > 0 else 0
+        
+        # 生成每餐
+        breakfast = self._create_meal(grains, proteins, dairy, fruits, nuts, "breakfast", day_index, breakfast_cal)
+        lunch = self._create_meal(grains, proteins, vegetables, fruits, nuts, "lunch", day_index, lunch_cal)
+        dinner = self._create_meal(grains, proteins, vegetables, fruits, nuts, "dinner", day_index, dinner_cal)
+        
+        # 【新增】根据是否有运动加餐需求生成加餐
+        if snacks_cal > 0:
+            snacks = self._create_exercise_snacks(
+                proteins, fruits, nuts, dairy, 
+                day_index, snacks_cal,
+                exercise_analysis
+            )
+        else:
+            snacks = self._create_snacks(fruits, nuts, day_index)
+        
+        # 计算每日总营养
+        all_foods = breakfast["foods"] + lunch["foods"] + dinner["foods"] + snacks["foods"]
+        daily_totals = {
+            "calories": sum(f.get("calories", 0) for f in all_foods),
+            "protein": sum(f.get("protein", 0) for f in all_foods),
+            "carbs": sum(f.get("carbs", 0) for f in all_foods),
+            "fat": sum(f.get("fat", 0) for f in all_foods),
+            "fiber": sum(f.get("fiber", 0) for f in all_foods)
         }
+        
+        # 计算营养目标（使用动态配比，已根据运动类型调整）
+        nutrition_targets = {
+            "protein": round(base_calories * protein_ratio / 4),  # 蛋白质克数
+            "carbs": round(base_calories * carbs_ratio / 4),      # 碳水克数
+            "fat": round(base_calories * fat_ratio / 9),          # 脂肪克数
+            "fiber": 25  # 推荐膳食纤维 25g/天
+        }
+        
+        # 构建返回结果
+        result = {
+            "calories_target": base_calories,
+            "nutrition_targets": nutrition_targets,
+            "daily_totals": daily_totals,
+            "breakfast": breakfast,
+            "lunch": lunch,
+            "dinner": dinner,
+            "snacks": snacks,
+            "hydration_goal": diet_framework.get("hydration_goal", "2000ml"),
+            # 【新增】运动-饮食联动信息
+            "exercise_diet_link": {
+                "exercise_calories": exercise_analysis.get("total_calories", 0),
+                "calorie_adjustment": int(exercise_analysis.get("total_calories", 0) * 0.8),
+                "has_strength_training": exercise_analysis.get("has_strength_training", False),
+                "is_high_intensity": exercise_analysis.get("is_high_intensity", False),
+                "primary_time_slot": exercise_analysis.get("primary_time_slot", ""),
+                "post_exercise_tips": exercise_analysis.get("post_exercise_tips", [])
+            }
+        }
+        
+        # 添加健康饮食建议（如果有）
+        if health_advice_list:
+            result["health_advice"] = health_advice_list
+            result["dietary_restrictions"] = [r.condition for r in dietary_restrictions]
+        
+        return result
     
-    def _get_default_foods(self) -> List[Dict]:
-        """获取默认食材列表"""
-        return [
-            {"food_id": "brown_rice", "name": "糙米", "category": "grains"},
-            {"food_id": "oatmeal", "name": "燕麦", "category": "grains"},
-            {"food_id": "chicken_breast", "name": "鸡胸肉", "category": "protein"},
-            {"food_id": "egg", "name": "鸡蛋", "category": "protein"},
-            {"food_id": "salmon", "name": "三文鱼", "category": "protein"},
-            {"food_id": "broccoli", "name": "西兰花", "category": "vegetables"},
-            {"food_id": "spinach", "name": "菠菜", "category": "vegetables"},
-            {"food_id": "tomato", "name": "番茄", "category": "vegetables"},
-            {"food_id": "apple", "name": "苹果", "category": "fruits"},
-            {"food_id": "banana", "name": "香蕉", "category": "fruits"}
-        ]
-    
-    def _select_meal_foods(
+    def _create_meal(
         self,
         grains: List,
         proteins: List,
-        vegetables: List,
+        side_foods: List,  # 蔬菜或乳制品
         fruits: List,
+        nuts: List,
         meal_type: str,
-        day_index: int
-    ) -> List[Dict]:
-        """选择一餐的食材"""
+        day_index: int,
+        target_calories: int
+    ) -> Dict:
+        """创建一餐，包含食材和营养数据"""
         foods = []
+        total_cal = 0
+        total_protein = 0
+        total_carbs = 0
+        total_fat = 0
+        total_fiber = 0
         
-        # 早餐
+        # 早餐：谷物 + 蛋白质 + 乳制品 + 水果
         if meal_type == "breakfast":
+            # 选谷物（轮换）
             if grains:
                 grain = grains[day_index % len(grains)]
-                foods.append({"food_id": grain.get("food_id", grain.get("id", "")), "name": grain.get("name"), "portion": "50g"})
+                portion = 80  # 80g
+                cal = grain["calories"] * portion / 100
+                foods.append({
+                    "food_id": grain["food_id"],
+                    "name": grain["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(grain["protein"] * portion / 100, 1),
+                    "carbs": round(grain["carbs"] * portion / 100, 1),
+                    "fat": round(grain["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            # 选蛋白质（鸡蛋轮换其他）
             if proteins:
                 protein = proteins[(day_index + 1) % len(proteins)]
-                foods.append({"food_id": protein.get("food_id", protein.get("id", "")), "name": protein.get("name"), "portion": "1份"})
-            foods.append({"food_id": "milk", "name": "牛奶", "portion": "250ml"})
+                portion = 50 if "蛋" in protein["name"] else 60
+                cal = protein["calories"] * portion / 100
+                foods.append({
+                    "food_id": protein["food_id"],
+                    "name": protein["name"],
+                    "portion": f"{portion}g" if "蛋" not in protein["name"] else "1个",
+                    "calories": round(cal),
+                    "protein": round(protein["protein"] * portion / 100, 1),
+                    "carbs": round(protein["carbs"] * portion / 100, 1),
+                    "fat": round(protein["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            # 乳制品
+            if side_foods:  # dairy
+                dairy_item = side_foods[day_index % len(side_foods)]
+                portion = 200  # 200ml/g
+                cal = dairy_item["calories"] * portion / 100
+                foods.append({
+                    "food_id": dairy_item["food_id"],
+                    "name": dairy_item["name"],
+                    "portion": "200ml",
+                    "calories": round(cal),
+                    "protein": round(dairy_item["protein"] * portion / 100, 1),
+                    "carbs": round(dairy_item["carbs"] * portion / 100, 1),
+                    "fat": round(dairy_item["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
         
-        # 午餐
+        # 午餐：谷物 + 蛋白质 + 蔬菜 × 2
         elif meal_type == "lunch":
-            if grains:
-                grain = grains[(day_index + 1) % len(grains)]
-                foods.append({"food_id": grain.get("food_id", grain.get("id", "")), "name": grain.get("name"), "portion": "150g"})
-            if proteins:
-                protein = proteins[day_index % len(proteins)]
-                foods.append({"food_id": protein.get("food_id", protein.get("id", "")), "name": protein.get("name"), "portion": "100g"})
-            if vegetables:
-                veg = vegetables[day_index % len(vegetables)]
-                foods.append({"food_id": veg.get("food_id", veg.get("id", "")), "name": veg.get("name"), "portion": "150g"})
-        
-        # 晚餐
-        elif meal_type == "dinner":
+            # 主食
             if grains:
                 grain = grains[(day_index + 2) % len(grains)]
-                foods.append({"food_id": grain.get("food_id", grain.get("id", "")), "name": grain.get("name"), "portion": "100g"})
+                portion = 150
+                cal = grain["calories"] * portion / 100
+                foods.append({
+                    "food_id": grain["food_id"],
+                    "name": grain["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(grain["protein"] * portion / 100, 1),
+                    "carbs": round(grain["carbs"] * portion / 100, 1),
+                    "fat": round(grain["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            # 蛋白质（肉/鱼）
+            if proteins:
+                protein = proteins[day_index % len(proteins)]
+                portion = 120
+                cal = protein["calories"] * portion / 100
+                foods.append({
+                    "food_id": protein["food_id"],
+                    "name": protein["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(protein["protein"] * portion / 100, 1),
+                    "carbs": round(protein["carbs"] * portion / 100, 1),
+                    "fat": round(protein["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            # 蔬菜1
+            if side_foods:  # vegetables
+                veg1 = side_foods[day_index % len(side_foods)]
+                portion = 150
+                cal = veg1["calories"] * portion / 100
+                foods.append({
+                    "food_id": veg1["food_id"],
+                    "name": veg1["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(veg1["protein"] * portion / 100, 1),
+                    "carbs": round(veg1["carbs"] * portion / 100, 1),
+                    "fat": round(veg1["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            # 蔬菜2
+            if len(side_foods) > 1:
+                veg2 = side_foods[(day_index + 3) % len(side_foods)]
+                portion = 100
+                cal = veg2["calories"] * portion / 100
+                foods.append({
+                    "food_id": veg2["food_id"],
+                    "name": veg2["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(veg2["protein"] * portion / 100, 1),
+                    "carbs": round(veg2["carbs"] * portion / 100, 1),
+                    "fat": round(veg2["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+        
+        # 晚餐：谷物（少量）+ 蛋白质 + 蔬菜 × 2
+        elif meal_type == "dinner":
+            # 主食（减量）
+            if grains:
+                grain = grains[(day_index + 4) % len(grains)]
+                portion = 100
+                cal = grain["calories"] * portion / 100
+                foods.append({
+                    "food_id": grain["food_id"],
+                    "name": grain["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(grain["protein"] * portion / 100, 1),
+                    "carbs": round(grain["carbs"] * portion / 100, 1),
+                    "fat": round(grain["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            # 蛋白质（与午餐不同）
             if proteins:
                 protein = proteins[(day_index + 2) % len(proteins)]
-                foods.append({"food_id": protein.get("food_id", protein.get("id", "")), "name": protein.get("name"), "portion": "80g"})
-            if vegetables:
-                veg1 = vegetables[(day_index + 1) % len(vegetables)]
-                foods.append({"food_id": veg1.get("food_id", veg1.get("id", "")), "name": veg1.get("name"), "portion": "100g"})
-                if len(vegetables) > 1:
-                    veg2 = vegetables[(day_index + 2) % len(vegetables)]
-                    foods.append({"food_id": veg2.get("food_id", veg2.get("id", "")), "name": veg2.get("name"), "portion": "100g"})
+                portion = 100
+                cal = protein["calories"] * portion / 100
+                foods.append({
+                    "food_id": protein["food_id"],
+                    "name": protein["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(protein["protein"] * portion / 100, 1),
+                    "carbs": round(protein["carbs"] * portion / 100, 1),
+                    "fat": round(protein["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            # 蔬菜（与午餐不同）
+            if side_foods:
+                veg1 = side_foods[(day_index + 1) % len(side_foods)]
+                portion = 150
+                cal = veg1["calories"] * portion / 100
+                foods.append({
+                    "food_id": veg1["food_id"],
+                    "name": veg1["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(veg1["protein"] * portion / 100, 1),
+                    "carbs": round(veg1["carbs"] * portion / 100, 1),
+                    "fat": round(veg1["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
+            
+            if len(side_foods) > 2:
+                veg2 = side_foods[(day_index + 5) % len(side_foods)]
+                portion = 100
+                cal = veg2["calories"] * portion / 100
+                foods.append({
+                    "food_id": veg2["food_id"],
+                    "name": veg2["name"],
+                    "portion": f"{portion}g",
+                    "calories": round(cal),
+                    "protein": round(veg2["protein"] * portion / 100, 1),
+                    "carbs": round(veg2["carbs"] * portion / 100, 1),
+                    "fat": round(veg2["fat"] * portion / 100, 1)
+                })
+                total_cal += cal
         
-        return foods
+        # 计算总营养
+        meal_totals = {
+            "calories": sum(f.get("calories", 0) for f in foods),
+            "protein": round(sum(f.get("protein", 0) for f in foods), 1),
+            "carbs": round(sum(f.get("carbs", 0) for f in foods), 1),
+            "fat": round(sum(f.get("fat", 0) for f in foods), 1)
+        }
+        
+        return {
+            "foods": foods,
+            "calories": meal_totals["calories"],
+            "nutrition": meal_totals
+        }
     
-    def _select_snacks(self, fruits: List, day_index: int) -> List[Dict]:
-        """选择零食/加餐"""
-        snacks = []
+    def _create_snacks(self, fruits: List, nuts: List, day_index: int) -> Dict:
+        """创建加餐/零食"""
+        foods = []
+        
+        # 水果
         if fruits:
             fruit = fruits[day_index % len(fruits)]
-            snacks.append({"food_id": fruit.get("food_id", fruit.get("id", "")), "name": fruit.get("name"), "portion": "1个"})
-        snacks.append({"food_id": "nuts", "name": "坚果", "portion": "一小把"})
-        return snacks
+            portion = 150  # 约一个中等水果
+            cal = fruit["calories"] * portion / 100
+            foods.append({
+                "food_id": fruit["food_id"],
+                "name": fruit["name"],
+                "portion": "1个",
+                "calories": round(cal),
+                "protein": round(fruit["protein"] * portion / 100, 1),
+                "carbs": round(fruit["carbs"] * portion / 100, 1),
+                "fat": round(fruit["fat"] * portion / 100, 1)
+            })
+        
+        # 坚果
+        if nuts:
+            nut = nuts[(day_index + 1) % len(nuts)]
+            portion = 20  # 一小把约20g
+            cal = nut["calories"] * portion / 100
+            foods.append({
+                "food_id": nut["food_id"],
+                "name": nut["name"],
+                "portion": "一小把(20g)",
+                "calories": round(cal),
+                "protein": round(nut["protein"] * portion / 100, 1),
+                "carbs": round(nut["carbs"] * portion / 100, 1),
+                "fat": round(nut["fat"] * portion / 100, 1)
+            })
+        
+        meal_totals = {
+            "calories": sum(f.get("calories", 0) for f in foods),
+            "protein": round(sum(f.get("protein", 0) for f in foods), 1),
+            "carbs": round(sum(f.get("carbs", 0) for f in foods), 1),
+            "fat": round(sum(f.get("fat", 0) for f in foods), 1)
+        }
+        
+        return {
+            "foods": foods,
+            "calories": meal_totals["calories"],
+            "nutrition": meal_totals
+        }
     
     def _generate_day_tips(
         self,
@@ -1020,15 +1689,28 @@ def generate_weekly_plan(
     user_preferences: Optional[Dict] = None,
     week_number: int = 1,
     week_start_date: datetime = None,
-    user_adjustments: Optional[Dict] = None
+    user_adjustments: Optional[Dict] = None,
+    health_metrics: Optional[Dict] = None,
+    user_gender: str = "male"
 ) -> Dict:
     """
     生成周计划的便捷函数
+    
+    Args:
+        monthly_plan: 月度计划数据
+        user_preferences: 用户偏好设置
+        week_number: 当月第几周（1-5）
+        week_start_date: 周一日期
+        user_adjustments: 用户对某些天的微调请求
+        health_metrics: 用户健康指标（用于个性化饮食）
+        user_gender: 用户性别（male/female）
     """
     return weekly_plan_generator.generate_weekly_plan(
         monthly_plan=monthly_plan,
         user_preferences=user_preferences,
         week_number=week_number,
         week_start_date=week_start_date,
-        user_adjustments=user_adjustments
+        user_adjustments=user_adjustments,
+        health_metrics=health_metrics,
+        user_gender=user_gender
     )

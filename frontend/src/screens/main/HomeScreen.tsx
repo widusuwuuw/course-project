@@ -103,6 +103,14 @@ export default function HomeScreen() {
       description: 'AI生成健康计划',
       route: 'MonthlyPlan'
     },
+    {
+      icon: 'stats-chart-outline',
+      iconFilled: 'stats-chart',
+      label: '执行统计',
+      color: '#EF4444',
+      description: '对比计划与实际',
+      route: 'StatsComparison'
+    },
   ];
 
   const chartConfig = {
@@ -289,6 +297,8 @@ export default function HomeScreen() {
                     navigation.navigate('LabAnalysis');
                   } else if (action.route === 'MonthlyPlan') {
                     navigation.navigate('MonthlyPlan');
+                  } else if (action.route === 'StatsComparison') {
+                    navigation.navigate('StatsComparison');
                   } else {
                     Alert.alert(
                       '功能开发中',

@@ -668,3 +668,181 @@ class WeeklyPlan(Base):
         completion = json.loads(self.completion_status) if self.completion_status else {}
         completion[day.lower()] = status
         self.completion_status = json.dumps(completion, ensure_ascii=False)
+
+
+class DietLog(Base):
+    """
+    饮食记录表 - 记录用户实际饮食摄入
+    
+    功能：
+    - 记录每餐实际吃了什么
+    - 对比计划与实际的差异
+    - 支持自定义添加食物
+    """
+    __tablename__ = "diet_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    weekly_plan_id = Column(Integer, ForeignKey("weekly_plans.id", ondelete="SET NULL"), nullable=True)
+    
+    # 日期与餐次
+    log_date = Column(DateTime, nullable=False)  # 记录日期
+    meal_type = Column(String(20), nullable=False)  # breakfast/lunch/dinner/snacks
+    
+    # 实际摄入（JSON格式）
+    foods = Column(Text, nullable=True)
+    """
+    foods 结构：
+    [
+        {
+            "food_id": "rice_white",  # 来自计划的食物
+            "name": "白米饭",
+            "portion": "150g",
+            "calories": 174,
+            "protein": 3.9,
+            "carbs": 38.4,
+            "fat": 0.5,
+            "from_plan": true,  # 是否来自计划
+            "completed": true   # 是否完成
+        },
+        {
+            "food_id": "custom_001",  # 自定义添加的食物
+            "name": "红烧肉",
+            "portion": "100g",
+            "calories": 350,
+            "protein": 15,
+            "carbs": 5,
+            "fat": 30,
+            "from_plan": false,
+            "completed": true
+        }
+    ]
+    """
+    
+    # 营养统计
+    total_calories = Column(Float, default=0)
+    total_protein = Column(Float, default=0)
+    total_carbs = Column(Float, default=0)
+    total_fat = Column(Float, default=0)
+    
+    # 与计划对比
+    planned_calories = Column(Float, nullable=True)  # 计划的卡路里
+    calorie_difference = Column(Float, nullable=True)  # 差异 (实际 - 计划)
+    adherence_score = Column(Float, nullable=True)  # 遵循度评分 (0-100)
+    
+    # 备注
+    notes = Column(Text, nullable=True)
+    
+    # 元数据
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 关联
+    user = relationship("User", backref="diet_logs")
+    weekly_plan = relationship("WeeklyPlan", backref="diet_logs")
+    
+    def get_foods_list(self) -> list:
+        """获取食物列表"""
+        import json
+        return json.loads(self.foods) if self.foods else []
+    
+    def calculate_totals(self):
+        """计算营养总计"""
+        foods = self.get_foods_list()
+        self.total_calories = sum(f.get("calories", 0) for f in foods if f.get("completed", True))
+        self.total_protein = sum(f.get("protein", 0) for f in foods if f.get("completed", True))
+        self.total_carbs = sum(f.get("carbs", 0) for f in foods if f.get("completed", True))
+        self.total_fat = sum(f.get("fat", 0) for f in foods if f.get("completed", True))
+        
+        # 计算遵循度
+        if self.planned_calories and self.planned_calories > 0:
+            self.calorie_difference = self.total_calories - self.planned_calories
+            # 遵循度：差异越小分数越高，超出或不足都会扣分
+            deviation_ratio = abs(self.calorie_difference) / self.planned_calories
+            self.adherence_score = max(0, 100 - deviation_ratio * 100)
+
+
+class ExerciseLog(Base):
+    """
+    运动记录表 - 记录用户实际完成的运动课程
+    
+    功能：
+    - 记录用户完成了哪个课程
+    - 计算实际消耗的卡路里
+    - 对比计划与实际的差异
+    """
+    __tablename__ = "exercise_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    weekly_plan_id = Column(Integer, ForeignKey("weekly_plans.id", ondelete="SET NULL"), nullable=True)
+    
+    # 日期
+    log_date = Column(DateTime, nullable=False)  # 记录日期
+    
+    # 课程信息
+    courses = Column(Text, nullable=True)
+    """
+    courses 结构：
+    [
+        {
+            "course_id": "hiit_intermediate_20",  # 课程ID（来自exercise_courses.py）
+            "course_title": "燃脂HIIT训练",
+            "exercise_id": "hiit_tabata",  # 关联的运动元数据ID
+            "instructor": "张教练",
+            "duration": 20,
+            "difficulty": "中级",
+            "calories": 220,
+            "completed_at": "2024-01-15T10:30:00",  # 完成时间
+            "from_plan": true,  # 是否来自计划
+            "notes": "感觉很累但很爽"  # 用户备注
+        }
+    ]
+    """
+    
+    # 运动统计
+    total_duration = Column(Integer, default=0)  # 总时长（分钟）
+    total_calories = Column(Float, default=0)    # 总消耗卡路里
+    course_count = Column(Integer, default=0)    # 完成课程数
+    
+    # 与计划对比
+    planned_duration = Column(Integer, nullable=True)  # 计划的时长
+    planned_calories = Column(Float, nullable=True)    # 计划的消耗
+    duration_difference = Column(Integer, nullable=True)  # 时长差异
+    calorie_difference = Column(Float, nullable=True)    # 卡路里差异
+    adherence_score = Column(Float, nullable=True)       # 遵循度评分 (0-100)
+    
+    # 备注
+    notes = Column(Text, nullable=True)
+    mood = Column(String(20), nullable=True)  # 运动后心情：great/good/normal/tired
+    
+    # 元数据
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 关联
+    user = relationship("User", backref="exercise_logs")
+    weekly_plan = relationship("WeeklyPlan", backref="exercise_logs")
+    
+    def get_courses_list(self) -> list:
+        """获取课程列表"""
+        import json
+        return json.loads(self.courses) if self.courses else []
+    
+    def calculate_totals(self):
+        """计算运动总计"""
+        courses = self.get_courses_list()
+        self.total_duration = sum(c.get("duration", 0) for c in courses)
+        self.total_calories = sum(c.get("calories", 0) for c in courses)
+        self.course_count = len(courses)
+        
+        # 计算遵循度（基于卡路里）
+        if self.planned_calories and self.planned_calories > 0:
+            self.calorie_difference = self.total_calories - self.planned_calories
+            # 完成比例，超额完成也算满分
+            completion_ratio = self.total_calories / self.planned_calories
+            self.adherence_score = min(100, completion_ratio * 100)
+        
+        # 时长差异
+        if self.planned_duration and self.planned_duration > 0:
+            self.duration_difference = self.total_duration - self.planned_duration

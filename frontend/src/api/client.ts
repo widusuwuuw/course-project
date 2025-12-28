@@ -59,6 +59,20 @@ export async function apiPatch(path: string, body: any) {
   return res.json();
 }
 
+export async function apiPut(path: string, body: any) {
+  const authHeaders = await getAuthHeaders();
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function loginRequest(email: string, password: string) {
   try {
     // OAuth2PasswordRequestForm: x-www-form-urlencoded
@@ -259,6 +273,14 @@ export async function aiAdjustWeeklyPlan(planId: number, userRequest: string) {
     user_request: userRequest
   });
 }
+
+// AI智能微调饮食计划
+export async function aiAdjustDietPlan(planId: number, userRequest: string, adjustType: 'diet' | 'exercise' = 'diet') {
+  return apiPost(`/api/v1/weekly-plans/${planId}/ai-adjust`, {
+    user_request: userRequest,
+    adjust_type: adjustType
+  });
+}
 // ============ 营养追踪 API ============
 
 export interface FoodRecord {
@@ -341,4 +363,65 @@ export async function getNutritionGoals(): Promise<NutritionGoal> {
 // 更新营养目标
 export async function updateNutritionGoals(goals: Partial<NutritionGoal>) {
   return apiPut('/api/v1/nutrition/goals', goals);
+}
+
+// ============ 饮食记录 API ============
+
+// 记录一餐饮食
+export async function logMeal(data: {
+  log_date: string;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+  foods: Array<{
+    food_id: string;
+    name: string;
+    portion?: string;
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    from_plan?: boolean;
+    completed?: boolean;
+  }>;
+  notes?: string;
+}) {
+  return apiPost('/diet-logs/log', data);
+}
+
+// 快速标记计划餐食完成
+export async function markPlanMealCompleted(data: {
+  log_date: string;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+  completed_food_ids?: string[];
+  notes?: string;
+}) {
+  return apiPost('/diet-logs/mark-plan-meal', data);
+}
+
+// 添加自定义食物
+export async function addCustomFood(data: {
+  log_date: string;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+  name: string;
+  portion?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+}) {
+  return apiPost('/diet-logs/add-custom-food', data);
+}
+
+// 获取每日饮食摘要
+export async function getDailySummary(log_date: string) {
+  return apiGet(`/diet-logs/daily/${log_date}`);
+}
+
+// 获取每周饮食统计
+export async function getWeeklyDietStats() {
+  return apiGet('/diet-logs/weekly-stats');
+}
+
+// 获取运动-饮食平衡分析
+export async function getExerciseDietBalance(log_date: string) {
+  return apiGet(`/diet-logs/exercise-diet-balance/${log_date}`);
 }
