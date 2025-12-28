@@ -1,0 +1,808 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+  StatusBar,
+  SafeAreaView,
+  Alert,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Svg, Circle, Path } from 'react-native-svg';
+import { useCurrentWeeklyPlan, convertWeeklyPlanToExerciseData } from '../../hooks/useWeeklyPlan';
+
+const { width } = Dimensions.get('window');
+
+// 运动项目类型定义
+interface ExerciseItem {
+  id: string;
+  name: string;
+  duration: number;
+  calories: number;
+  category: string;
+  icon: string;
+  time: string;
+}
+
+// 日期数据类型定义
+interface DayData {
+  date: number;
+  totalDuration: number;
+  totalCalories: number;
+  exercises: ExerciseItem[];
+  goalDuration: number;
+  goalCalories: number;
+}
+
+export default function SportsTrainingScreen() {
+  const { colors } = useTheme();
+  const navigation = useNavigation();
+
+  // 使用周计划数据
+  const { weeklyPlan, loading, error, refresh } = useCurrentWeeklyPlan();
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // 获取当前日期
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState(today.getDate());
+  const [showAddExercise, setShowAddExercise] = useState(false);
+
+  // 转换周计划数据为界面需要的格式
+  const weekData = convertWeeklyPlanToExerciseData(weeklyPlan);
+  
+  // 备用数据（当没有周计划时使用）
+  const fallbackWeekData: { [key: number]: DayData } = {
+    14: {
+      date: 14,
+      totalDuration: 45,
+      totalCalories: 380,
+      goalDuration: 60,
+      goalCalories: 500,
+      exercises: [
+        { id: '1', name: '晨跑', duration: 25, calories: 200, category: '有氧运动', icon: 'walk-outline', time: '07:00' },
+        { id: '2', name: '俯卧撑', duration: 15, calories: 120, category: '力量训练', icon: 'fitness-outline', time: '18:30' },
+        { id: '3', name: '拉伸放松', duration: 5, calories: 60, category: '柔韧性', icon: 'body-outline', time: '19:00' },
+      ]
+    },
+    15: {
+      date: 15,
+      totalDuration: 0,
+      totalCalories: 0,
+      goalDuration: 60,
+      goalCalories: 500,
+      exercises: []
+    },
+    16: {
+      date: 16,
+      totalDuration: 75,
+      totalCalories: 620,
+      goalDuration: 60,
+      goalCalories: 500,
+      exercises: [
+        { id: '1', name: '瑜伽', duration: 30, calories: 150, category: '柔韧性', icon: 'flower-outline', time: '06:30' },
+        { id: '2', name: 'HIIT训练', duration: 35, calories: 400, category: '高强度间歇', icon: 'flash-outline', time: '17:00' },
+        { id: '3', name: '冥想放松', duration: 10, calories: 70, category: '放松训练', icon: 'moon-outline', time: '21:00' },
+      ]
+    },
+    17: {
+      date: 17,
+      totalDuration: 40,
+      totalCalories: 320,
+      goalDuration: 60,
+      goalCalories: 500,
+      exercises: [
+        { id: '1', name: '游泳', duration: 40, calories: 320, category: '有氧运动', icon: 'water-outline', time: '16:00' },
+      ]
+    },
+    18: {
+      date: 18,
+      totalDuration: 0,
+      totalCalories: 0,
+      goalDuration: 60,
+      goalCalories: 500,
+      exercises: []
+    },
+    19: {
+      date: 19,
+      totalDuration: 0,
+      totalCalories: 0,
+      goalDuration: 60,
+      goalCalories: 500,
+      exercises: []
+    },
+    20: {
+  // 使用真实数据或备用数据
+  const activeWeekData = weekData || fallbackWeekData;
+  const currentDayData = activeWeekData[selectedDate] || Object.values(activeWeekData)[0];
+  
+  const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+  
+  // 计算当前周的日期范围
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay()); // 本周日
+  const currentWeekDates = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    return date.getDate();
+  });
+  
+  // 下拉刷新
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }
+      goalDuration: 60,
+      goalCalories: 500,
+      exercises: []
+    },
+  };
+
+  const currentDayData = weekData[selectedDate] || weekData[15];
+  const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+  const currentWeekDates = [14, 15, 16, 17, 18, 19, 20];
+
+  // 计算进度百分比
+  const durationProgress = Math.min((currentDayData.totalDuration / currentDayData.goalDuration) * 100, 100);
+  const caloriesProgress = Math.min((currentDayData.totalCalories / currentDayData.goalCalories) * 100, 100);
+
+  // 环形进度图组件
+  const CircularProgressRing = ({ progress, size = 120, strokeWidth = 8, color = '#4ABAB8' }) => {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+    return (
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#E5E7EB"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="transparent"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+    );
+  };
+
+  const renderExerciseItem = ({ item }: { item: ExerciseItem }) => (
+    <TouchableOpacity style={styles.exerciseItem}>
+      <View style={[styles.exerciseIcon, { backgroundColor: '#4ABAB820' }]}>
+        <Ionicons
+          name={item.icon as keyof typeof Ionicons.glyphMap}
+          size={20}
+          color="#4ABAB8"
+        />
+      </View>
+        showsVerticalScrollIndicator={false} 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4ABAB8']} />
+        }
+      
+      <View style={styles.exerciseContent}>
+        <View style={styles.exerciseHeader}>
+          <Text style={styles.exerciseName}>{item.name}</Text>
+          <Text style={styles.exerciseTime}>{item.time}</Text>
+        </View>
+        <View style={styles.exerciseMeta}>
+          <Text style={styles.exerciseCategory}>{item.category}</Text>
+          <View style={styles.exerciseStats}>
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={12} color="#6B7280" />
+              <Text style={styles.statText}>{item.
+                {weeklyPlan ? '本周运动计划' : '坚持运动，保持健康'}
+              </Text>
+            </View>
+            {weeklyPlan && (
+              <View style={styles.planBadge}>
+                <Ionicons name="calendar-outline" size={14} color="#FFFFFF" />
+                <Text style={styles.planBadgeText}>第{weeklyPlan.week_number}周</Text>
+              </View>
+            )}
+          </View>
+        </LinearGradient>
+        
+        {/* 加载和错误状态 */}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4ABAB8" />
+            <Text style={styles.loadingText}>加载运动计划...</Text>
+          </View>
+        )}
+        
+        {!loading && !weeklyPlan && (
+          <View style={styles.noDataContainer}>
+            <Ionicons name="fitness-outline" size={48} color="#D1D5DB" />
+            <Text style={styles.noDataText}>暂无周计划数据</Text>
+            <Text style={styles.noDataHint}>请先生成月度计划，然后创建周计划</Text>
+          </View>
+        )}ame="flame-outline" size={12} color="#F59E0B" />
+              <Text style={[styles.statText, { color: '#F59E0B' }]}>{item.calories}千卡</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: '#F8FAFB' }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+        {/* 渐变头部区域 */}
+        <LinearGradient
+          colors={['#4ABAB8', '#389BA2']}
+        {!loading && currentDayData && (
+          <>
+            <View style={styles.todayStatsSection}>
+              <View style={styles.statsHeader}>
+                <Text style={styles.statsTitle}>
+                  {currentDayData.isRestDay ? '今日休息日' : '今日运动数据'}
+                </Text>
+                <Text style={styles.statsDate}>
+                  {today.getMonth() + 1}月{selectedDate}日
+                </Text>
+              </View>
+              
+              {currentDayData.isRestDay ? (
+                <View style={styles.restDayContainer}>
+                  <Ionicons name="bed-outline" size={48} color="#4ABAB8" />
+                  <Text style={styles.restDayText}>今天是休息日</Text>
+                  <Text style={styles.restDayHint}>{currentDayData.tips || '让身体充分恢复，明天继续加油！'}</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.statsHeader}>
+                    <Text style={styles.statsTitle}>今日运动数据</Text>
+                    <Text style={styles.statsDate}>
+                      {today.getMonth() + 1}月{selectedDate}日
+                    </Text>
+                  <View style={styles.headerContent}>
+            <TouchableOpacity 
+              style={styles.headerBackButton} 
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>运动健身</Text>
+              <Text style={styles.headerSubtitle}>坚持运动，保持健康</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* 日期选择器 */}
+        <View style={styles.dateSelector}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {currentWeekDates.map((date) => (
+              <TouchableOpacity
+                key={date}
+                style={[
+                  styles.dateItem,
+                  selectedDate === date && styles.dateItemSelected
+                ]}
+                onPress={() => setSelectedDate(date)}
+              >
+                <Text style={[
+                  styles.dateDay,
+                  selectedDate === date && styles.dateDaySelected
+                ]}>
+                  {dayNames[currentWeekDates.indexOf(date)]}
+                </Text>
+                <Text style={[
+                  styles.dateNumber,
+                  selectedDate === date && styles.dateNumberSelected
+                ]}>
+                  {date}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* 今日运动数据 */}
+        <View style={styles.todayStatsSection}>
+          <View style={styles.statsHeader}>
+            <Text style={styles.statsTitle}>今日运动数据</Text>
+            <Text style={styles.statsDate}>11月{selectedDate}日</Text>
+          </View>
+
+          <View style={styles.progressCards}>
+            {/* 时长进度卡片 */}
+            <View style={styles.progressCard}>
+              <View style={styles.progressHeader}>
+                <View style={styles.progressIconContainer}>
+                  <Ionicons name="time-outline" size={20} color="#4ABAB8" />
+                </View>
+                <Text style={styles.progressLabel}>运动时长</Text>
+              </View>
+
+              <View style={styles.progressCircleContainer}>
+                <CircularProgressRing
+                  progress={durationProgress}
+                  color="#4ABAB8"
+                  size={100}
+                />
+                <View style={styles.progressCenter}>
+                  <Text style={styles.progressValue}>{currentDayData.totalDuration}</Text>
+                  <Text style={styles.progressUnit}>分钟</Text>
+                </View>
+              </View>
+
+              <View style={styles.progressFooter}>
+                <Text style={styles.progressGoal}>目标: {currentDayData.goalDuration}分钟</Text>
+                <Text style={[styles.progressPercentage, { color: '#4ABAB8' }]}>
+                  {Math.round(durationProgress)}%
+                </Text>
+              </View>
+            </View>
+
+            {/* 卡路里进度卡片 */}
+            <View style={styles.progressCard}>
+              <View style={styles.progressHeader}>
+                <View style={[styles.progressIconContainer, { backgroundColor: '#F59E0B20' }]}>
+                  <Ionicons name="flame-outline" size={20} color="#F59E0B" />
+                </View>
+                <Text style={styles.progressLabel}>消耗卡路里</Text>
+              </View>
+
+              <View style={styles.progressCircleContainer}>
+                <CircularProgressRing
+                  progress={caloriesProgress}
+                  color="#F59E0B"
+                  size={100}
+                />
+                <View style={styles.progressCenter}>
+                  <Text style={styles.progressValue}>{currentDayData.totalCalories}</Text>
+                  <Text style={styles.progressUnit}>千卡</Text>
+                </View>
+              </View>
+
+              <View style={styles.progressFooter}>
+                <Text style={styles.progressGoal}>目标: {currentDayData.goalCalories}千卡</Text>
+                <Text style={[styles.progressPercentage, { color: '#F59E0B' }]}>
+                  {Math.round(caloriesProgress)}%
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+                </>
+              )}
+            </View>
+          </>
+        )}
+
+        {/* 运动项目列表 */}
+        {!loading && currentDayData && !currentDayData.isRestDay && (
+          <View style={styles.exercisesSection}>
+            <View style={styles.exercisesHeader}>
+              <Text style={styles.exercisesTitle}>运动项目</Text>
+              {currentDayData.tips && (
+                <View style={styles.tipsContainer}>
+                  <Ionicons name="bulb-outline" size={14} color="#F59E0B" />
+                  <Text style={styles.tipsText}>{currentDayData.tips}</Text>
+                </View>
+              )}
+            </View>
+
+            {currentDayData.exercises && currentDayData.exercises.length > 0 ? (
+            <FlatList
+              data={currentDayData.exercises}
+              renderItem={renderExerciseItem}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              contentContainerStyle={styles.exercisesList}
+            />
+            ) : (
+              <View style={styles.emptyExercises}>
+                <Ionicons name="fitness-outline" size={48} color="#9CA3AF" />
+                <Text style={styles.emptyText}>今日暂无运动安排</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  headerGradient: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerTextContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
+  },
+  dateSelector: {
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  dateItem: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginRight: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minWidth: 60,
+  },
+  dateItemSelected: {
+    backgroundColor: '#4ABAB8',
+    borderColor: '#4ABAB8',
+  },
+  dateDay: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  dateNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  dateDaySelected: {
+    color: '#FFFFFF',
+  },
+  dateNumberSelected: {
+    color: '#FFFFFF',
+  },
+  todayStatsSection: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  statsDate: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  progressCards: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  progressCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  progressIconContainer: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#4ABAB820',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  progressCircleContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  progressCenter: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    lineHeight: 24,
+  },
+  progressUnit: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  progressFooter: {
+    alignItems: 'center',
+  },
+  progressGoal: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  exercisesSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
+  exercisesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  exercisesTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#4ABAB8',
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exercisesList: {
+    gap: 12,
+  },
+  exerciseItem: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  exerciseIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exerciseContent: {
+    flex: 1,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  exerciseTime: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  exerciseMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  exerciseCategory: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  exerciseStats: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  emptyExercises: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 12,
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  startButton: {
+    backgroundColor: '#4ABAB8',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  startButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  // 新增样式
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  noDataText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  noDataButton: {
+    marginTop: 20,
+    backgroundColor: '#4ABAB8',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  noDataButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  planBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  planBadgeText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  restDayContainer: {
+    marginHorizontal: 16,
+    marginVertical: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  restDayTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  restDayDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  tipsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  tipsText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '500',
+  },
+});

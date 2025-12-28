@@ -22,17 +22,12 @@ class UserProfile(BaseModel):
     age: Optional[int] = Field(default=None, ge=0, le=120)
 
 
-class Message(BaseModel):
-    role: Literal["user", "assistant"]
-    content: str
-
 class AssistantQuery(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
     question_type: Optional[
         Literal["general", "lifestyle", "diet", "sleep", "symptom"]
     ] = "general"
     user_profile: Optional[UserProfile] = None
-    messages: Optional[list[Message]] = None  # Conversation history
 
 
 class AssistantAnswer(BaseModel):
@@ -40,7 +35,6 @@ class AssistantAnswer(BaseModel):
     disclaimer: str = DISCLAIMER
     refused: bool = False
     source: str = "template"  # template | llm
-    image_url: Optional[str] = None
 
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
@@ -173,19 +167,8 @@ def query(payload: AssistantQuery) -> AssistantAnswer:
     if llm_enabled():
         try:
             # 根据问题类型获取专属提示词
-            system_prompt_content = get_specialized_prompt(payload.question_type or "general")
-            
-            llm_messages = [{"role": "system", "content": system_prompt_content}]
-            
-            # Add conversation history
-            if payload.messages:
-                for msg in payload.messages:
-                    llm_messages.append({"role": msg.role, "content": msg.content})
-            
-            # Add current question
-            llm_messages.append({"role": "user", "content": q})
-
-            answer_text = generate_answer(llm_messages) # This call will need to be updated in llm_client.py
+            system_prompt = get_specialized_prompt(payload.question_type or "general")
+            answer_text = generate_answer(q, system_prompt=system_prompt)
             return AssistantAnswer(answer=answer_text, source="llm")
         except LLMUnavailable:
             pass
@@ -197,25 +180,12 @@ def query(payload: AssistantQuery) -> AssistantAnswer:
 
     # 回退模板逻辑
     type_templates = {
-        "diet": "**营养建议：**\n\n- 保持三餐规律，_适当控制热量摄入_。\n- 增加**蔬果**和优质蛋白，减少精制糖和饱和脂肪。\n- 建议每日饮用 **8 杯水**。",
-        # Added for rich media demo:
-        "diet_image": {
-            "answer": "**健康饮食小贴士：**\n\n均衡膳食是健康基石！",
-            "image_url": "https://img.freepik.com/free-vector/hand-drawn-healthy-food-background_23-2148767980.jpg?w=740&t=st=1700000000~exp=1700000600~hmac=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
-        },
-        "sleep": "**睡眠建议：**\n\n1. 保持固定的作息时间。\n2. 睡前 _1 小时_ 避免电子屏幕。\n3. 创造**安静、黑暗、凉爽**的睡眠环境。",
+        "diet": "营养建议：保持三餐规律，适当控制热量摄入，增加蔬果和优质蛋白，减少精制糖和饱和脂肪。",
+        "sleep": "睡眠建议：保持固定作息时间，睡前1小时避免电子屏幕，创造安静舒适的睡眠环境。",
         "lifestyle": "生活方式建议：建立规律作息、坚持适量运动（每周150分钟中等强度）、保持良好心态。",
         "symptom": "症状咨询提醒：我无法诊断疾病，建议详细记录症状（时间、程度、诱因），及时咨询专业医生。",
         "general": "以下为一般科普信息，请结合自身情况，若持续不适或出现警示症状请及时就医。"
     }
-    
-    # Check for rich media template trigger
-    # If user asks for "image" or "图片" in diet category
-    if ("image" in q.lower() or "图片" in q.lower()) and payload.question_type == "diet":
-        template_response = type_templates.get("diet_image")
-        answer_text = template_response["answer"]
-        image_url = template_response["image_url"]
-        return AssistantAnswer(answer=answer_text, source="template", image_url=image_url)
     
     tip = type_templates.get(payload.question_type, type_templates["general"])
     answer = f"{tip}\n\n你的问题：{q}\n{fallback_note}" if 'fallback_note' in locals() else f"{tip}\n\n你的问题：{q}"

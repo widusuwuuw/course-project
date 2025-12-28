@@ -1,17 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, Platform, Image } from 'react-native';
-import { assistantQuery } from '@/api/client';
-import { Ionicons } from '@expo/vector-icons';
-import Markdown from 'react-native-markdown-display';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import GradientBackground from '@/components/GradientBackground';
+import { assistantQuery } from '../api/client';
+import GradientBackground from '../components/GradientBackground';
 
 type Message = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
   source?: 'llm' | 'template' | 'error';
-  image_url?: string;
 };
 
 const QUESTION_TYPES = [
@@ -22,51 +18,27 @@ const QUESTION_TYPES = [
   { key: 'symptom', label: '症状咨询', emoji: '⚠️', color: '#F59E0B' },
 ];
 
-const WELCOME_MESSAGE: Message = {
-  id: 'welcome',
-  role: 'assistant',
-  text: '你好！我是你的AI健康助手。有什么可以帮你的吗？',
-  source: 'template'
-};
-
 export default function AssistantScreen() {
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState('');
   const [qType, setQType] = useState<string>('general');
   const [loading, setLoading] = useState(false);
   const [disclaimer, setDisclaimer] = useState<string | null>(null);
   const [streamedText, setStreamedText] = useState<string>('');
   const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
-  const [isReplying, setIsReplying] = useState(false);
+  // 记录最后一次问题和类型,用于重试
   const [lastQuestion, setLastQuestion] = useState<string>('');
   const [lastQType, setLastQType] = useState<string>('general');
 
   const listRef = useRef<FlatList<Message>>(null);
-
-  // Restore the disclaimer logic based on user's preference (show once per session)
-  useEffect(() => {
-    // This effect can be used for session-specific logic if needed in the future.
-    // For now, the logic is handled in onSend/handleRetry.
-  }, []);
-
-  const handleClearChat = useCallback(() => {
-    setMessages([WELCOME_MESSAGE]);
-    setQuestion('');
-    setLoading(false);
-    setDisclaimer(null);
-    setStreamedText('');
-    setStreamingMsgId(null);
-    setLastQuestion('');
-    setLastQType('general');
-  }, []);
 
   const append = useCallback((m: Message) => {
     setMessages((prev) => [...prev, m]);
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   }, []);
 
-  const streamText = useCallback((fullText: string, msgId: string) => {
-    setIsReplying(true);
+  // 流式输出函数
+  const streamText = useCallback((fullText: string, msgId: string, source?: 'llm' | 'template') => {
     setStreamedText('');
     setStreamingMsgId(msgId);
     let i = 0;
@@ -75,16 +47,16 @@ export default function AssistantScreen() {
       setStreamedText(fullText.slice(0, i));
       if (i >= fullText.length) {
         clearInterval(interval);
+        // 最终补全气泡
         setMessages((prev) => prev.map(m => m.id === msgId ? { ...m, text: fullText } : m));
         setStreamingMsgId(null);
-        setIsReplying(false);
       }
-    }, 18 + Math.random() * 30);
+    }, 18 + Math.random() * 30); // 打字机速度
   }, []);
 
   const onSend = useCallback(async () => {
     const content = question.trim();
-    if (!content || loading || isReplying) return;
+    if (!content || loading) return;
     setLastQuestion(content);
     setLastQType(qType);
     const userMsg: Message = { id: String(Date.now()), role: 'user', text: content };
@@ -92,190 +64,136 @@ export default function AssistantScreen() {
     setQuestion('');
     setLoading(true);
     try {
-      const res = await assistantQuery(content, qType === 'general' ? undefined : qType, messages);
+      const res = await assistantQuery(content, qType === 'general' ? undefined : qType);
       if (res?.disclaimer && !disclaimer) setDisclaimer(res.disclaimer);
       const text = res?.answer || '发生未知错误';
-      const assistantMsg: Message = {
-        id: userMsg.id + '-a',
-        role: 'assistant',
-        text: '',
-        source: res?.source,
-        image_url: res?.image_url,
-      };
+      const assistantMsg: Message = { id: userMsg.id + '-a', role: 'assistant', text: '', source: res?.source };
       append(assistantMsg);
-      streamText(text, assistantMsg.id);
+      streamText(text, assistantMsg.id, res?.source);
     } catch (e: any) {
       append({ id: String(Math.random()), role: 'assistant', text: `请求失败：${e?.message || e}`, source: 'error' });
     } finally {
       setLoading(false);
     }
-  }, [append, disclaimer, loading, isReplying, qType, question, streamText, messages]);
+  }, [append, disclaimer, loading, qType, question, streamText]);
 
+  // 重试逻辑
   const handleRetry = useCallback(async () => {
     if (loading || !lastQuestion) return;
-    const newMsgId = Math.random().toString(36).substring(2, 9) + '-a';
     setLoading(true);
     try {
-      const res = await assistantQuery(lastQuestion, lastQType === 'general' ? undefined : lastQType, messages);
+      const res = await assistantQuery(lastQuestion, lastQType === 'general' ? undefined : lastQType);
       if (res?.disclaimer && !disclaimer) setDisclaimer(res.disclaimer);
       const text = res?.answer || '发生未知错误';
+      // 删除最后一个错误气泡，插入新气泡
       setMessages((prev) => {
         const filtered = prev.filter(m => !(m.role === 'assistant' && m.source === 'error'));
-        const newMsg: Message = {
-          id: newMsgId,
-          role: 'assistant',
-          text: '',
-          source: res?.source,
-          image_url: res?.image_url,
-        };
+        const newMsg: Message = { id: String(Date.now()) + '-a', role: 'assistant', text: '', source: res?.source };
         return [...filtered, newMsg];
       });
-      streamText(text, newMsgId);
+      streamText(text, String(Date.now()) + '-a', res?.source);
     } catch (e: any) {
-      setMessages((prev) => [...prev, { id: Math.random().toString(36).substring(2, 9), role: 'assistant', text: `请求失败：${e?.message || e}`, source: 'error' }]);
+      setMessages((prev) => [...prev, { id: String(Math.random()), role: 'assistant', text: `请求失败：${e?.message || e}`, source: 'error' }]);
     } finally {
       setLoading(false);
     }
-  }, [lastQuestion, lastQType, loading, disclaimer, isReplying, streamText, messages]);
+  }, [lastQuestion, lastQType, loading, disclaimer, streamText]);
 
-  const renderItem = ({ item }: { item: Message }) => {
-    const isUser = item.role === 'user';
-    return (
-      <View style={[styles.messageRow, isUser ? styles.messageRowRight : styles.messageRowLeft]}>
-        {!isUser && (
-          <View style={[styles.avatar, styles.assistantAvatar]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF" />
-          </View>
-        )}
-        <View style={[styles.bubble, isUser ? styles.right : styles.left]}>
-          {!isUser && item.source && item.source !== 'error' && (
-            <Text style={item.source === 'llm' ? styles.badgeLlm : styles.badgeTemplate}>
-              {item.source === 'llm' ? 'LLM' : 'TEMPLATE'}
-            </Text>
-          )}
-          {isUser ? (
-            <Text style={[styles.bubbleTextStyle, styles.rightText]}>
-              {item.text}
-            </Text>
-          ) : (
-            <>
-              {item.image_url && <Image source={{ uri: item.image_url }} style={styles.richMediaImage} />}
-              {(item.id === streamingMsgId && streamedText === '') ? (
-                <ActivityIndicator size="small" color="#6366F1" />
-              ) : (
-                <Markdown style={markdownStyles}>
-                  {item.id === streamingMsgId ? streamedText : item.text}
-                </Markdown>
-              )}
-            </>
-          )}
-          {!isUser && item.source === 'error' && (
-            <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
-              <Text style={styles.retryText}>重试</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        {isUser && (
-          <View style={[styles.avatar, styles.userAvatar]}>
-            <Ionicons name="person-outline" size={20} color="#FFF" />
-          </View>
-        )}
-      </View>
-    );
-  };
+  const renderItem = ({ item }: { item: Message }) => (
+    <View style={[styles.bubble, item.role === 'user' ? styles.right : styles.left]}>
+      {item.role === 'assistant' && item.source && item.source !== 'error' && (
+        <Text style={item.source === 'llm' ? styles.badgeLlm : styles.badgeTemplate}>
+          {item.source === 'llm' ? 'LLM' : 'TEMPLATE'}
+        </Text>
+      )}
+      <Text style={[styles.bubbleTextStyle, item.role === 'user' ? styles.rightText : styles.leftText]}>
+        {item.id === streamingMsgId ? streamedText : item.text}
+      </Text>
+      {/* 错误气泡下方显示重试按钮 */}
+      {item.role === 'assistant' && item.source === 'error' && (
+        <TouchableOpacity style={styles.retryBtn} onPress={() => handleRetry()}>
+          <Text style={styles.retryText}>重试</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <View style={styles.headerImageContainer}>
-          <Image
-            source={{ uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/f76c2f008eabbdc5981873307dd9e456.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763235070&Signature=4OT%2BzBJhfDNw1nFNg1Ap2jJwko%3D' }}
-            style={styles.headerImage}
-          />
-          <View style={styles.headerOverlay}>
-            <View>
-              <Text style={styles.headerTitle}>AI 健康助手</Text>
-              <Text style={styles.headerSubtitle}>专业健康建议，随时为您服务</Text>
-            </View>
-            <TouchableOpacity onPress={handleClearChat} style={styles.clearButton}>
-              <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        {disclaimer && (
-          <View style={styles.disclaimerBox}>
-            <Text style={styles.disclaimerText}>{disclaimer}</Text>
-          </View>
-        )}
-        <FlatList
-          ref={listRef}
-          contentContainerStyle={{ padding: 16 }}
-          data={messages}
-          keyExtractor={(m) => m.id}
-          renderItem={renderItem}
+      {/* 健康助手头部图片 */}
+      <View style={styles.headerImageContainer}>
+        <Image
+          source={{ uri: 'https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/cb006da4-ef18-4bf8-bbf4-fd0c50838294/f76c2f008eabbdc5981873307dd9e456.jpg?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1763235070&Signature=4OT%2BzBJhfDNw1nFNg1Ap2jJwko%3D' }}
+          style={styles.headerImage}
         />
-        <View style={styles.toolbar}>
-          <FlatList
-            horizontal
-            data={QUESTION_TYPES}
-            keyExtractor={(t) => t.key}
-            contentContainerStyle={{ paddingHorizontal: 8 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                onPress={() => setQType(item.key)}
-                style={[styles.chip, qType === item.key && { ...styles.chipActive, borderColor: item.color }]}
-              >
-                <Text style={styles.chipEmoji}>{item.emoji}</Text>
-                <Text style={[styles.chipText, qType === item.key && { ...styles.chipTextActive, color: item.color }]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            )}
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="输入你的问题..."
-            value={question}
-            onChangeText={setQuestion}
-            editable={!loading && !isReplying}
-            multiline
-            onKeyPress={(e) => {
-              if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter') {
-                e.nativeEvent.preventDefault();
-                if (e.nativeEvent.ctrlKey) {
-                  setQuestion(prev => prev + '\n');
-                } else {
-                  onSend();
-                }
-              }
-            }}
-          />
-          <TouchableOpacity style={styles.sendBtn} onPress={onSend} disabled={loading || isReplying}>
-            {loading || isReplying ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendText}>发送</Text>}</TouchableOpacity>
+        <View style={styles.headerOverlay}>
+          <Text style={styles.headerTitle}>AI 健康助手</Text>
+          <Text style={styles.headerSubtitle}>专业健康建议，随时为您服务</Text>
         </View>
       </View>
+
+      {disclaimer ? (
+        <View style={styles.disclaimerBox}>
+          <Text style={styles.disclaimerText}>{disclaimer}</Text>
+        </View>
+      ) : null}
+
+      <FlatList
+        ref={listRef}
+        contentContainerStyle={{ padding: 16 }}
+        data={messages}
+        keyExtractor={(m) => m.id}
+        renderItem={renderItem}
+      />
+
+      <View style={styles.toolbar}>
+        <FlatList
+          horizontal
+          data={QUESTION_TYPES}
+          keyExtractor={(t) => t.key}
+          contentContainerStyle={{ paddingHorizontal: 8 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => setQType(item.key)}
+              style={[
+                styles.chip, 
+                qType === item.key && { ...styles.chipActive, borderColor: item.color }
+              ]}
+            >
+              <Text style={styles.chipEmoji}>{item.emoji}</Text>
+              <Text style={[
+                styles.chipText, 
+                qType === item.key && { ...styles.chipTextActive, color: item.color }
+              ]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          )}
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+
+      <View style={styles.inputRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="输入你的问题..."
+          value={question}
+          onChangeText={setQuestion}
+          editable={!loading}
+          multiline
+        />
+        <TouchableOpacity style={styles.sendBtn} onPress={onSend} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendText}>发送</Text>}
+        </TouchableOpacity>
+      </View>
+    </View>
     </GradientBackground>
   );
 }
 
-const markdownStyles = {
-  body: { fontSize: 16, lineHeight: 22, color: '#111827' },
-  heading1: { fontSize: 22, fontWeight: 'bold', color: '#111827', marginTop: 10, marginBottom: 5 },
-  heading2: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginTop: 8, marginBottom: 4 },
-  heading3: { fontSize: 18, fontWeight: 'bold', color: '#111827', marginTop: 6, marginBottom: 3 },
-  strong: { fontWeight: 'bold' },
-  em: { fontStyle: 'italic' },
-  link: { color: '#3B82F6', textDecorationLine: 'underline' },
-  list_item: { marginBottom: 4, lineHeight: 21 },
-  bullet_list: { marginBottom: 8 },
-  ordered_list: { marginBottom: 8 },
-  paragraph: { marginTop: 0, marginBottom: 8 },
-};
-
 const styles = StyleSheet.create({
+  // 让全局渐变背景透出：完全透明背景
   container: { flex: 1, backgroundColor: 'transparent' },
   headerImageContainer: {
     height: 160,
@@ -285,12 +203,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
-      android: { elevation: 6 },
-      web: { boxShadow: '0 4px 8px rgba(0,0,0,0.15)' },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+      web: {
+        boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+      },
     }),
   },
-  headerImage: { width: '100%', height: '100%' },
+  headerImage: {
+    width: '100%',
+    height: '100%',
+  },
   headerOverlay: {
     position: 'absolute',
     bottom: 0,
@@ -299,13 +229,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  clearButton: { padding: 8 },
-  headerTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', marginBottom: 4 },
-  headerSubtitle: { color: 'rgba(255, 255, 255, 0.9)', fontSize: 14, fontWeight: '500' },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   disclaimerBox: {
     backgroundColor: '#FEF3C7',
     padding: 16,
@@ -315,59 +250,74 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#F59E0B',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
-      android: { elevation: 2 },
-      web: { boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      },
     }),
   },
-  disclaimerText: { color: '#92400E', fontSize: 13, lineHeight: 18, fontWeight: '500' },
-  messageRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10, maxWidth: '85%' },
-  messageRowLeft: { alignSelf: 'flex-start' },
-  messageRowRight: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
-      android: { elevation: 2 },
-      web: { boxShadow: '0 1px 2px rgba(0,0,0,0.1)' },
-    }),
+  disclaimerText: { 
+    color: '#92400E', 
+    fontSize: 13, 
+    lineHeight: 18,
+    fontWeight: '500',
   },
-  userAvatar: { backgroundColor: '#6366F1', marginLeft: 8 },
-  assistantAvatar: { backgroundColor: '#10B981', marginRight: 8 },
   bubble: {
+    maxWidth: '78%',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 16,
+    marginBottom: 10,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3 },
-      android: { elevation: 2 },
-      web: { boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      },
     }),
   },
-  left: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 4 },
-  right: { backgroundColor: '#6366F1', borderTopRightRadius: 4 },
+  left: { 
+    alignSelf: 'flex-start', 
+    backgroundColor: '#FFFFFF', 
+    borderTopLeftRadius: 4,
+  },
+  right: { 
+    alignSelf: 'flex-end', 
+    backgroundColor: '#6366F1', 
+    borderTopRightRadius: 4,
+  },
   leftText: { color: '#111827', fontSize: 15, lineHeight: 21 },
   rightText: { color: '#fff', fontSize: 15, lineHeight: 21 },
-  bubbleTextStyle: { fontSize: 16, lineHeight: 22 },
   toolbar: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(229, 231, 235, 0.6)',
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     paddingVertical: 4,
   },
-  chip: {
+  chip: { 
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 8,
+    paddingHorizontal: 14, 
+    paddingVertical: 9, 
+    borderRadius: 20, 
+    backgroundColor: '#F3F4F6', 
+    marginVertical: 8, 
     marginRight: 8,
     borderWidth: 1.5,
     borderColor: 'transparent',
@@ -375,14 +325,31 @@ const styles = StyleSheet.create({
   chipActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 },
-      android: { elevation: 3 },
-      web: { boxShadow: '0 2px 3px rgba(0,0,0,0.1)' },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 2px 3px rgba(0,0,0,0.1)',
+      },
     }),
   },
-  chipEmoji: { fontSize: 16 },
-  chipText: { color: '#6B7280', fontSize: 13, fontWeight: '600' },
-  chipTextActive: { fontWeight: '700' },
+  chipEmoji: {
+    fontSize: 16,
+  },
+  chipText: { 
+    color: '#6B7280',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  chipTextActive: { 
+    fontWeight: '700',
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -411,33 +378,45 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 21,
     ...Platform.select({
-      ios: { shadowColor: '#6366F1', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
-      android: { elevation: 3 },
-      web: { boxShadow: '0 2px 4px rgba(99, 102, 241, 0.3)' },
+      ios: {
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 2px 4px rgba(99, 102, 241, 0.3)',
+      },
     }),
   },
-  sendText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  badgeLlm: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#059669',
-    color: '#fff',
-    fontSize: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  sendText: { 
+    color: '#fff', 
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  badgeLlm: { 
+    alignSelf: 'flex-start', 
+    backgroundColor: '#059669', 
+    color: '#fff', 
+    fontSize: 10, 
+    paddingHorizontal: 8, 
+    paddingVertical: 3, 
+    borderRadius: 6, 
     marginBottom: 6,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-
-  badgeTemplate: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#6B7280',
-    color: '#fff',
-    fontSize: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  badgeTemplate: { 
+    alignSelf: 'flex-start', 
+    backgroundColor: '#6B7280', 
+    color: '#fff', 
+    fontSize: 10, 
+    paddingHorizontal: 8, 
+    paddingVertical: 3, 
+    borderRadius: 6, 
     marginBottom: 6,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -450,19 +429,30 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 14,
     ...Platform.select({
-      ios: { shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 2 },
-      android: { elevation: 2 },
-      web: { boxShadow: '0 1px 2px rgba(245, 158, 11, 0.15)' },
+      ios: {
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.15,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0 1px 2px rgba(245, 158, 11, 0.15)',
+      },
     }),
   },
-  retryText: { color: '#fff', fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
-  richMediaImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 8,
-    marginTop: 5,
-    marginBottom: 10,
-    alignSelf: 'center',
-    resizeMode: 'cover',
+  retryText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+  bubbleTextStyle: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#333',
+    flex: 1,
   },
 });

@@ -1,15 +1,18 @@
 from datetime import timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session # Re-added
-from .db import get_db # Re-added
-from .models import User # Re-added
-from .schemas import UserCreate, Token, UserOut, UserSettingsUpdate, PasswordUpdate, PasswordConfirmation # Re-added
-from .security import create_access_token, verify_password, get_password_hash
-from .deps import get_current_user
-from starlette.requests import Request # Add this import
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
+
+from .db import get_db
+from .models import User
+from .schemas import UserCreate, Token, UserOut
+from .security import create_access_token, get_password_hash, verify_password, get_current_user
 
 
+# 使用统一的密码加密方式
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = APIRouter()
 
 
@@ -18,7 +21,11 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     exists = db.query(User).filter(User.email == payload.email).first()
     if exists:
         raise HTTPException(status_code=409, detail="Email already registered")
-    user = User(email=payload.email, password_hash=get_password_hash(payload.password))
+    user = User(
+        email=payload.email,
+        password_hash=get_password_hash(payload.password),
+        gender=payload.gender
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -29,62 +36,47 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # OAuth2PasswordRequestForm defines fields: username, password
     user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+
+    # 检查用户是否存在
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="该邮箱尚未注册，请先注册账户"
+        )
+
+    # 检查密码是否正确
+    if not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="密码错误，请重新输入"
+        )
 
     access_token = create_access_token({"sub": user.email}, expires_delta=timedelta(minutes=60))
     return Token(access_token=access_token)
 
 
 @router.get("/me", response_model=UserOut)
-def read_users_me(current_user: User = Depends(get_current_user)):
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """获取当前登录用户的信息"""
     return current_user
 
 
-@router.put("/me/settings", response_model=UserOut)
-async def update_user_settings(
-    settings: UserSettingsUpdate,
-    db: Session = Depends(get_db),
+@router.put("/me", response_model=UserOut)
+def update_user_info(
+    gender: Optional[str] = None,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    # Fetch the user from the current session to ensure changes are tracked
-    user_in_db = db.query(User).filter(User.id == current_user.id).first()
-    if not user_in_db:
-        raise HTTPException(status_code=404, detail="User not found")
+    """更新当前用户信息"""
+    if gender is not None and gender not in ["male", "female", "other", "default"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Gender must be one of: male, female, other, default"
+        )
 
-    update_data = settings.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(user_in_db, key, value)
-    
+    if gender is not None:
+        current_user.gender = gender
+
     db.commit()
-    db.refresh(user_in_db)
-    return user_in_db
-
-
-@router.put("/me/password")
-def update_password(
-    payload: PasswordUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if not verify_password(payload.current_password, current_user.password_hash):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password")
-    
-    current_user.password_hash = get_password_hash(payload.new_password)
-    db.add(current_user)
-    db.commit()
-    return {"message": "Password updated successfully"}
-
-
-@router.delete("/me")
-def delete_account(
-    payload: PasswordConfirmation,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if not verify_password(payload.password, current_user.password_hash):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password")
-    
-    db.delete(current_user)
-    db.commit()
-    return {"message": "Account deleted successfully"}
+    db.refresh(current_user)
+    return current_user
