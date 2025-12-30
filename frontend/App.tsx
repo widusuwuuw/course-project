@@ -32,6 +32,7 @@ import AssistantScreen from './src/screens/AssistantScreen';
 import AchievementsScreen from './src/screens/AchievementsScreen';
 import TrendsScreen from './src/screens/TrendsScreen';
 import StatisticsScreen from './src/screens/StatisticsScreen';
+import StoreScreen from './src/screens/StoreScreen';
 
 // 类型定义
 export type RootStackParamList = {
@@ -66,6 +67,7 @@ export type RootStackParamList = {
   Trends: undefined;
   Profile: undefined;
   Statistics: undefined;
+  Store: undefined;
 };
 
 const Stack = createNativeStackNavigator();
@@ -206,6 +208,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <NavigationContainer>
+<<<<<<< HEAD
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <Stack.Navigator
           initialRouteName="Login"
@@ -367,6 +370,16 @@ export default function App() {
             component={StatisticsScreen}
             options={{
               title: '健康统计',
+              headerStyle: {
+                backgroundColor: '#f8fafc',
+              },
+            }}
+          />
+          <Stack.Screen
+            name="Store"
+            component={StoreScreen}
+            options={{
+              title: '商城',
               headerStyle: {
                 backgroundColor: '#f8fafc',
               },
