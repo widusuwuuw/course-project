@@ -68,6 +68,9 @@ export type RootStackParamList = {
   HealthLogs: { metric?: any } | undefined;
   Assistant: undefined;
   Achievements: undefined;
+  Trends: undefined;
+  Statistics: undefined;
+  Store: undefined;
 };
 
 const Stack = createNativeStackNavigator();
@@ -81,18 +84,6 @@ export type MainTabParamList = {
   Profile: undefined;
   Statistics: undefined;
   Store: undefined;
-};
-
-<<<<<<< HEAD
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
-export type MainTabParamList = {
-  Home: undefined;
-  Workout: undefined;
-  Community: undefined;
-    AI: undefined;
-  Profile: undefined;
 };
 
 // 主底部Tab导航组件
@@ -222,10 +213,6 @@ export default function App() {
   return (
     <ThemeProvider>
       <NavigationContainer>
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> wyx
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <Stack.Navigator
           initialRouteName="Login"
@@ -332,8 +319,6 @@ export default function App() {
               headerShown: false
             }}
           />
-<<<<<<< HEAD
-=======
           <Stack.Screen
             name="CreatePost"
             component={CreatePostScreen}
