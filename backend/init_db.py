@@ -15,7 +15,7 @@ import hashlib
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from app.db import SessionLocal, engine
-from app.models import Base, User, HealthLog, LabReport, LabResult
+from app.models import Base, User, HealthLog, LabReport, LabResult, Post, Comment, Like, Tag
 from app.security import get_password_hash
 
 def create_tables():
@@ -133,6 +133,52 @@ def create_sample_data():
         for user in created_users:
             user_logs = db.query(HealthLog).filter(HealthLog.user_id == user.id).count()
             print(f"  - {user.email}: {user_logs} 条记录")
+
+        # 创建社区示例数据
+        print("\n[INFO] 创建社区示例数据...")
+        if created_users:
+            # 创建一些预设标签
+            tag_names = ["减脂", "增肌", "HIIT", "食谱分享", "健身打卡"]
+            tags = []
+            for name in tag_names:
+                tag = models.Tag(name=name)
+                db.add(tag)
+                tags.append(tag)
+            db.commit()
+
+            # 第一个用户发帖
+            post1 = models.Post(
+                content="今天完成了第100天健身打卡！分享一下我的减脂心得。",
+                owner_id=created_users[0].id,
+                image_urls=["https://picsum.photos/400/300?random=1"],
+                tags=[tags[0], tags[2], tags[4]] # 减脂, HIIT, 健身打卡
+            )
+            db.add(post1)
+
+            # 第二个用户发帖
+            post2 = models.Post(
+                content="【健康食谱分享】低卡高蛋白的鸡胸肉沙拉，做法简单，营养美味！",
+                owner_id=created_users[1].id,
+                image_urls=["https://picsum.photos/400/300?random=2"],
+                tags=[tags[0], tags[3]] # 减脂, 食谱分享
+            )
+            db.add(post2)
+            db.commit()
+
+            # 第二个用户评论第一个帖子
+            comment1 = models.Comment(content="太棒了！恭喜你！", owner_id=created_users[1].id, post_id=post1.id)
+            db.add(comment1)
+
+            # 第三个用户点赞第一个帖子
+            like1 = models.Like(owner_id=created_users[2].id, post_id=post1.id)
+            db.add(like1)
+            
+            # 第一个用户点赞第二个帖子
+            like2 = models.Like(owner_id=created_users[0].id, post_id=post2.id)
+            db.add(like2)
+
+            db.commit()
+            print("[SUCCESS] 社区示例数据创建完成！")
 
     except Exception as e:
         print(f"[ERROR] 创建示例数据失败: {e}")

@@ -90,7 +90,7 @@ export const GradientBackground: React.FC<Props> = ({ children }: Props) => {
               bottom: 0,
               zIndex: -2,
               // @ts-ignore - Web特有属性
-              backgroundImage: PALE_GRADIENTS[index],
+              background: PALE_GRADIENTS[index],
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
@@ -113,7 +113,7 @@ export const GradientBackground: React.FC<Props> = ({ children }: Props) => {
               bottom: 0,
               zIndex: -2,
               // @ts-ignore - Web特有属性
-              backgroundImage: PALE_GRADIENTS[nextIndex],
+              background: PALE_GRADIENTS[nextIndex],
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',

@@ -24,6 +24,8 @@ import PreferencesScreen from './src/screens/main/PreferencesScreen';
 import GenerateWeeklyPlanScreen from './src/screens/main/GenerateWeeklyPlanScreen';
 import StatsComparisonScreen from './src/screens/main/StatsComparisonScreen';
 import DietRecordScreen from './src/screens/main/DietRecordScreen';
+import CreatePostScreen from './src/screens/main/CreatePostScreen';
+import CommentScreen from './src/screens/main/CommentScreen';
 
 // 旧版屏幕（保留作为备用）
 import HealthTrackerDashboard from './src/screens/HealthTrackerDashboard';
@@ -58,18 +60,30 @@ export type RootStackParamList = {
   GenerateWeeklyPlan: undefined;
   StatsComparison: undefined;
   DietRecord: undefined;
+  CreatePost: undefined;
+  Comments: { postId: number };
 
   // 旧版屏幕（向后兼容）
   HealthTrackerDashboard: undefined;
   HealthLogs: { metric?: any } | undefined;
   Assistant: undefined;
   Achievements: undefined;
-  Trends: undefined;
+};
+
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+export type MainTabParamList = {
+  Home: undefined;
+  Workout: undefined;
+  Community: undefined;
+    AI: undefined;
   Profile: undefined;
   Statistics: undefined;
   Store: undefined;
 };
 
+<<<<<<< HEAD
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -209,6 +223,9 @@ export default function App() {
     <ThemeProvider>
       <NavigationContainer>
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> wyx
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <Stack.Navigator
           initialRouteName="Login"
@@ -313,6 +330,25 @@ export default function App() {
             options={{
               title: '营养记录',
               headerShown: false
+            }}
+          />
+<<<<<<< HEAD
+=======
+          <Stack.Screen
+            name="CreatePost"
+            component={CreatePostScreen}
+            options={{
+              title: '创建帖子',
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="Comments"
+            component={CommentScreen}
+            options={{
+              title: '评论',
+              headerShown: false,
             }}
           />
 

@@ -1,609 +1,263 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Dimensions,
   SafeAreaView,
   FlatList,
   Image,
+  Alert,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList, MainTabParamList } from '../../../App';
+import { getPosts, likePost, getCurrentUser } from '../../api/client';
+import type { RouteProp } from '@react-navigation/native';
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get('window'); // Dimensions is used here
+
+// Corrected Types based on new backend schemas
+interface User {
+  id: number;
+  email: string;
+}
+interface Tag {
+  id: number;
+  name: string;
+}
+interface Comment {
+  id: number;
+  content: string;
+  owner: User;
+}
+interface Post {
+  id: number;
+  content: string;
+  created_at: string;
+  owner: User;
+  image_urls: string[];
+  tags: Tag[];
+  comments_count: number;
+  likes_count: number;
+  is_liked: boolean;
+}
+
+type CommunityScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'MainTabs'
+>;
+
+type CommunityScreenRouteProp = RouteProp<MainTabParamList, 'Community'>;
 
 export default function CommunityScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation<CommunityScreenNavigationProp>();
+  const route = useRoute<CommunityScreenRouteProp>();
 
-  const [selectedTab, setSelectedTab] = useState('hot');
+  const [selectedTab, setSelectedTab] = useState<'latest' | 'hot'>('latest');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // 话题标签
   const topicTabs = [
-    { id: 'hot', label: '热门', icon: 'flame-outline' },
-    { id: 'follow', label: '关注', icon: 'heart-outline' },
-    { id: 'fitness', label: '健身', icon: 'fitness-outline' },
-    { id: 'diet', label: '饮食', icon: 'restaurant-outline' },
-    { id: 'mental', label: '心理', icon: 'happy-outline' },
+    { id: 'latest', label: '最新', icon: 'time-outline' as const },
+    { id: 'hot', label: '热门', icon: 'flame-outline' as const },
   ];
 
-  // 社区帖子数据
-  const communityPosts = [
-    {
-      id: 1,
-      author: {
-        name: '健身达人小王',
-        avatar: '🏋️',
-        level: 'LV.5',
-        isFollowed: false,
-      },
-      content: '今天完成了第100天健身打卡！分享一下我的减脂心得：坚持HIIT训练，配合合理饮食，成功减重15斤。没有什么比看到自己进步更开心的了！💪',
-      images: [],
-      stats: {
-        likes: 234,
-        comments: 45,
-        shares: 12,
-        isLiked: false,
-      },
-      time: '2小时前',
-      tags: ['减脂', 'HIIT', '打卡'],
-    },
-    {
-      id: 2,
-      author: {
-        name: '营养师Lisa',
-        avatar: '🥗',
-        level: 'LV.8',
-        isFollowed: true,
-      },
-      content: '【健康食谱分享】今天为大家推荐一款低卡高蛋白的鸡胸肉沙拉：\n🥗 食材：鸡胸肉200g、混合生菜、小番茄、黄瓜\n🥚 蛋白质来源：鸡胸肉+水煮蛋\n🥑 健康脂肪：牛油果\n热量控制：350大卡\n\n欢迎大家一起分享健康饮食！',
-      images: ['food1', 'food2'],
-      stats: {
-        likes: 567,
-        comments: 89,
-        shares: 34,
-        isLiked: true,
-      },
-      time: '3小时前',
-      tags: ['食谱', '营养', '减脂餐'],
-    },
-    {
-      id: 3,
-      author: {
-        name: '瑜伽爱好者Amy',
-        avatar: '🧘',
-        level: 'LV.6',
-        isFollowed: false,
-      },
-      content: '睡前15分钟瑜伽，帮助你放松身心，改善睡眠质量。这套动作特别适合久坐上班族，缓解肩颈酸痛。\n\n动作流程：\n1. 猫牛式 2分钟\n2. 下犬式 3分钟\n3. 婴儿式 2分钟\n4. 蝴蝶式 3分钟\n5. 尸式放松 5分钟\n\n大家一起坚持吧！🌙',
-      images: ['yoga1'],
-      stats: {
-        likes: 189,
-        comments: 67,
-        shares: 23,
-        isLiked: false,
-      },
-      time: '5小时前',
-      tags: ['瑜伽', '睡前运动', '放松'],
-    },
-  ];
-
-  // 热门话题
-  const hotTopics = [
-    { tag: '30天减脂挑战', posts: '2.3k', heat: '🔥' },
-    { tag: '健康早餐推荐', posts: '1.8k', heat: '🔥' },
-    { tag: '跑步打卡群', posts: '956', heat: '🔥' },
-    { tag: '减肥心得', posts: '3.2k', heat: '🔥🔥' },
-    { tag: '增肌食谱', posts: '1.5k', heat: '🔥' },
-  ];
-
-  // 推荐用户
-  const recommendedUsers = [
-    { name: '健身教练Jack', avatar: '💪', intro: '10年健身经验', followers: '5.2k' },
-    { name: '营养师Dr.陈', avatar: '👨‍⚕️', intro: '临床营养学专家', followers: '8.7k' },
-    { name: '跑步达人小李', avatar: '🏃', intro: '马拉松完赛者', followers: '3.1k' },
-  ];
-
-  const renderPost = ({ item }: { item: typeof communityPosts[0] }) => (
-    <View style={styles.postCard}>
-      {/* 用户信息 */}
-      <View style={styles.postHeader}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{item.author.avatar}</Text>
-          </View>
-          <View style={styles.authorInfo}>
-            <View style={styles.authorNameRow}>
-              <Text style={styles.authorName}>{item.author.name}</Text>
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelText}>{item.author.level}</Text>
-              </View>
-            </View>
-            <Text style={styles.postTime}>{item.time}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.followButton,
-            item.author.isFollowed && styles.followingButton
-          ]}
-        >
-          <Text style={[
-            styles.followButtonText,
-            item.author.isFollowed && styles.followingButtonText
-          ]}>
-            {item.author.isFollowed ? '已关注' : '关注'}
-          </Text>
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('CreatePost')}>
+          <Ionicons name="add-circle-outline" size={28} color={'#4ABAB8'} />
         </TouchableOpacity>
-      </View>
+      ),
+    });
+  }, [navigation]);
 
-      {/* 帖子内容 */}
-      <View style={styles.postContent}>
-        <Text style={styles.postText}>{item.content}</Text>
+  const fetchCommunityData = useCallback(async (sortBy: 'latest' | 'hot') => {
+    try {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+      const fetchedPosts = await getPosts(sortBy);
+      setPosts(fetchedPosts);
+    } catch (error) {
+      Alert.alert('错误', '加载帖子失败，请检查网络或后端服务。');
+      console.error(error);
+    }
+  }, []);
 
-        {/* 标签 */}
-        <View style={styles.tagsContainer}>
-          {item.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>#{tag}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* 图片占位（暂时用彩色块代替） */}
-        {item.images.length > 0 && (
-          <View style={styles.postImages}>
-            {item.images.map((image, index) => (
-              <View key={index} style={styles.imagePlaceholder}>
-                <Ionicons name="image-outline" size={32} color="#D1D5DB" />
-                <Text style={styles.imagePlaceholderText}>图片 {index + 1}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* 互动按钮 */}
-      <View style={styles.postActions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons
-            name={item.stats.isLiked ? 'heart' : 'heart-outline'}
-            size={20}
-            color={item.stats.isLiked ? '#EF4444' : '#6B7280'}
-          />
-          <Text style={[
-            styles.actionText,
-            item.stats.isLiked && styles.actionTextActive
-          ]}>
-            {item.stats.likes}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={20} color="#6B7280" />
-          <Text style={styles.actionText}>{item.stats.comments}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="share-outline" size={20} color="#6B7280" />
-          <Text style={styles.actionText}>{item.stats.shares}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="bookmark-outline" size={20} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-    </View>
+  useFocusEffect(
+    useCallback(() => {
+      fetchCommunityData(selectedTab);
+      if (route.params?.postCreated) {
+        navigation.setParams({ postCreated: undefined });
+      }
+    }, [fetchCommunityData, route.params?.postCreated, navigation, selectedTab])
   );
+  
+  const handleTabPress = (tabId: 'latest' | 'hot') => {
+    setSelectedTab(tabId);
+  }
+
+  const handleLike = async (postId: number) => {
+    try {
+      await likePost(postId);
+      fetchCommunityData(selectedTab); 
+    } catch (error) {
+      Alert.alert('错误', '点赞操作失败。');
+      console.error(error);
+    }
+  };
+
+  const renderPost = ({ item }: { item: Post }) => {
+    // Improved time-ago logic with 8-hour offset compensation
+    const getTimeAgo = (dateString: string) => {
+      const postDate = new Date(dateString);
+      // Explicitly add 8 hours to compensate for the UTC+8 offset,
+      // assuming the string is parsed as local time by JS when it should be UTC.
+      postDate.setHours(postDate.getHours() + 8); 
+
+      const now = new Date();
+      const diffSeconds = Math.round((now.getTime() - postDate.getTime()) / 1000);
+      const diffMinutes = Math.round(diffSeconds / 60);
+      const diffHours = Math.round(diffMinutes / 60);
+
+      if (diffSeconds < 60) {
+        return '刚刚';
+      } else if (diffMinutes < 60) {
+        return `${diffMinutes}分钟前`;
+      } else if (diffHours < 24) {
+        return `${diffHours}小时前`;
+      } else {
+        return postDate.toLocaleDateString();
+      }
+    };
+    const timeDisplay = getTimeAgo(item.created_at);
+
+    return (
+      <View style={styles.postCard}>
+        <View style={styles.postHeader}>
+          <View style={styles.userInfo}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{item.owner.email.charAt(0).toUpperCase()}</Text>
+            </View>
+            <View style={styles.authorInfo}>
+              <Text style={styles.authorName}>{item.owner.email}</Text>
+              <Text style={styles.postTime}>{timeDisplay}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.postContent}>
+          <Text style={styles.postText}>{item.content}</Text>
+          {item.image_urls && item.image_urls.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.postImagesContainer}>
+              {item.image_urls.map((uri, index) => {
+                console.log('Rendering Image URI:', uri); // Add this line for debugging
+                return (
+                  <Image key={index} source={{ uri }} style={styles.postImage} />
+                );
+              })}
+            </ScrollView>
+          )}
+          {item.tags && item.tags.length > 0 && (
+            <View style={styles.tagsContainer}>
+              {item.tags.map((tag) => (
+                <View key={tag.id} style={styles.tag}>
+                  <Text style={styles.tagText}>#{tag.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.postActions}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+            <Ionicons name={item.is_liked ? 'heart' : 'heart-outline'} size={20} color={item.is_liked ? '#EF4444' : '#6B7280'} />
+            <Text style={[styles.actionText, item.is_liked && styles.actionTextActive]}>{item.likes_count}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Comments', { postId: item.id })}>
+            <Ionicons name="chatbubble-outline" size={20} color="#6B7280" />
+            <Text style={styles.actionText}>{item.comments_count}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="share-outline" size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#F8FAFB' }]}>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-
-        {/* 话题标签 */}
-        <View style={styles.tabsSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll}>
-            <View style={styles.tabsContainer}>
-              {topicTabs.map((tab) => (
-                <TouchableOpacity
-                  key={tab.id}
-                  style={[
-                    styles.tab,
-                    selectedTab === tab.id && styles.activeTab
-                  ]}
-                  onPress={() => setSelectedTab(tab.id)}
-                >
-                  <Ionicons
-                    name={tab.icon as keyof typeof Ionicons.glyphMap}
-                    size={16}
-                    color={selectedTab === tab.id ? '#4ABAB8' : '#6B7280'}
-                  />
-                  <Text style={[
-                    styles.tabText,
-                    selectedTab === tab.id && styles.activeTabText
-                  ]}>
-                    {tab.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* 热门话题 */}
-        <View style={styles.topicsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🔥 热门话题</Text>
-            <TouchableOpacity style={styles.moreButton}>
-              <Text style={styles.moreButtonText}>更多</Text>
-              <Ionicons name="chevron-forward" size={14} color="#4ABAB8" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topicsScroll}>
-            <View style={styles.topicsContainer}>
-              {hotTopics.map((topic, index) => (
-                <TouchableOpacity key={index} style={styles.topicCard}>
-                  <Text style={styles.topicHeat}>{topic.heat}</Text>
-                  <Text style={styles.topicTag}>#{topic.tag}</Text>
-                  <Text style={styles.topicPosts}>{topic.posts} 帖子</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* 推荐用户 */}
-        <View style={styles.usersSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>推荐关注</Text>
-            <TouchableOpacity style={styles.moreButton}>
-              <Text style={styles.moreButtonText}>查看全部</Text>
-              <Ionicons name="chevron-forward" size={14} color="#4ABAB8" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.usersScroll}>
-            <View style={styles.usersContainer}>
-              {recommendedUsers.map((user, index) => (
-                <TouchableOpacity key={index} style={styles.userCard}>
-                  <View style={styles.userAvatar}>
-                    <Text style={styles.userAvatarText}>{user.avatar}</Text>
-                  </View>
-                  <Text style={styles.userName}>{user.name}</Text>
-                  <Text style={styles.userIntro}>{user.intro}</Text>
-                  <Text style={styles.userFollowers}>{user.followers} 粉丝</Text>
-
-                  <TouchableOpacity style={styles.followUserButton}>
-                    <Text style={styles.followUserButtonText}>+ 关注</Text>
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* 社区帖子列表 */}
-        <View style={styles.postsSection}>
-          <FlatList
-            data={communityPosts}
+        <FlatList
+            data={posts}
             renderItem={renderPost}
             keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={false}
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          />
-        </View>
-
-      </ScrollView>
+            ListHeaderComponent={
+                <View style={styles.tabsSection}>
+                    <View style={styles.tabsContainer}>
+                        {topicTabs.map((tab) => (
+                        <TouchableOpacity
+                            key={tab.id}
+                            style={[styles.tab, selectedTab === tab.id && styles.activeTab]}
+                            onPress={() => handleTabPress(tab.id)}
+                        >
+                            <Ionicons
+                                name={tab.icon}
+                                size={16}
+                                color={selectedTab === tab.id ? '#4ABAB8' : '#6B7280'}
+                            />
+                            <Text style={[styles.tabText, selectedTab === tab.id && styles.activeTabText]}>
+                                {tab.label}
+                            </Text>
+                        </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            }
+            ListEmptyComponent={() => (
+              <Text style={styles.emptyListText}>暂无帖子，快发布你的第一条吧！</Text>
+            )}
+            style={styles.listContainer}
+        />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  tabsSection: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  tabsScroll: {
-    paddingHorizontal: 16,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 12,
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F9FAFB',
-    gap: 6,
-  },
-  activeTab: {
-    backgroundColor: '#4ABAB820',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  activeTabText: {
-    color: '#4ABAB8',
-    fontWeight: '600',
-  },
-  topicsSection: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  moreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  moreButtonText: {
-    fontSize: 12,
-    color: '#4ABAB8',
-    fontWeight: '500',
-  },
-  topicsScroll: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-  },
-  topicsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  topicCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    minWidth: 80,
-  },
-  topicHeat: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  topicTag: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  topicPosts: {
-    fontSize: 10,
-    color: '#6B7280',
-  },
-  usersSection: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 12,
-  },
-  usersScroll: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-  },
-  usersContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  userCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    minWidth: 120,
-  },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#4ABAB820',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  userAvatarText: {
-    fontSize: 20,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  userIntro: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  userFollowers: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    marginBottom: 8,
-  },
-  followUserButton: {
-    backgroundColor: '#4ABAB8',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  followUserButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  postsSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  postCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-  },
-  authorInfo: {
-    gap: 2,
-  },
-  authorNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  authorName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  levelBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  levelText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#D97706',
-  },
-  postTime: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  followButton: {
-    backgroundColor: '#4ABAB8',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  followingButton: {
-    backgroundColor: '#F3F4F6',
-  },
-  followButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  followingButtonText: {
-    color: '#6B7280',
-  },
-  postContent: {
-    marginBottom: 16,
-  },
-  postText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#374151',
-    marginBottom: 12,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  tag: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  tagText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  postImages: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  imagePlaceholder: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  imagePlaceholderText: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    marginTop: 4,
-  },
-  postActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F9FAFB',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  actionText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  actionTextActive: {
-    color: '#EF4444',
-  },
+  container: { flex: 1 },
+  listContainer: { flex: 1 },
+  tabsSection: { backgroundColor: '#FFFFFF', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingVertical: 8 },
+  tabsContainer: { flexDirection: 'row', justifyContent: 'center', gap: 16 },
+  tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F9FAFB', gap: 6 },
+  activeTab: { backgroundColor: '#4ABAB820' },
+  tabText: { fontSize: 14, fontWeight: '500', color: '#6B7280' },
+  activeTabText: { color: '#4ABAB8', fontWeight: '600' },
+  postCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginHorizontal: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 },
+  postHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  userInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0F2F1', justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 18, color: '#4ABAB8', fontWeight: '600' },
+  authorInfo: { gap: 2 },
+  authorName: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
+  postTime: { fontSize: 12, color: '#9CA3AF' },
+  postContent: { marginBottom: 16 },
+  postText: { fontSize: 14, lineHeight: 20, color: '#374151', marginBottom: 12 },
+  postImagesContainer: { flexDirection: 'row', marginBottom: 12 },
+  postImage: { width: 100, height: 100, borderRadius: 8, marginRight: 8, resizeMode: 'cover' },
+  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 },
+  tag: { backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginRight: 6, marginBottom: 6 },
+  tagText: { fontSize: 12, color: '#6B7280' },
+  postActions: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  actionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  actionText: { fontSize: 12, color: '#6B7280' },
+  actionTextActive: { color: '#EF4444' },
+  emptyListText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#6B7280' },
 });
