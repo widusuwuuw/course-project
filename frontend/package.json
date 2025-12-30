@@ -2,7 +2,7 @@
   "name": "omnihealth-frontend",
   "version": "0.1.0",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -14,6 +14,7 @@
     "@expo/metro-runtime": "~3.2.3",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^1.23.1",
+    "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.10.1",
     "date-fns": "^4.1.0",
@@ -43,6 +44,7 @@
     "@types/react-native": "^0.73.0",
     "@types/react-native-calendars": "^1.1264.7",
     "@types/react-native-vector-icons": "^6.4.18",
+    "babel-plugin-module-resolver": "^5.0.2",
     "typescript": "5.3.3"
   }
 }

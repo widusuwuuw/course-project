@@ -10,6 +10,16 @@ import { RootStackParamList } from '../../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { apiGet } from '../api/client';
 
+// 类型定义
+type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  HealthTrackerDashboard: undefined;
+  HealthLogs: { metric?: string } | undefined;
+  Assistant: undefined;
+  Achievements: undefined;
+};
+
 const { width } = Dimensions.get('window');
 
 // 导入新的Health Tracker组件

@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TextInput, Alert, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { apiGet, apiPost } from '@/api/client';
-import GradientBackground from '@/components/GradientBackground';
-import { RootStackParamList } from 'App';
+import { apiGet, apiPost } from '../api/client';
+import GradientBackground from '../components/GradientBackground';
+import { RootStackParamList } from '../../App';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 
