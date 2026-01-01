@@ -289,8 +289,8 @@ class WeeklyPlanGenerator:
         preferred_exercises = user_preferences.get("preferred_exercises", []) or []
         disliked_exercises = user_preferences.get("disliked_exercises", []) or []
         
-        # 构建周运动安排表（按时段分组）
-        weekly_schedule = self._build_weekly_exercise_schedule_by_timeslot(selected_exercises)
+        # 构建周运动安排表（按时段分组，传入用户偏好）
+        weekly_schedule = self._build_weekly_exercise_schedule_by_timeslot(selected_exercises, user_preferences)
         
         # 获取当天各时段的运动
         day_schedule = weekly_schedule.get(day, {})
@@ -347,7 +347,7 @@ class WeeklyPlanGenerator:
         
         return exercises_for_day
     
-    def _build_weekly_exercise_schedule_by_timeslot(self, exercises: List[Dict]) -> Dict[str, Dict[str, List[Dict]]]:
+    def _build_weekly_exercise_schedule_by_timeslot(self, exercises: List[Dict], user_preferences: Dict = None) -> Dict[str, Dict[str, List[Dict]]]:
         """
         根据运动频次和建议时段构建周运动安排表
         
@@ -359,24 +359,55 @@ class WeeklyPlanGenerator:
         }
         
         分配算法：
-        1. 按时段分组运动
+        1. 按时段分组运动（优先考虑用户偏好时段）
         2. 每个时段的运动按频次分配到一周
         3. 同一时段的多个运动交错分配
         """
+        if user_preferences is None:
+            user_preferences = {}
+            
         # 初始化
         schedule = {
             day: {"早晨": [], "下午": [], "晚上": []}
             for day in WEEKDAYS
         }
         
-        # 按时段分组
+        # 按时段分组（优先使用用户偏好的时段）
+        user_preferred_slots = user_preferences.get("exercise_time_slots", []) or []
+        # 将用户偏好时段映射到内部时段名称
+        slot_mapping = {
+            "清晨": "早晨", "早晨": "早晨", "morning": "早晨",
+            "上午": "早晨", "中午": "下午", "下午": "下午",
+            "afternoon": "下午", "傍晚": "晚上", "晚上": "晚上",
+            "evening": "晚上", "night": "晚上"
+        }
+        
         exercises_by_time = {"早晨": [], "下午": [], "晚上": []}
         
         for ex in exercises:
             best_time = ex.get("best_time", "下午")
-            if "早" in str(best_time):
+            
+            # 如果用户设置了偏好时段，优先考虑
+            if user_preferred_slots:
+                # 检查运动的最佳时段是否在用户偏好中
+                ex_time_normalized = None
+                for slot_key, slot_value in slot_mapping.items():
+                    if slot_key in str(best_time):
+                        ex_time_normalized = slot_value
+                        break
+                
+                # 如果运动的时段不在用户偏好中，但用户有偏好，可以调整或跳过
+                user_slots_normalized = [slot_mapping.get(s, s) for s in user_preferred_slots]
+                if ex_time_normalized and ex_time_normalized not in user_slots_normalized:
+                    # 尝试调整到用户偏好的时段
+                    if user_slots_normalized:
+                        best_time = user_slots_normalized[0]  # 使用第一个偏好时段
+                        logger.info(f"调整运动 {ex.get('name')} 的时段到用户偏好: {best_time}")
+            
+            # 分配到对应时段
+            if "早" in str(best_time) or "morning" in str(best_time).lower():
                 exercises_by_time["早晨"].append(ex)
-            elif "晚" in str(best_time):
+            elif "晚" in str(best_time) or "evening" in str(best_time).lower() or "night" in str(best_time).lower():
                 exercises_by_time["晚上"].append(ex)
             else:
                 exercises_by_time["下午"].append(ex)

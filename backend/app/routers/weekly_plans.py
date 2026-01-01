@@ -551,9 +551,22 @@ async def adjust_weekly_plan(
     
     elif request.adjustment_type == "change_exercise":
         if request.new_exercise_id and day_plan.get("exercise"):
-            # TODO: 从运动数据库获取新运动信息
-            day_plan["exercise"]["exercise_id"] = request.new_exercise_id
-            day_plan["tips"] = f"已更换运动项目。{request.custom_note or ''}"
+            # 从运动数据库获取新运动信息
+            try:
+                from ..data.exercise_database import EXERCISE_DATABASE
+                new_exercise = next((ex for ex in EXERCISE_DATABASE if ex.id == request.new_exercise_id), None)
+                if new_exercise:
+                    day_plan["exercise"]["exercise_id"] = request.new_exercise_id
+                    day_plan["exercise"]["exercise_name"] = new_exercise.name
+                    day_plan["exercise"]["duration"] = day_plan["exercise"].get("duration", new_exercise.default_duration)
+                    day_plan["tips"] = f"已更换运动项目为：{new_exercise.name}。{request.custom_note or ''}"
+                else:
+                    day_plan["exercise"]["exercise_id"] = request.new_exercise_id
+                    day_plan["tips"] = f"已更换运动项目。{request.custom_note or ''}"
+            except Exception as e:
+                # 如果获取失败，至少更新ID
+                day_plan["exercise"]["exercise_id"] = request.new_exercise_id
+                day_plan["tips"] = f"已更换运动项目。{request.custom_note or ''}"
     
     # 更新调整记录（解析JSON）
     adjustments = json.loads(weekly_plan.user_adjustments) if weekly_plan.user_adjustments else {}

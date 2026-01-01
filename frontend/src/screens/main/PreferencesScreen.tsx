@@ -145,6 +145,11 @@ export default function PreferencesScreen() {
       delete (loadedPrefs as any).created_at;
       delete (loadedPrefs as any).updated_at;
       
+      // 后端返回wake_time，前端使用wake_up_time，需要转换
+      if ((loadedPrefs as any).wake_time && !loadedPrefs.wake_up_time) {
+        loadedPrefs.wake_up_time = (loadedPrefs as any).wake_time;
+      }
+      
       // 后端返回的stress_level应该已经是数字，但为安全起见再转换一次
       if (loadedPrefs.stress_level && typeof loadedPrefs.stress_level !== 'number') {
         loadedPrefs.stress_level = 2; // 默认中等
@@ -169,13 +174,22 @@ export default function PreferencesScreen() {
   const savePreferences = async () => {
     try {
       setSaving(true);
-      // 确保stress_level是数字类型
-      const dataToSend = {
+      // 确保stress_level是数字类型，并转换字段名
+      const dataToSend: any = {
         ...preferences,
         stress_level: typeof preferences.stress_level === 'number' 
           ? preferences.stress_level 
           : 2
       };
+      // 前端使用wake_up_time，后端使用wake_time，需要转换
+      if (dataToSend.wake_up_time) {
+        dataToSend.wake_time = dataToSend.wake_up_time;
+        delete dataToSend.wake_up_time;
+      }
+      // 删除前端特有的字段
+      delete dataToSend.dietary_restrictions;
+      delete dataToSend.additional_goals;
+      
       const response = await apiPost('/api/v1/preferences', dataToSend);
       
       // 检查响应是否成功

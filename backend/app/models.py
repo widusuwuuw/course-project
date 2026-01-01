@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Text, Boolean, Table, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
+import json
 
 from .db import Base
 
@@ -293,8 +294,108 @@ class UserPreferences(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     user = relationship("User", backref="preferences")
-    def to_dict(self) -> dict: return {}
-    def update_from_dict(self, data: dict): pass
+    
+    def to_dict(self) -> dict:
+        """转换为字典格式"""
+        def parse_json_field(value):
+            """解析JSON字段"""
+            if value is None:
+                return None
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except:
+                    return value
+            return value
+        
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            # 饮食偏好
+            "taste_preference": self.taste_preference,
+            "cuisine_styles": parse_json_field(self.cuisine_styles),
+            "allergens": parse_json_field(self.allergens),
+            "forbidden_foods": parse_json_field(self.forbidden_foods),
+            "cooking_skill": self.cooking_skill,
+            "meals_per_day": self.meals_per_day,
+            # 运动偏好
+            "preferred_exercises": parse_json_field(self.preferred_exercises),
+            "disliked_exercises": parse_json_field(self.disliked_exercises),
+            "exercise_frequency": self.exercise_frequency,
+            "exercise_duration": self.exercise_duration,
+            "preferred_intensity": self.preferred_intensity,
+            "exercise_time_slots": parse_json_field(self.exercise_time_slots),
+            "has_gym_access": self.has_gym_access,
+            "available_equipment": parse_json_field(self.available_equipment),
+            # 生活习惯
+            "sleep_time": self.sleep_time,
+            "wake_time": self.wake_time,
+            "work_style": self.work_style,
+            "weekly_schedule": parse_json_field(self.weekly_schedule),
+            "stress_level": self.stress_level,
+            # 健康目标
+            "primary_goal": self.primary_goal,
+            "target_weight": self.target_weight,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+    
+    def update_from_dict(self, data: dict):
+        """从字典更新字段"""
+        def serialize_json_field(value):
+            """序列化JSON字段"""
+            if value is None:
+                return None
+            if isinstance(value, (list, dict)):
+                return json.dumps(value, ensure_ascii=False)
+            return value
+        
+        # 更新各个字段
+        if "taste_preference" in data:
+            self.taste_preference = data["taste_preference"]
+        if "cuisine_styles" in data:
+            self.cuisine_styles = serialize_json_field(data["cuisine_styles"])
+        if "allergens" in data:
+            self.allergens = serialize_json_field(data["allergens"])
+        if "forbidden_foods" in data:
+            self.forbidden_foods = serialize_json_field(data["forbidden_foods"])
+        if "cooking_skill" in data:
+            self.cooking_skill = data["cooking_skill"]
+        if "meals_per_day" in data:
+            self.meals_per_day = data["meals_per_day"]
+        if "preferred_exercises" in data:
+            self.preferred_exercises = serialize_json_field(data["preferred_exercises"])
+        if "disliked_exercises" in data:
+            self.disliked_exercises = serialize_json_field(data["disliked_exercises"])
+        if "exercise_frequency" in data:
+            self.exercise_frequency = data["exercise_frequency"]
+        if "exercise_duration" in data:
+            self.exercise_duration = data["exercise_duration"]
+        if "preferred_intensity" in data:
+            self.preferred_intensity = data["preferred_intensity"]
+        if "exercise_time_slots" in data:
+            self.exercise_time_slots = serialize_json_field(data["exercise_time_slots"])
+        if "has_gym_access" in data:
+            self.has_gym_access = data["has_gym_access"]
+        if "available_equipment" in data:
+            self.available_equipment = serialize_json_field(data["available_equipment"])
+        if "sleep_time" in data:
+            self.sleep_time = data["sleep_time"]
+        if "wake_time" in data:
+            self.wake_time = data["wake_time"]
+        if "work_style" in data:
+            self.work_style = data["work_style"]
+        if "weekly_schedule" in data:
+            self.weekly_schedule = serialize_json_field(data["weekly_schedule"])
+        if "stress_level" in data:
+            self.stress_level = data["stress_level"]
+        if "primary_goal" in data:
+            self.primary_goal = data["primary_goal"]
+        if "target_weight" in data:
+            self.target_weight = data["target_weight"]
+        
+        # 更新时间戳
+        self.updated_at = datetime.now(timezone.utc)
 
 class WeeklyPlan(Base):
     __tablename__ = "weekly_plans"

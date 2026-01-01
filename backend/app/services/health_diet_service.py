@@ -288,6 +288,89 @@ def adjust_portions_for_health(
     Returns:
         调整份量后的食物列表
     """
-    # TODO: 实现更精细的份量调整
-    # 例如：血糖高→减少主食份量；血脂高→减少肉类份量
-    return meal_foods
+    if not restrictions or not meal_foods:
+        return meal_foods
+    
+    adjusted_foods = []
+    
+    # 提取所有限制条件
+    has_glucose_issue = False
+    has_lipid_issue = False
+    has_uric_acid_issue = False
+    foods_to_avoid = set()
+    foods_to_prefer = set()
+    
+    for restriction in restrictions:
+        condition = restriction.condition.lower()
+        
+        # 检测血糖问题
+        if '血糖' in condition or '糖' in condition or restriction.nutrition_limits.get('gi') == 'low':
+            has_glucose_issue = True
+            logger.info(f"[份量调整] 检测到血糖问题，将减少主食份量")
+        
+        # 检测血脂问题
+        if '血脂' in condition or '胆固醇' in condition or '甘油三酯' in condition:
+            has_lipid_issue = True
+            logger.info(f"[份量调整] 检测到血脂问题，将减少高脂肪食物份量")
+        
+        # 检测尿酸问题
+        if '尿酸' in condition or restriction.nutrition_limits.get('purine') == 'low':
+            has_uric_acid_issue = True
+            foods_to_avoid.update(restriction.foods_to_avoid)
+        
+        foods_to_avoid.update(restriction.foods_to_avoid)
+        foods_to_prefer.update(restriction.foods_to_prefer)
+    
+    # 调整食物份量
+    for food in meal_foods:
+        food_id = food.get('food_id') or food.get('id', '')
+        food_name = food.get('name', '')
+        portion = food.get('portion', 100)  # 默认100g或1份
+        original_portion = portion
+        
+        # 如果是需要避免的食物，减少份量或移除
+        if food_id in foods_to_avoid or any(avoid in food_name for avoid in ['海鲜', '内脏', '虾', '蟹']):
+            if has_uric_acid_issue:
+                portion = max(portion * 0.3, 0)  # 减少70%
+                logger.info(f"[份量调整] {food_name}: {original_portion} → {portion:.1f} (高嘌呤限制)")
+        
+        # 血糖高：减少主食和糖分高的食物
+        if has_glucose_issue:
+            # 主食类（米饭、面条、馒头等）
+            if any(carbs in food_name for carbs in ['米', '面', '馒头', '面包', '土豆', '红薯', '玉米']):
+                portion = portion * 0.8  # 减少20%
+                logger.info(f"[份量调整] {food_name}: {original_portion} → {portion:.1f} (血糖控制)")
+            # 高糖食物
+            if any(sugar in food_name for sugar in ['糖', '蜂蜜', '果汁', '甜品']):
+                portion = portion * 0.5  # 减少50%
+                logger.info(f"[份量调整] {food_name}: {original_portion} → {portion:.1f} (高糖限制)")
+        
+        # 血脂高：减少高脂肪食物
+        if has_lipid_issue:
+            # 高脂肪肉类
+            if any(fat in food_name for fat in ['猪肉', '羊肉', '鸭肉', '肥肉', '油炸']):
+                portion = portion * 0.7  # 减少30%
+                logger.info(f"[份量调整] {food_name}: {original_portion} → {portion:.1f} (血脂控制)")
+            # 蛋黄等高胆固醇食物
+            if '蛋黄' in food_name or '蛋' in food_name:
+                portion = portion * 0.6  # 减少40%
+                logger.info(f"[份量调整] {food_name}: {original_portion} → {portion:.1f} (胆固醇限制)")
+        
+        # 如果是推荐食物，可以适当增加份量
+        if food_id in foods_to_prefer or any(prefer in food_name for prefer in ['蔬菜', '水果', '粗粮']):
+            if not has_glucose_issue or '水果' not in food_name:  # 血糖高时水果也要限制
+                portion = min(portion * 1.2, original_portion * 1.5)  # 增加最多50%
+                logger.info(f"[份量调整] {food_name}: {original_portion} → {portion:.1f} (推荐食物)")
+        
+        # 更新份量
+        adjusted_food = food.copy()
+        adjusted_food['portion'] = round(portion, 1)
+        adjusted_food['original_portion'] = original_portion  # 保留原始份量供参考
+        
+        # 如果份量减少到接近0，可以考虑移除，但这里保留少量
+        if portion > 5:  # 至少保留5g或最小单位
+            adjusted_foods.append(adjusted_food)
+        else:
+            logger.info(f"[份量调整] {food_name} 份量过小({portion:.1f})，已从餐食中移除")
+    
+    return adjusted_foods

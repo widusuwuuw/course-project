@@ -630,11 +630,32 @@ async def get_exercise_diet_balance(
     diet = day_plan.get("diet", {})
     base_calories = diet.get("calories_target", 2000)
     
+    # 从用户偏好获取目标
+    goal = "maintain"
+    try:
+        from ..models import UserPreferences
+        user_prefs = db.query(UserPreferences).filter(
+            UserPreferences.user_id == current_user.id
+        ).first()
+        if user_prefs and user_prefs.primary_goal:
+            # 将目标映射到calorie goal
+            goal_map = {
+                "减重": "lose",
+                "增肌": "gain",
+                "保持健康": "maintain",
+                "改善体质": "maintain",
+                "康复训练": "maintain"
+            }
+            goal = goal_map.get(user_prefs.primary_goal, "maintain")
+    except Exception as e:
+        # 如果获取失败，使用默认值
+        pass
+    
     # 计算调整后的目标
     adjusted = calculate_adjusted_calories(
         base_calories=base_calories,
         exercise_calories=exercise_calories,
-        goal="maintain"  # TODO: 从用户偏好获取目标
+        goal=goal
     )
     
     # 分析平衡状态
@@ -642,7 +663,7 @@ async def get_exercise_diet_balance(
         daily_intake=total_intake,
         daily_exercise=exercise_calories,
         target_calories=base_calories,
-        goal="maintain"
+        goal=goal
     )
     
     # 获取运动后饮食建议
