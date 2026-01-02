@@ -6,6 +6,17 @@ from pydantic import BaseModel, EmailStr, Field
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
+    gender: Optional[str] = Field("default", pattern="^(male|female|other|default)$")
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    gender: Optional[str] = "default"
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 class Token(BaseModel):

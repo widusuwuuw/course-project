@@ -1,0 +1,648 @@
+﻿{
+    "id":  3,
+    "user_id":  6,
+    "monthly_plan_id":  null,
+    "week_number":  4,
+    "week_start_date":  "2025-12-22",
+    "week_end_date":  "2025-12-28",
+    "week_theme":  "è¯ä¼°æ",
+    "daily_plans":  {
+                        "monday":  {
+                                       "date":  "2025-12-22",
+                                       "day_name":  "å¨ä¸",
+                                       "is_rest_day":  false,
+                                       "exercise":  {
+                                                        "exercise_id":  "walk_3mph",
+                                                        "name":  "å¿«èµ° (3mph, 5km/h)",
+                                                        "duration":  30,
+                                                        "intensity":  "moderate",
+                                                        "calories_target":  115,
+                                                        "time_slot":  "åæ",
+                                                        "execution_guide":  "ä¿ææ¯åé100-120æ­¥çéåº¦ï¼èªç¶æèï¼æºè¸æ¶è\u0085¹",
+                                                        "alternatives":  [
+                                                                             {
+                                                                                 "exercise_id":  "jog_6mph",
+                                                                                 "name":  "æ\u0085¢è· (6mph, 10km/h)"
+                                                                             },
+                                                                             {
+                                                                                 "exercise_id":  "baduanjin",
+                                                                                 "name":  "å\u0085«æ®µé¦"
+                                                                             }
+                                                                         ]
+                                                    },
+                                       "diet":  {
+                                                    "calories_target":  2000,
+                                                    "breakfast":  {
+                                                                      "foods":  [
+                                                                                    {
+                                                                                        "food_id":  "brown_rice",
+                                                                                        "name":  "ç³ç±³",
+                                                                                        "portion":  "50g"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "chicken_breast",
+                                                                                        "name":  "é¸¡è¸è",
+                                                                                        "portion":  "1ä»½"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "milk",
+                                                                                        "name":  "çå¥¶",
+                                                                                        "portion":  "250ml"
+                                                                                    }
+                                                                                ],
+                                                                      "calories":  600
+                                                                  },
+                                                    "lunch":  {
+                                                                  "foods":  [
+                                                                                {
+                                                                                    "food_id":  "brown_rice",
+                                                                                    "name":  "ç³ç±³",
+                                                                                    "portion":  "150g"
+                                                                                },
+                                                                                {
+                                                                                    "food_id":  "chicken_breast",
+                                                                                    "name":  "é¸¡è¸è",
+                                                                                    "portion":  "100g"
+                                                                                },
+                                                                                {
+                                                                                    "food_id":  "broccoli",
+                                                                                    "name":  "è¥¿å\u0085°è±",
+                                                                                    "portion":  "150g"
+                                                                                }
+                                                                            ],
+                                                                  "calories":  800
+                                                              },
+                                                    "dinner":  {
+                                                                   "foods":  [
+                                                                                 {
+                                                                                     "food_id":  "brown_rice",
+                                                                                     "name":  "ç³ç±³",
+                                                                                     "portion":  "100g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "chicken_breast",
+                                                                                     "name":  "é¸¡è¸è",
+                                                                                     "portion":  "80g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "broccoli",
+                                                                                     "name":  "è¥¿å\u0085°è±",
+                                                                                     "portion":  "100g"
+                                                                                 }
+                                                                             ],
+                                                                   "calories":  600
+                                                               },
+                                                    "snacks":  {
+                                                                   "foods":  [
+                                                                                 {
+                                                                                     "food_id":  "nuts",
+                                                                                     "name":  "åæ",
+                                                                                     "portion":  "ä¸å°æ"
+                                                                                 }
+                                                                             ],
+                                                                   "calories":  0
+                                                               },
+                                                    "hydration_goal":  "æ¯æ¥é¥®æ°´1.5-2åï¼åååå¸å¨ç½å¤©ï¼ç¡åå°é¥®ã"
+                                                },
+                                       "tips":  "å»ºè®®åæè¿è¡å¿«èµ° (3mph, 5km/h)ï¼æ°çä¸å¨å¼å§ï¼ä¿æç§¯æå¿æï¼"
+                                   },
+                        "tuesday":  {
+                                        "date":  "2025-12-23",
+                                        "day_name":  "å¨äº",
+                                        "is_rest_day":  false,
+                                        "exercise":  {
+                                                         "exercise_id":  "squats_bodyweight",
+                                                         "name":  "å¾ææ·±è¹²",
+                                                         "duration":  15,
+                                                         "intensity":  "moderate",
+                                                         "calories_target":  87,
+                                                         "time_slot":  "åæ",
+                                                         "execution_guide":  "åèä¸è©åå®½ï¼ä¸è¹²æ¶èçä¸è¶\u0085è¿èå°ï¼èé¨æºç´",
+                                                         "alternatives":  [
+                                                                              {
+                                                                                  "exercise_id":  "baduanjin",
+                                                                                  "name":  "å\u0085«æ®µé¦"
+                                                                              }
+                                                                          ]
+                                                     },
+                                        "diet":  {
+                                                     "calories_target":  2000,
+                                                     "breakfast":  {
+                                                                       "foods":  [
+                                                                                     {
+                                                                                         "food_id":  "brown_rice",
+                                                                                         "name":  "ç³ç±³",
+                                                                                         "portion":  "50g"
+                                                                                     },
+                                                                                     {
+                                                                                         "food_id":  "chicken_breast",
+                                                                                         "name":  "é¸¡è¸è",
+                                                                                         "portion":  "1ä»½"
+                                                                                     },
+                                                                                     {
+                                                                                         "food_id":  "milk",
+                                                                                         "name":  "çå¥¶",
+                                                                                         "portion":  "250ml"
+                                                                                     }
+                                                                                 ],
+                                                                       "calories":  600
+                                                                   },
+                                                     "lunch":  {
+                                                                   "foods":  [
+                                                                                 {
+                                                                                     "food_id":  "brown_rice",
+                                                                                     "name":  "ç³ç±³",
+                                                                                     "portion":  "150g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "chicken_breast",
+                                                                                     "name":  "é¸¡è¸è",
+                                                                                     "portion":  "100g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "broccoli",
+                                                                                     "name":  "è¥¿å\u0085°è±",
+                                                                                     "portion":  "150g"
+                                                                                 }
+                                                                             ],
+                                                                   "calories":  800
+                                                               },
+                                                     "dinner":  {
+                                                                    "foods":  [
+                                                                                  {
+                                                                                      "food_id":  "brown_rice",
+                                                                                      "name":  "ç³ç±³",
+                                                                                      "portion":  "100g"
+                                                                                  },
+                                                                                  {
+                                                                                      "food_id":  "chicken_breast",
+                                                                                      "name":  "é¸¡è¸è",
+                                                                                      "portion":  "80g"
+                                                                                  },
+                                                                                  {
+                                                                                      "food_id":  "broccoli",
+                                                                                      "name":  "è¥¿å\u0085°è±",
+                                                                                      "portion":  "100g"
+                                                                                  }
+                                                                              ],
+                                                                    "calories":  600
+                                                                },
+                                                     "snacks":  {
+                                                                    "foods":  [
+                                                                                  {
+                                                                                      "food_id":  "nuts",
+                                                                                      "name":  "åæ",
+                                                                                      "portion":  "ä¸å°æ"
+                                                                                  }
+                                                                              ],
+                                                                    "calories":  0
+                                                                },
+                                                     "hydration_goal":  "æ¯æ¥é¥®æ°´1.5-2åï¼åååå¸å¨ç½å¤©ï¼ç¡åå°é¥®ã"
+                                                 },
+                                        "tips":  "å»ºè®®åæè¿è¡å¾ææ·±è¹²"
+                                    },
+                        "wednesday":  {
+                                          "date":  "2025-12-24",
+                                          "day_name":  "å¨ä¸",
+                                          "is_rest_day":  true,
+                                          "exercise":  null,
+                                          "diet":  {
+                                                       "calories_target":  1800,
+                                                       "breakfast":  {
+                                                                         "foods":  [
+                                                                                       {
+                                                                                           "food_id":  "brown_rice",
+                                                                                           "name":  "ç³ç±³",
+                                                                                           "portion":  "50g"
+                                                                                       },
+                                                                                       {
+                                                                                           "food_id":  "chicken_breast",
+                                                                                           "name":  "é¸¡è¸è",
+                                                                                           "portion":  "1ä»½"
+                                                                                       },
+                                                                                       {
+                                                                                           "food_id":  "milk",
+                                                                                           "name":  "çå¥¶",
+                                                                                           "portion":  "250ml"
+                                                                                       }
+                                                                                   ],
+                                                                         "calories":  540
+                                                                     },
+                                                       "lunch":  {
+                                                                     "foods":  [
+                                                                                   {
+                                                                                       "food_id":  "brown_rice",
+                                                                                       "name":  "ç³ç±³",
+                                                                                       "portion":  "150g"
+                                                                                   },
+                                                                                   {
+                                                                                       "food_id":  "chicken_breast",
+                                                                                       "name":  "é¸¡è¸è",
+                                                                                       "portion":  "100g"
+                                                                                   },
+                                                                                   {
+                                                                                       "food_id":  "broccoli",
+                                                                                       "name":  "è¥¿å\u0085°è±",
+                                                                                       "portion":  "150g"
+                                                                                   }
+                                                                               ],
+                                                                     "calories":  720
+                                                                 },
+                                                       "dinner":  {
+                                                                      "foods":  [
+                                                                                    {
+                                                                                        "food_id":  "brown_rice",
+                                                                                        "name":  "ç³ç±³",
+                                                                                        "portion":  "100g"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "chicken_breast",
+                                                                                        "name":  "é¸¡è¸è",
+                                                                                        "portion":  "80g"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "broccoli",
+                                                                                        "name":  "è¥¿å\u0085°è±",
+                                                                                        "portion":  "100g"
+                                                                                    }
+                                                                                ],
+                                                                      "calories":  540
+                                                                  },
+                                                       "snacks":  {
+                                                                      "foods":  [
+                                                                                    {
+                                                                                        "food_id":  "nuts",
+                                                                                        "name":  "åæ",
+                                                                                        "portion":  "ä¸å°æ"
+                                                                                    }
+                                                                                ],
+                                                                      "calories":  0
+                                                                  },
+                                                       "hydration_goal":  "æ¯æ¥é¥®æ°´1.5-2åï¼åååå¸å¨ç½å¤©ï¼ç¡åå°é¥®ã"
+                                                   },
+                                          "tips":  "ä»å¤©æ¯ä¼æ¯æ¥ï¼è®©èº«ä½å\u0085\u0085åæ¢å¤ï¼å¯ä»¥åäºè½»åº¦æä¼¸ææ£æ­¥ï¼å¨ä¸­äºï¼åæå°±æ¯èå©ï¼"
+                                      },
+                        "thursday":  {
+                                         "date":  "2025-12-25",
+                                         "day_name":  "å¨å",
+                                         "is_rest_day":  false,
+                                         "exercise":  {
+                                                          "exercise_id":  "jog_6mph",
+                                                          "name":  "æ\u0085¢è· (6mph, 10km/h)",
+                                                          "duration":  30,
+                                                          "intensity":  "moderate",
+                                                          "calories_target":  280,
+                                                          "time_slot":  "åæ",
+                                                          "execution_guide":  "æ§å¶é\u0085éå¨7-8åé/å\u0085¬éï¼ä¿æååå¼å¸",
+                                                          "alternatives":  [
+                                                                               {
+                                                                                   "exercise_id":  "walk_3mph",
+                                                                                   "name":  "å¿«èµ° (3mph, 5km/h)"
+                                                                               },
+                                                                               {
+                                                                                   "exercise_id":  "baduanjin",
+                                                                                   "name":  "å\u0085«æ®µé¦"
+                                                                               }
+                                                                           ]
+                                                      },
+                                         "diet":  {
+                                                      "calories_target":  2000,
+                                                      "breakfast":  {
+                                                                        "foods":  [
+                                                                                      {
+                                                                                          "food_id":  "brown_rice",
+                                                                                          "name":  "ç³ç±³",
+                                                                                          "portion":  "50g"
+                                                                                      },
+                                                                                      {
+                                                                                          "food_id":  "chicken_breast",
+                                                                                          "name":  "é¸¡è¸è",
+                                                                                          "portion":  "1ä»½"
+                                                                                      },
+                                                                                      {
+                                                                                          "food_id":  "milk",
+                                                                                          "name":  "çå¥¶",
+                                                                                          "portion":  "250ml"
+                                                                                      }
+                                                                                  ],
+                                                                        "calories":  600
+                                                                    },
+                                                      "lunch":  {
+                                                                    "foods":  [
+                                                                                  {
+                                                                                      "food_id":  "brown_rice",
+                                                                                      "name":  "ç³ç±³",
+                                                                                      "portion":  "150g"
+                                                                                  },
+                                                                                  {
+                                                                                      "food_id":  "chicken_breast",
+                                                                                      "name":  "é¸¡è¸è",
+                                                                                      "portion":  "100g"
+                                                                                  },
+                                                                                  {
+                                                                                      "food_id":  "broccoli",
+                                                                                      "name":  "è¥¿å\u0085°è±",
+                                                                                      "portion":  "150g"
+                                                                                  }
+                                                                              ],
+                                                                    "calories":  800
+                                                                },
+                                                      "dinner":  {
+                                                                     "foods":  [
+                                                                                   {
+                                                                                       "food_id":  "brown_rice",
+                                                                                       "name":  "ç³ç±³",
+                                                                                       "portion":  "100g"
+                                                                                   },
+                                                                                   {
+                                                                                       "food_id":  "chicken_breast",
+                                                                                       "name":  "é¸¡è¸è",
+                                                                                       "portion":  "80g"
+                                                                                   },
+                                                                                   {
+                                                                                       "food_id":  "broccoli",
+                                                                                       "name":  "è¥¿å\u0085°è±",
+                                                                                       "portion":  "100g"
+                                                                                   }
+                                                                               ],
+                                                                     "calories":  600
+                                                                 },
+                                                      "snacks":  {
+                                                                     "foods":  [
+                                                                                   {
+                                                                                       "food_id":  "nuts",
+                                                                                       "name":  "åæ",
+                                                                                       "portion":  "ä¸å°æ"
+                                                                                   }
+                                                                               ],
+                                                                     "calories":  0
+                                                                 },
+                                                      "hydration_goal":  "æ¯æ¥é¥®æ°´1.5-2åï¼åååå¸å¨ç½å¤©ï¼ç¡åå°é¥®ã"
+                                                  },
+                                         "tips":  "å»ºè®®åæè¿è¡æ\u0085¢è· (6mph, 10km/h)"
+                                     },
+                        "friday":  {
+                                       "date":  "2025-12-26",
+                                       "day_name":  "å¨äº",
+                                       "is_rest_day":  false,
+                                       "exercise":  {
+                                                        "exercise_id":  "squats_bodyweight",
+                                                        "name":  "å¾ææ·±è¹²",
+                                                        "duration":  15,
+                                                        "intensity":  "moderate",
+                                                        "calories_target":  87,
+                                                        "time_slot":  "åæ",
+                                                        "execution_guide":  "åèä¸è©åå®½ï¼ä¸è¹²æ¶èçä¸è¶\u0085è¿èå°ï¼èé¨æºç´",
+                                                        "alternatives":  [
+                                                                             {
+                                                                                 "exercise_id":  "baduanjin",
+                                                                                 "name":  "å\u0085«æ®µé¦"
+                                                                             }
+                                                                         ]
+                                                    },
+                                       "diet":  {
+                                                    "calories_target":  2000,
+                                                    "breakfast":  {
+                                                                      "foods":  [
+                                                                                    {
+                                                                                        "food_id":  "brown_rice",
+                                                                                        "name":  "ç³ç±³",
+                                                                                        "portion":  "50g"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "chicken_breast",
+                                                                                        "name":  "é¸¡è¸è",
+                                                                                        "portion":  "1ä»½"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "milk",
+                                                                                        "name":  "çå¥¶",
+                                                                                        "portion":  "250ml"
+                                                                                    }
+                                                                                ],
+                                                                      "calories":  600
+                                                                  },
+                                                    "lunch":  {
+                                                                  "foods":  [
+                                                                                {
+                                                                                    "food_id":  "brown_rice",
+                                                                                    "name":  "ç³ç±³",
+                                                                                    "portion":  "150g"
+                                                                                },
+                                                                                {
+                                                                                    "food_id":  "chicken_breast",
+                                                                                    "name":  "é¸¡è¸è",
+                                                                                    "portion":  "100g"
+                                                                                },
+                                                                                {
+                                                                                    "food_id":  "broccoli",
+                                                                                    "name":  "è¥¿å\u0085°è±",
+                                                                                    "portion":  "150g"
+                                                                                }
+                                                                            ],
+                                                                  "calories":  800
+                                                              },
+                                                    "dinner":  {
+                                                                   "foods":  [
+                                                                                 {
+                                                                                     "food_id":  "brown_rice",
+                                                                                     "name":  "ç³ç±³",
+                                                                                     "portion":  "100g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "chicken_breast",
+                                                                                     "name":  "é¸¡è¸è",
+                                                                                     "portion":  "80g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "broccoli",
+                                                                                     "name":  "è¥¿å\u0085°è±",
+                                                                                     "portion":  "100g"
+                                                                                 }
+                                                                             ],
+                                                                   "calories":  600
+                                                               },
+                                                    "snacks":  {
+                                                                   "foods":  [
+                                                                                 {
+                                                                                     "food_id":  "nuts",
+                                                                                     "name":  "åæ",
+                                                                                     "portion":  "ä¸å°æ"
+                                                                                 }
+                                                                             ],
+                                                                   "calories":  0
+                                                               },
+                                                    "hydration_goal":  "æ¯æ¥é¥®æ°´1.5-2åï¼åååå¸å¨ç½å¤©ï¼ç¡åå°é¥®ã"
+                                                },
+                                       "tips":  "å»ºè®®åæè¿è¡å¾ææ·±è¹²ï¼å¨æ«å°è³ï¼ç»§ç»­ä¿æå¥åº·ä¹ æ¯"
+                                   },
+                        "saturday":  {
+                                         "date":  "2025-12-27",
+                                         "day_name":  "å¨å\u0085­",
+                                         "is_rest_day":  true,
+                                         "exercise":  null,
+                                         "diet":  {
+                                                      "calories_target":  1800,
+                                                      "breakfast":  {
+                                                                        "foods":  [
+                                                                                      {
+                                                                                          "food_id":  "brown_rice",
+                                                                                          "name":  "ç³ç±³",
+                                                                                          "portion":  "50g"
+                                                                                      },
+                                                                                      {
+                                                                                          "food_id":  "chicken_breast",
+                                                                                          "name":  "é¸¡è¸è",
+                                                                                          "portion":  "1ä»½"
+                                                                                      },
+                                                                                      {
+                                                                                          "food_id":  "milk",
+                                                                                          "name":  "çå¥¶",
+                                                                                          "portion":  "250ml"
+                                                                                      }
+                                                                                  ],
+                                                                        "calories":  540
+                                                                    },
+                                                      "lunch":  {
+                                                                    "foods":  [
+                                                                                  {
+                                                                                      "food_id":  "brown_rice",
+                                                                                      "name":  "ç³ç±³",
+                                                                                      "portion":  "150g"
+                                                                                  },
+                                                                                  {
+                                                                                      "food_id":  "chicken_breast",
+                                                                                      "name":  "é¸¡è¸è",
+                                                                                      "portion":  "100g"
+                                                                                  },
+                                                                                  {
+                                                                                      "food_id":  "broccoli",
+                                                                                      "name":  "è¥¿å\u0085°è±",
+                                                                                      "portion":  "150g"
+                                                                                  }
+                                                                              ],
+                                                                    "calories":  720
+                                                                },
+                                                      "dinner":  {
+                                                                     "foods":  [
+                                                                                   {
+                                                                                       "food_id":  "brown_rice",
+                                                                                       "name":  "ç³ç±³",
+                                                                                       "portion":  "100g"
+                                                                                   },
+                                                                                   {
+                                                                                       "food_id":  "chicken_breast",
+                                                                                       "name":  "é¸¡è¸è",
+                                                                                       "portion":  "80g"
+                                                                                   },
+                                                                                   {
+                                                                                       "food_id":  "broccoli",
+                                                                                       "name":  "è¥¿å\u0085°è±",
+                                                                                       "portion":  "100g"
+                                                                                   }
+                                                                               ],
+                                                                     "calories":  540
+                                                                 },
+                                                      "snacks":  {
+                                                                     "foods":  [
+                                                                                   {
+                                                                                       "food_id":  "nuts",
+                                                                                       "name":  "åæ",
+                                                                                       "portion":  "ä¸å°æ"
+                                                                                   }
+                                                                               ],
+                                                                     "calories":  0
+                                                                 },
+                                                      "hydration_goal":  "æ¯æ¥é¥®æ°´1.5-2åï¼åååå¸å¨ç½å¤©ï¼ç¡åå°é¥®ã"
+                                                  },
+                                         "tips":  "ä»å¤©æ¯ä¼æ¯æ¥ï¼è®©èº«ä½å\u0085\u0085åæ¢å¤ï¼å¯ä»¥åäºè½»åº¦æä¼¸ææ£æ­¥ï¼å¨æ«å¯ä»¥éå½æ¾æ¾ï¼ä½å«å¿äºå¥åº·é¥®é£"
+                                     },
+                        "sunday":  {
+                                       "date":  "2025-12-28",
+                                       "day_name":  "å¨æ¥",
+                                       "is_rest_day":  true,
+                                       "exercise":  null,
+                                       "diet":  {
+                                                    "calories_target":  1800,
+                                                    "breakfast":  {
+                                                                      "foods":  [
+                                                                                    {
+                                                                                        "food_id":  "brown_rice",
+                                                                                        "name":  "ç³ç±³",
+                                                                                        "portion":  "50g"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "chicken_breast",
+                                                                                        "name":  "é¸¡è¸è",
+                                                                                        "portion":  "1ä»½"
+                                                                                    },
+                                                                                    {
+                                                                                        "food_id":  "milk",
+                                                                                        "name":  "çå¥¶",
+                                                                                        "portion":  "250ml"
+                                                                                    }
+                                                                                ],
+                                                                      "calories":  540
+                                                                  },
+                                                    "lunch":  {
+                                                                  "foods":  [
+                                                                                {
+                                                                                    "food_id":  "brown_rice",
+                                                                                    "name":  "ç³ç±³",
+                                                                                    "portion":  "150g"
+                                                                                },
+                                                                                {
+                                                                                    "food_id":  "chicken_breast",
+                                                                                    "name":  "é¸¡è¸è",
+                                                                                    "portion":  "100g"
+                                                                                },
+                                                                                {
+                                                                                    "food_id":  "broccoli",
+                                                                                    "name":  "è¥¿å\u0085°è±",
+                                                                                    "portion":  "150g"
+                                                                                }
+                                                                            ],
+                                                                  "calories":  720
+                                                              },
+                                                    "dinner":  {
+                                                                   "foods":  [
+                                                                                 {
+                                                                                     "food_id":  "brown_rice",
+                                                                                     "name":  "ç³ç±³",
+                                                                                     "portion":  "100g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "chicken_breast",
+                                                                                     "name":  "é¸¡è¸è",
+                                                                                     "portion":  "80g"
+                                                                                 },
+                                                                                 {
+                                                                                     "food_id":  "broccoli",
+                                                                                     "name":  "è¥¿å\u0085°è±",
+                                                                                     "portion":  "100g"
+                                                                                 }
+                                                                             ],
+                                                                   "calories":  540
+                                                               },
+                                                    "snacks":  {
+                                                                   "foods":  [
+                                                                                 {
+                                                                                     "food_id":  "nuts",
+                                                                                     "name":  "åæ",
+                                                                                     "portion":  "ä¸å°æ"
+                                                                                 }
+                                                                             ],
+                                                                   "calories":  0
+                                                               },
+                                                    "hydration_goal":  "æ¯æ¥é¥®æ°´1.5-2åï¼åååå¸å¨ç½å¤©ï¼ç¡åå°é¥®ã"
+                                                },
+                                       "tips":  "ä»å¤©æ¯ä¼æ¯æ¥ï¼è®©èº«ä½å\u0085\u0085åæ¢å¤ï¼å¯ä»¥åäºè½»åº¦æä¼¸ææ£æ­¥ï¼å¨æ«å¯ä»¥éå½æ¾æ¾ï¼ä½å«å¿äºå¥åº·é¥®é£"
+                                   }
+                    },
+    "ai_weekly_summary":  "æ¬å¨ä¸»é¢ï¼è¯ä¼°æãæ¬å¨å®æ4å¤©è¿å¨ã3å¤©ä¼æ¯ãé¢è®¡è¿å¨æ»æ¶é¿90åéãé¢è®¡æ¶è569åå¡ãé\u0085åä½å¡é¥®é£ï¼å©æ¨è¾¾æåéç®æ ã",
+    "completion_status":  {
+
+                          },
+    "created_at":  "2025-12-23T07:53:33.950872",
+    "updated_at":  "2025-12-23T07:53:40.735110"
+}

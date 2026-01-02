@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 数据库初始化脚本
 创建数据库表并添加一些测试数据
@@ -14,25 +15,25 @@ import hashlib
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from app.db import SessionLocal, engine
-from app.models import Base, User, HealthLog
+from app.models import Base, User, HealthLog, LabReport, LabResult
 from app.security import get_password_hash
 
 def create_tables():
     """创建所有数据库表"""
-    print("🔨 创建数据库表...")
+    print("[INFO] 创建数据库表...")
     Base.metadata.create_all(bind=engine)
-    print("✅ 数据库表创建完成！")
+    print("[SUCCESS] 数据库表创建完成！")
 
 def create_sample_data():
     """创建示例数据"""
-    print("📝 创建示例数据...")
+    print("[INFO] 创建示例数据...")
     db = SessionLocal()
 
     try:
         # 检查是否已有数据
         existing_user = db.query(User).first()
         if existing_user:
-            print("ℹ️  数据库中已有数据，跳过示例数据创建")
+            print("[INFO] 数据库中已有数据，跳过示例数据创建")
             return
 
         # 创建示例用户
@@ -53,9 +54,11 @@ def create_sample_data():
 
         created_users = []
         for user_data in users_data:
+            # 确保密码不超过bcrypt的72字节限制
+            password = user_data["password"][:72]  # 截断到72字符
             user = User(
                 email=user_data["email"],
-                password_hash=get_password_hash(user_data["password"]),
+                password_hash=get_password_hash(password),
                 created_at=datetime.utcnow()
             )
             db.add(user)
@@ -118,12 +121,12 @@ def create_sample_data():
 
         db.commit()
 
-        print("✅ 示例数据创建完成！")
-        print("\n👥 创建的用户账户：")
+        print("[SUCCESS] 示例数据创建完成！")
+        print("\n[INFO] 创建的用户账户：")
         for i, user in enumerate(created_users):
             print(f"  {i+1}. {user.email} (密码: {users_data[i]['password']})")
 
-        print("\n📊 健康数据统计：")
+        print("\n[INFO] 健康数据统计：")
         total_logs = db.query(HealthLog).count()
         print(f"  - 总共创建了 {total_logs} 条健康记录")
 
@@ -132,7 +135,7 @@ def create_sample_data():
             print(f"  - {user.email}: {user_logs} 条记录")
 
     except Exception as e:
-        print(f"❌ 创建示例数据失败: {e}")
+        print(f"[ERROR] 创建示例数据失败: {e}")
         db.rollback()
         raise
     finally:
@@ -140,7 +143,7 @@ def create_sample_data():
 
 def main():
     """主函数"""
-    print("🚀 开始初始化 Omnihealth 数据库...\n")
+    print("[INFO] 开始初始化 Omnihealth 数据库...\n")
 
     try:
         # 创建数据库表
@@ -149,11 +152,11 @@ def main():
         # 创建示例数据
         create_sample_data()
 
-        print(f"\n🎉 数据库初始化完成！")
-        print(f"📁 数据库文件位置: {Path('dev.db').absolute()}")
+        print(f"\n[SUCCESS] 数据库初始化完成！")
+        print(f"[INFO] 数据库文件位置: {Path('dev.db').absolute()}")
 
     except Exception as e:
-        print(f"\n❌ 数据库初始化失败: {e}")
+        print(f"\n[ERROR] 数据库初始化失败: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
