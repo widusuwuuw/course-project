@@ -435,3 +435,60 @@ export async function getWeeklyDietStats() {
 export async function getExerciseDietBalance(log_date: string) {
   return apiGet(`/diet-logs/exercise-diet-balance/${log_date}`);
 }
+
+// ============ 社区 API ============
+
+export async function getPosts(sortBy: 'latest' | 'hot' = 'latest') {
+  return apiGet(`/community/posts?sort_by=${sortBy}`);
+}
+
+export async function createPost(content: string, image_urls: string[] = [], tags: string[] = []) {
+  return apiPost('/community/posts', { content, image_urls, tags });
+}
+
+export async function createComment(postId: number, content: string) {
+  return apiPost(`/community/posts/${postId}/comments`, { content });
+}
+
+export async function likePost(postId: number) {
+  return apiPost(`/community/posts/${postId}/like`, {});
+}
+
+export async function getCommentsForPost(postId: number) {
+  return apiGet(`/community/posts/${postId}/comments`);
+}
+
+export async function uploadImage(uri: string, mimeType: string) {
+  const authHeaders = await getAuthHeaders();
+  const formData = new FormData();
+
+  const filename = uri.split('/').pop();
+  
+  // For React Native Web: fetch the URI first to get a Blob
+  // For Native platforms: use the { uri, name, type } object directly
+  if (typeof window !== 'undefined' && window.document) {
+    // Web environment
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    formData.append('file', blob, filename);
+  } else {
+    // Native platforms
+    formData.append('file', {
+      uri: uri,
+      name: filename,
+      type: mimeType,
+    } as any);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return { ...data, url: `${API_BASE_URL}${data.url}` };
+}
