@@ -495,9 +495,10 @@ async def get_weekly_stats(
     db: Session = Depends(get_db)
 ):
     """
-    获取本周饮食统计
+    获取饮食统计（智能日期选择）
     
     返回每日摄入、计划对比、遵循度趋势
+    如果本周没有数据，自动查找最近有数据的一周
     """
     # 计算本周日期范围
     today = date.today()
@@ -511,13 +512,27 @@ async def get_weekly_stats(
         func.date(DietLog.log_date) <= week_end
     ).all()
     
-    # 获取周计划
+    # 如果本周没有记录，查找最近有记录的日期并使用那一周
+    if not logs:
+        most_recent_log = db.query(DietLog).filter(
+            DietLog.user_id == current_user.id
+        ).order_by(DietLog.log_date.desc()).first()
+        
+        if most_recent_log:
+            recent_date = most_recent_log.log_date.date() if hasattr(most_recent_log.log_date, 'date') else most_recent_log.log_date
+            week_start = recent_date - timedelta(days=recent_date.weekday())
+            week_end = week_start + timedelta(days=6)
+            logs = db.query(DietLog).filter(
+                DietLog.user_id == current_user.id,
+                func.date(DietLog.log_date) >= week_start,
+                func.date(DietLog.log_date) <= week_end
+            ).all()
+    
+    # 获取周计划（优先当前活跃的，否则获取最近的）
     weekly_plan = db.query(WeeklyPlan).filter(
         WeeklyPlan.user_id == current_user.id,
-        WeeklyPlan.is_active == True,
-        WeeklyPlan.week_start_date <= today,
-        WeeklyPlan.week_end_date >= today
-    ).first()
+        WeeklyPlan.is_active == True
+    ).order_by(WeeklyPlan.week_start_date.desc()).first()
     
     # 按日期汇总
     daily_stats = []

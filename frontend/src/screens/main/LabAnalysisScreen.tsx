@@ -551,12 +551,16 @@ export default function LabAnalysisScreen() {
             <TouchableOpacity
               style={[styles.aiReportButton, { backgroundColor: '#10B981' }]}
               onPress={() => {
-                // TODO: 实现分享功能
-                Alert.alert('提示', '分享功能即将上线');
+                // 报告在生成时已自动保存到UserHealthProfile
+                Alert.alert(
+                  '保存成功', 
+                  '报告已保存！您可以在「我的」-「健康数据」-「健康报告」中随时查看。',
+                  [{ text: '知道了', style: 'default' }]
+                );
               }}
             >
-              <Ionicons name="share-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.aiReportButtonText}>分享报告</Text>
+              <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.aiReportButtonText}>保存报告</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

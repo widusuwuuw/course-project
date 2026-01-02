@@ -706,7 +706,13 @@ def get_weekly_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """获取一周的统计对比数据（用于图表展示）"""
+    """获取一周的统计对比数据（用于图表展示）
+    
+    智能日期选择：
+    - 如果指定了start_date，使用指定日期
+    - 如果没有指定，优先使用本周
+    - 如果本周没有任何记录，自动查找最近有记录的一周
+    """
     # 确定周的开始日期
     if start_date:
         try:
@@ -716,6 +722,49 @@ def get_weekly_stats(
     else:
         today = datetime.now()
         start = today - timedelta(days=today.weekday())  # 本周一
+        
+        # 检查本周是否有数据
+        end_check = start + timedelta(days=7)
+        has_diet = db.query(DietLog).filter(
+            and_(
+                DietLog.user_id == current_user.id,
+                DietLog.log_date >= start,
+                DietLog.log_date < end_check
+            )
+        ).first()
+        
+        has_exercise = db.query(ExerciseLog).filter(
+            and_(
+                ExerciseLog.user_id == current_user.id,
+                ExerciseLog.log_date >= start,
+                ExerciseLog.log_date < end_check
+            )
+        ).first()
+        
+        # 如果本周没有数据，查找最近有记录的周
+        if not has_diet and not has_exercise:
+            # 找最近的饮食记录
+            latest_diet = db.query(DietLog).filter(
+                DietLog.user_id == current_user.id
+            ).order_by(DietLog.log_date.desc()).first()
+            
+            # 找最近的运动记录
+            latest_exercise = db.query(ExerciseLog).filter(
+                ExerciseLog.user_id == current_user.id
+            ).order_by(ExerciseLog.log_date.desc()).first()
+            
+            # 选择最近的记录日期
+            latest_date = None
+            if latest_diet and latest_exercise:
+                latest_date = max(latest_diet.log_date, latest_exercise.log_date)
+            elif latest_diet:
+                latest_date = latest_diet.log_date
+            elif latest_exercise:
+                latest_date = latest_exercise.log_date
+            
+            if latest_date:
+                # 计算该日期所在周的周一
+                start = latest_date - timedelta(days=latest_date.weekday())
     
     end = start + timedelta(days=6)  # 本周日
     
@@ -873,10 +922,12 @@ async def generate_ai_analysis(
     - diet: 分析饮食数据
     - exercise: 分析运动数据
     - comprehensive: 综合分析
+    
+    智能日期选择：如果最近7天没有数据，自动查找有数据的时间段
     """
     analysis_type = request.get("analysis_type", "diet")
     
-    # 获取最近7天的数据
+    # 初始使用最近7天
     today = datetime.now()
     week_start = today - timedelta(days=6)
     
@@ -897,6 +948,46 @@ async def generate_ai_analysis(
             ExerciseLog.log_date <= today + timedelta(days=1)
         )
     ).all()
+    
+    # 如果没有数据，查找最近有记录的时间段
+    if not diet_logs and not exercise_logs:
+        # 查找最近的饮食记录
+        recent_diet = db.query(DietLog).filter(
+            DietLog.user_id == current_user.id
+        ).order_by(DietLog.log_date.desc()).first()
+        
+        # 查找最近的运动记录
+        recent_exercise = db.query(ExerciseLog).filter(
+            ExerciseLog.user_id == current_user.id
+        ).order_by(ExerciseLog.log_date.desc()).first()
+        
+        # 找到最近的记录日期
+        recent_dates = []
+        if recent_diet:
+            recent_dates.append(recent_diet.log_date)
+        if recent_exercise:
+            recent_dates.append(recent_exercise.log_date)
+        
+        if recent_dates:
+            most_recent = max(recent_dates)
+            # 使用最近记录的那一周
+            week_start = most_recent - timedelta(days=6)
+            
+            diet_logs = db.query(DietLog).filter(
+                and_(
+                    DietLog.user_id == current_user.id,
+                    DietLog.log_date >= week_start,
+                    DietLog.log_date <= most_recent + timedelta(days=1)
+                )
+            ).all()
+            
+            exercise_logs = db.query(ExerciseLog).filter(
+                and_(
+                    ExerciseLog.user_id == current_user.id,
+                    ExerciseLog.log_date >= week_start,
+                    ExerciseLog.log_date <= most_recent + timedelta(days=1)
+                )
+            ).all()
     
     # 准备数据摘要
     diet_summary = {

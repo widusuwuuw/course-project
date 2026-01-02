@@ -178,16 +178,34 @@ async def get_current_monthly_plan(
     """
     获取当前月度计划
     
-    返回用户当前活跃的月度计划
+    智能返回逻辑：
+    1. 优先返回当前月份的活跃计划
+    2. 如果没有，返回用户最近的活跃计划
+    3. 确保演示时无论什么日期都能显示数据
     """
     try:
         current_month = datetime.utcnow().strftime("%Y-%m")
         
+        # 优先查找当前月份的活跃计划
         plan = db.query(MonthlyPlan).filter(
             MonthlyPlan.user_id == current_user.id,
             MonthlyPlan.plan_month == current_month,
             MonthlyPlan.is_active == True
         ).first()
+        
+        # 如果当前月没有，查找最近的活跃计划
+        if not plan:
+            plan = db.query(MonthlyPlan).filter(
+                MonthlyPlan.user_id == current_user.id,
+                MonthlyPlan.is_active == True
+            ).order_by(MonthlyPlan.created_at.desc()).first()
+        
+        # 如果还没有活跃的，查找任意一个已完成的计划
+        if not plan:
+            plan = db.query(MonthlyPlan).filter(
+                MonthlyPlan.user_id == current_user.id,
+                MonthlyPlan.generation_status == "completed"
+            ).order_by(MonthlyPlan.created_at.desc()).first()
         
         if not plan:
             return MonthlyPlanResponse(

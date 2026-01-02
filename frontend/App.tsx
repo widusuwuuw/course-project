@@ -24,6 +24,8 @@ import PreferencesScreen from './src/screens/main/PreferencesScreen';
 import GenerateWeeklyPlanScreen from './src/screens/main/GenerateWeeklyPlanScreen';
 import StatsComparisonScreen from './src/screens/main/StatsComparisonScreen';
 import DietRecordScreen from './src/screens/main/DietRecordScreen';
+import HealthReportScreen from './src/screens/main/HealthReportScreen';
+import HealthProfileScreen from './src/screens/main/HealthProfileScreen';
 
 // 旧版屏幕（保留作为备用）
 import HealthTrackerDashboard from './src/screens/HealthTrackerDashboard';
@@ -55,6 +57,8 @@ export type RootStackParamList = {
   GenerateWeeklyPlan: undefined;
   StatsComparison: undefined;
   DietRecord: undefined;
+  HealthReport: undefined;
+  HealthProfile: undefined;
 
   // 旧版屏幕（向后兼容）
   HealthTrackerDashboard: undefined;
@@ -304,6 +308,22 @@ export default function App() {
             component={DietRecordScreen}
             options={{
               title: '营养记录',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="HealthReport"
+            component={HealthReportScreen}
+            options={{
+              title: '健康报告',
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="HealthProfile"
+            component={HealthProfileScreen}
+            options={{
+              title: '健康档案',
               headerShown: false
             }}
           />

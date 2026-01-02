@@ -204,6 +204,16 @@ export async function generateAIBodyReport(daysRange: number = 30) {
   return apiPost('/api/v1/lab/ai-body-report', body);
 }
 
+// 获取已保存的AI健康报告
+export async function getSavedAIReport() {
+  return apiGet('/api/v1/lab/saved-ai-report');
+}
+
+// 获取用户健康档案（已录入的所有健康指标）
+export async function getHealthProfile() {
+  return apiGet('/api/v1/lab/health-profile');
+}
+
 // ============ 偏好设置 API ============
 
 export async function getUserPreferences() {

@@ -352,6 +352,108 @@ class ReportHistoryResponse(BaseModel):
     reports: List[Dict] = Field(..., description="报告列表")
 
 
+class HealthProfileResponse(BaseModel):
+    """健康档案响应模型"""
+    success: bool = Field(..., description="获取是否成功")
+    has_profile: bool = Field(..., description="是否有健康档案")
+    gender: Optional[str] = Field(None, description="性别")
+    total_metrics: int = Field(0, description="已录入指标数")
+    last_updated: Optional[str] = Field(None, description="最后更新时间")
+    metrics: Dict = Field(default_factory=dict, description="所有指标数据")
+
+
+@router.get("/health-profile", response_model=HealthProfileResponse)
+async def get_health_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
+):
+    """
+    获取用户健康档案（所有已录入的健康指标）
+    
+    Returns:
+        HealthProfileResponse: 用户健康档案数据
+    """
+    if not current_user:
+        raise HTTPException(
+            status_code=401,
+            detail="需要登录才能查看健康档案"
+        )
+    
+    try:
+        health_profile = db.query(UserHealthProfile).filter(
+            UserHealthProfile.user_id == current_user.id
+        ).first()
+        
+        if not health_profile:
+            return HealthProfileResponse(
+                success=True,
+                has_profile=False,
+                total_metrics=0,
+                metrics={}
+            )
+        
+        # 获取所有非空指标及其更新时间
+        all_metrics = health_profile.get_all_metrics()
+        
+        # 按类别组织指标（使用英文键名）
+        categories = {
+            'blood_routine': ['wbc', 'rbc', 'hgb', 'plt', 'neut_per', 'lymp_per', 'mono_per', 'hct', 'mcv', 'mch', 'mchc'],
+            'liver_function': ['alt', 'ast', 'alp', 'ggt', 'tbil', 'dbil', 'tp', 'alb', 'glb'],
+            'kidney_function': ['crea', 'bun', 'urea', 'uric_acid', 'cysc', 'egfr', 'microalb', 'upcr'],
+            'lipid': ['tc', 'tg', 'hdl_c', 'ldl_c', 'vldl_c', 'apolipoprotein_a', 'apolipoprotein_b'],
+            'glucose': ['glu', 'hba1c', 'fasting_insulin', 'c_peptide', 'homa_ir'],
+            'electrolyte': ['na', 'k', 'cl', 'ca', 'p', 'mg']
+        }
+        
+        # 指标名称映射
+        metric_names = {
+            'wbc': '白细胞', 'rbc': '红细胞', 'hgb': '血红蛋白', 'plt': '血小板',
+            'neut_per': '中性粒细胞%', 'lymp_per': '淋巴细胞%', 'mono_per': '单核细胞%',
+            'hct': '红细胞压积', 'mcv': '平均红细胞体积', 'mch': '平均血红蛋白含量', 'mchc': '平均血红蛋白浓度',
+            'alt': '谷丙转氨酶', 'ast': '谷草转氨酶', 'alp': '碱性磷酸酶', 'ggt': 'γ-谷氨酰转肽酶',
+            'tbil': '总胆红素', 'dbil': '直接胆红素', 'tp': '总蛋白', 'alb': '白蛋白', 'glb': '球蛋白',
+            'crea': '肌酐', 'bun': '尿素氮', 'urea': '尿素', 'uric_acid': '尿酸',
+            'cysc': '胱抑素C', 'egfr': '肾小球滤过率', 'microalb': '尿微量白蛋白', 'upcr': '尿蛋白/肌酐比值',
+            'tc': '总胆固醇', 'tg': '甘油三酯', 'hdl_c': '高密度脂蛋白', 'ldl_c': '低密度脂蛋白',
+            'vldl_c': '极低密度脂蛋白', 'apolipoprotein_a': '载脂蛋白A', 'apolipoprotein_b': '载脂蛋白B',
+            'glu': '空腹血糖', 'hba1c': '糖化血红蛋白', 'fasting_insulin': '空腹胰岛素',
+            'c_peptide': 'C肽', 'homa_ir': '胰岛素抵抗指数',
+            'na': '钠', 'k': '钾', 'cl': '氯', 'ca': '钙', 'p': '磷', 'mg': '镁'
+        }
+        
+        organized_metrics = {}
+        for category, keys in categories.items():
+            category_metrics = []
+            for key in keys:
+                if key in all_metrics:
+                    metric_info = all_metrics[key]
+                    updated_at = metric_info.get('updated_at')
+                    category_metrics.append({
+                        'key': key,
+                        'name': metric_names.get(key, key),
+                        'value': metric_info['value'],
+                        'updated_at': updated_at.isoformat() if updated_at else None
+                    })
+            if category_metrics:
+                organized_metrics[category] = category_metrics
+        
+        return HealthProfileResponse(
+            success=True,
+            has_profile=True,
+            gender=health_profile.gender,
+            total_metrics=health_profile.total_metrics_count or len(all_metrics),
+            last_updated=health_profile.last_updated_at.isoformat() if health_profile.last_updated_at else None,
+            metrics=organized_metrics
+        )
+        
+    except Exception as e:
+        logger.error(f"获取健康档案失败: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"获取健康档案失败: {str(e)}"
+        )
+
+
 @router.get("/reports", response_model=ReportHistoryResponse)
 async def get_user_reports(
     limit: int = 10,
@@ -442,6 +544,63 @@ class AIBodyReportResponse(BaseModel):
     """AI体质报告响应"""
     success: bool = Field(..., description="生成是否成功")
     ai_report: str = Field(..., description="AI体质报告内容")
+
+
+class SavedAIReportResponse(BaseModel):
+    """已保存的AI报告响应"""
+    success: bool = Field(..., description="获取是否成功")
+    has_report: bool = Field(..., description="是否有已保存的报告")
+    ai_report: Optional[str] = Field(None, description="AI体质报告内容")
+    generated_at: Optional[str] = Field(None, description="报告生成时间")
+    total_metrics: Optional[int] = Field(None, description="已录入指标数")
+
+
+@router.get("/saved-ai-report", response_model=SavedAIReportResponse)
+async def get_saved_ai_report(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
+):
+    """
+    获取用户已保存的AI综合健康报告
+    
+    Returns:
+        SavedAIReportResponse: 已保存的AI报告
+    """
+    if not current_user:
+        raise HTTPException(
+            status_code=401,
+            detail="需要登录才能查看健康报告"
+        )
+    
+    try:
+        # 从健康档案获取已保存的AI报告
+        health_profile = db.query(UserHealthProfile).filter(
+            UserHealthProfile.user_id == current_user.id
+        ).first()
+        
+        if not health_profile or not health_profile.ai_comprehensive_report:
+            return SavedAIReportResponse(
+                success=True,
+                has_report=False,
+                ai_report=None,
+                generated_at=None,
+                total_metrics=health_profile.total_metrics_count if health_profile else 0
+            )
+        
+        return SavedAIReportResponse(
+            success=True,
+            has_report=True,
+            ai_report=health_profile.ai_comprehensive_report,
+            generated_at=health_profile.ai_report_generated_at.isoformat() if health_profile.ai_report_generated_at else None,
+            total_metrics=health_profile.total_metrics_count
+        )
+    
+    except Exception as e:
+        logger.error(f"[ERROR] 获取已保存AI报告失败: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"获取报告失败: {str(e)}"
+        )
 
 
 @router.get("/debug-deepseek")

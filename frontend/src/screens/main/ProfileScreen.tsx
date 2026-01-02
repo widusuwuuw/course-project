@@ -183,6 +183,12 @@ export default function ProfileScreen() {
       case 'generate-weekly-plan':
         navigation.navigate('GenerateWeeklyPlan' as never);
         break;
+      case 'health-report':
+        navigation.navigate('HealthReport' as never);
+        break;
+      case 'health-records':
+        navigation.navigate('HealthProfile' as never);
+        break;
       case 'logout':
         Alert.alert(
           '退出登录',

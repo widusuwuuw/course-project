@@ -93,13 +93,19 @@ export default function NutritionScreen({ navigation }: { navigation: StackNavig
   const [adjustRequest, setAdjustRequest] = useState('');
   const [adjusting, setAdjusting] = useState(false);
 
-  // 根据周计划生成日期列表
+  // 根据当前周生成日期列表（而不是周计划存储的日期）
+  // 这样即使周计划是历史数据，日历也显示当前周的日期
   const dates = useMemo(() => {
     if (!weeklyPlan) return [];
     
-    const weekStart = new Date(weeklyPlan.week_start_date);
+    // 使用当前周的日期范围
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const dayOfWeek = today.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;  // 计算到本周一的偏移
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + diff);
+    weekStart.setHours(0, 0, 0, 0);
     
     const DAY_NAMES = ['一', '二', '三', '四', '五', '六', '日'];
     

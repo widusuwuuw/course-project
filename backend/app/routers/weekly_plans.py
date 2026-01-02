@@ -273,7 +273,8 @@ async def get_current_weekly_plan(
     """
     获取当前周计划
     
-    自动计算当前是月内第几周，返回对应的周计划
+    优先返回当前周的计划，如果没有则返回用户最近的活跃周计划
+    这样可以确保演示时即使日期不匹配也能正常显示数据
     """
     today = datetime.now().date()
     
@@ -281,12 +282,27 @@ async def get_current_weekly_plan(
     week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
     
-    # 查找包含今天的周计划（按更新时间降序，获取最新的）
+    # 优先查找包含今天的周计划
     weekly_plan = db.query(WeeklyPlan).filter(
         WeeklyPlan.user_id == current_user.id,
         WeeklyPlan.week_start_date <= today,
         WeeklyPlan.week_end_date >= today
     ).order_by(WeeklyPlan.updated_at.desc()).first()
+    
+    # 如果当前周没有计划，查找用户最近的活跃周计划
+    if not weekly_plan:
+        weekly_plan = db.query(WeeklyPlan).filter(
+            WeeklyPlan.user_id == current_user.id,
+            WeeklyPlan.is_active == True,
+            WeeklyPlan.generation_status == "completed"
+        ).order_by(WeeklyPlan.updated_at.desc()).first()
+    
+    # 如果还是没有，查找任意一个已完成的周计划
+    if not weekly_plan:
+        weekly_plan = db.query(WeeklyPlan).filter(
+            WeeklyPlan.user_id == current_user.id,
+            WeeklyPlan.generation_status == "completed"
+        ).order_by(WeeklyPlan.updated_at.desc()).first()
     
     if not weekly_plan:
         raise HTTPException(
@@ -387,24 +403,32 @@ async def get_today_plan(
     db: Session = Depends(get_db)
 ):
     """
-    获取今日计划
+    获取今日计划（智能日期匹配）
     
     返回当天的运动和饮食计划
+    如果当前周没有计划，会返回最近一个活跃计划中对应星期几的内容
     """
     today = datetime.now().date()
     weekday = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"][today.weekday()]
     
-    # 查找当前周计划（按更新时间降序，获取最新的）
+    # 首先尝试查找当前周计划
     weekly_plan = db.query(WeeklyPlan).filter(
         WeeklyPlan.user_id == current_user.id,
         WeeklyPlan.week_start_date <= today,
         WeeklyPlan.week_end_date >= today
     ).order_by(WeeklyPlan.updated_at.desc()).first()
     
+    # 如果当前周没有计划，查找最近的活跃/完成计划
+    if not weekly_plan:
+        weekly_plan = db.query(WeeklyPlan).filter(
+            WeeklyPlan.user_id == current_user.id,
+            WeeklyPlan.status.in_(["active", "completed"])
+        ).order_by(WeeklyPlan.week_start_date.desc()).first()
+    
     if not weekly_plan:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="当前周没有计划"
+            detail="没有可用的周计划"
         )
     
     # 解析JSON字段

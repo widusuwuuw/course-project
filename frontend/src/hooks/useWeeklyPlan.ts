@@ -293,8 +293,14 @@ export function convertWeeklyPlanToExerciseData(weeklyPlan: WeeklyPlanData | nul
     tips: string;
   }> = {};
 
-  // 获取当前周的日期范围
-  const weekStart = new Date(weeklyPlan.week_start_date);
+  // 使用当前周的日期范围（而不是周计划中存储的日期）
+  // 这样即使周计划是历史数据，也能正确映射到当前周的日历上
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;  // 计算到本周一的偏移
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + diff);
+  weekStart.setHours(0, 0, 0, 0);
 
   WEEKDAYS.forEach((day, index) => {
     const dayPlan = weeklyPlan.daily_plans[day];
@@ -453,7 +459,15 @@ export function convertWeeklyPlanToNutritionData(weeklyPlan: WeeklyPlanData | nu
   const DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   
   const weekData: Record<number, DayNutritionData> = {};
-  const weekStart = new Date(weeklyPlan.week_start_date);
+  
+  // 使用当前周的日期范围（而不是周计划中存储的日期）
+  // 这样即使周计划是历史数据，也能正确映射到当前周的日历上
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;  // 计算到本周一的偏移
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + diff);
+  weekStart.setHours(0, 0, 0, 0);
 
   WEEKDAYS.forEach((day, index) => {
     const dayPlan = weeklyPlan.daily_plans[day];
