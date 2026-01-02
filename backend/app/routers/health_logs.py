@@ -1,10 +1,10 @@
-from typing import List, Dict, Optional
+from typing import List, Dict
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import HealthLog
-from ..schemas import HealthLogCreate, HealthLogOut, TrendsResponse, TrendPoint, DashboardSummary
+from ..schemas import HealthLogCreate, HealthLogOut, TrendsResponse, TrendPoint
 from ..deps import get_current_user
 from datetime import datetime, timedelta
 
@@ -13,11 +13,13 @@ router = APIRouter(prefix="/health-logs", tags=["health-logs"])
 
 
 @router.get("/", response_model=List[HealthLogOut])
-def list_logs(metric_type: Optional[str] = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    query = db.query(HealthLog).filter(HealthLog.user_id == user.id)
-    if metric_type:
-        query = query.filter(HealthLog.metric_type == metric_type)
-    items = query.order_by(HealthLog.logged_at.desc()).all()
+def list_logs(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    items = (
+        db.query(HealthLog)
+        .filter(HealthLog.user_id == user.id)
+        .order_by(HealthLog.logged_at.desc())
+        .all()
+    )
     return items
 
 
@@ -34,23 +36,6 @@ def create_log(payload: HealthLogCreate, db: Session = Depends(get_db), user=Dep
     db.commit()
     db.refresh(log)
     return log
-
-
-@router.get("/summary", response_model=DashboardSummary)
-def get_dashboard_summary(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    metrics_to_fetch = ['weight', 'heartRate', 'steps', 'sleep', 'water']
-    summary_data = {}
-
-    for metric in metrics_to_fetch:
-        latest_log = (
-            db.query(HealthLog)
-            .filter(HealthLog.user_id == user.id, HealthLog.metric_type == metric)
-            .order_by(HealthLog.logged_at.desc())
-            .first()
-        )
-        summary_data[metric] = latest_log
-    
-    return DashboardSummary(**summary_data)
 
 
 @router.get("/trends", response_model=TrendsResponse)

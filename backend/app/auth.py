@@ -57,9 +57,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 
 @router.get("/me", response_model=UserOut)
-<<<<<<< HEAD
-def read_users_me(current_user: User = Depends(get_current_user)):
-=======
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """获取当前登录用户的信息"""
     return current_user
@@ -83,5 +80,4 @@ def update_user_info(
 
     db.commit()
     db.refresh(current_user)
->>>>>>> origin/wty
     return current_user
