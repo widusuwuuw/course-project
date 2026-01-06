@@ -277,16 +277,16 @@ export async function adjustWeeklyPlan(planId: number, day: string, adjustmentTy
   return apiPatch(`/api/v1/weekly-plans/${planId}/adjust`, body);
 }
 
-// AI智能微调周计�?
+// AI智能微调周计划
 export async function aiAdjustWeeklyPlan(planId: number, userRequest: string) {
-  return apiPost(`/api/v1/weekly-plans/${planId}/ai-adjust`, {
+  return apiPost(`/v1/weekly-plans/${planId}/ai-adjust`, {
     user_request: userRequest
   });
 }
 
 // AI智能微调饮食计划
 export async function aiAdjustDietPlan(planId: number, userRequest: string, adjustType: 'diet' | 'exercise' = 'diet') {
-  return apiPost(`/api/v1/weekly-plans/${planId}/ai-adjust`, {
+  return apiPost(`/v1/weekly-plans/${planId}/ai-adjust`, {
     user_request: userRequest,
     adjust_type: adjustType
   });
