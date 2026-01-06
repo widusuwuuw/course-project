@@ -15,7 +15,7 @@ login_data = {
 print("=== 测试饮食统计 API ===\n")
 
 # 尝试不同的密码
-passwords = ["123456", "password", "test123", "123456789"]
+passwords = ["123456", "password", "test123", "123456789", "tongji123", "tongji"]
 
 token = None
 for pwd in passwords:
