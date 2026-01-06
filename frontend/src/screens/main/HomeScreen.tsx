@@ -155,6 +155,21 @@ export default function HomeScreen() {
         console.log('周统计获取失败，使用默认值');
       }
 
+      // 获取健康档案完整度
+      let profileCompleteness = 0;
+      let profileFilled = 0;
+      let profileTotal = 46;
+      try {
+        const completenessData = await apiGet('/api/lab/health-profile/completeness');
+        if (completenessData) {
+          profileCompleteness = completenessData.percentage || 0;
+          profileFilled = completenessData.filled || 0;
+          profileTotal = completenessData.total || 46;
+        }
+      } catch (e) {
+        console.log('获取健康档案完整度失败');
+      }
+
       setTodayStats({
         dietCalories,
         dietTarget,
@@ -196,10 +211,10 @@ export default function HomeScreen() {
         {
           icon: 'document-text-outline',
           label: '健康档案',
-          value: '查看',
-          target: '详情',
+          value: `${profileFilled}/${profileTotal}`,
+          target: '项',
           color: '#06B6D4',
-          progress: 100,
+          progress: profileCompleteness,
           route: 'HealthProfile'
         },
       ]);

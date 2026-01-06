@@ -454,6 +454,46 @@ async def get_health_profile(
         )
 
 
+@router.get("/health-profile/completeness")
+async def get_health_profile_completeness(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
+):
+    """
+    获取健康档案完整度
+    
+    Returns:
+        - filled: 已填写指标数
+        - total: 总指标数 (46)
+        - percentage: 完整度百分比
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="需要登录")
+    
+    TOTAL_METRICS = 46  # 共46项健康指标
+    
+    health_profile = db.query(UserHealthProfile).filter(
+        UserHealthProfile.user_id == current_user.id
+    ).first()
+    
+    if not health_profile:
+        return {
+            "filled": 0,
+            "total": TOTAL_METRICS,
+            "percentage": 0
+        }
+    
+    # 计算已填写的指标数
+    filled = len(health_profile.get_metrics_for_analysis())
+    percentage = round((filled / TOTAL_METRICS) * 100)
+    
+    return {
+        "filled": filled,
+        "total": TOTAL_METRICS,
+        "percentage": percentage
+    }
+
+
 @router.get("/reports", response_model=ReportHistoryResponse)
 async def get_user_reports(
     limit: int = 10,
