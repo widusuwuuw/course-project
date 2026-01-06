@@ -16,7 +16,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { LineChart } from 'react-native-chart-kit';
 import { apiGet } from '../../api/client';
 
 const { width } = Dimensions.get('window');
@@ -75,16 +74,6 @@ export default function HomeScreen() {
       route: 'HealthProfile'
     },
   ]);
-
-  // 体重数据 - 演示数据
-  const [weightData, setWeightData] = useState({
-    labels: ['12/31', '1/1', '1/2', '1/3', '1/4', '1/5', '1/6'],
-    datasets: [{
-      data: [68.5, 68.2, 68.0, 67.8, 67.5, 67.3, 67.0],
-      color: (opacity = 1) => `rgba(74, 186, 184, ${opacity})`,
-      strokeWidth: 3,
-    }],
-  });
 
   // 加载今日统计数据
   const loadTodayStats = useCallback(async () => {
@@ -281,33 +270,6 @@ export default function HomeScreen() {
     },
   ];
 
-  const chartConfig = {
-    backgroundColor: '#ffffff',
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
-    decimalPlaces: 1,
-    color: (opacity = 1) => `rgba(74, 186, 184, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '5',
-      strokeWidth: '3',
-      stroke: '#4ABAB8',
-      fill: '#ffffff',
-    },
-    propsForBackgroundLines: {
-      strokeDasharray: '5',
-      stroke: 'rgba(0,0,0,0.03)',
-      strokeWidth: 1,
-    },
-    propsForLabels: {
-      fontFamily: 'System',
-      fontSize: 12,
-    },
-  };
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#F8FAFB' }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFB" />
@@ -394,57 +356,6 @@ export default function HomeScreen() {
             ))}
           </View>
         </LinearGradient>
-
-        {/* 体重趋势图表 */}
-        <View style={styles.chartSection}>
-          <TouchableOpacity
-            style={styles.chartHeader}
-            activeOpacity={0.8}
-            onPress={() => {
-              Alert.alert(
-                '体重趋势详情',
-                '过去7天体重变化趋势：\n起始体重：68.5 kg\n当前体重：67.0 kg\n总变化：-1.5 kg\n平均日变化：-0.21 kg\n\n点击查看详细分析报告。',
-                [
-                  { text: '查看详情', style: 'default' },
-                  { text: '知道了', style: 'cancel' }
-                ]
-              );
-            }}
-          >
-            <View style={styles.chartTitleContainer}>
-              <Ionicons name="trending-up-outline" size={20} color="#4ABAB8" />
-              <Text style={styles.chartTitle}>体重趋势</Text>
-            </View>
-            <View style={styles.chartChangeContainer}>
-              <Text style={styles.chartChange}>-1.5 kg</Text>
-              <Ionicons name="chevron-down" size={16} color="#10B981" />
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.chartContainer}>
-            <LineChart
-              data={weightData}
-              width={width - 48}
-              height={240}
-              chartConfig={chartConfig}
-              bezier
-              style={styles.chart}
-              withInnerLines={true}
-              withOuterLines={true}
-              withHorizontalLines={true}
-              withVerticalLines={false}
-              withDots={true}
-              withShadow={true}
-              segmentWidth={20}
-              yAxisInterval={1}
-              xAxisLabel={''}
-              formatYLabel={(yValue) => yValue + 'kg'}
-              getDotColor={(value, index) => {
-                return index === weightData.datasets[0].data.length - 1 ? '#10B981' : '#4ABAB8';
-              }}
-            />
-          </View>
-        </View>
 
         {/* 快捷操作 */}
         <View style={styles.quickActionsSection}>
