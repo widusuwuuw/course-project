@@ -389,6 +389,10 @@ export default function SportsTrainingScreen() {
 
   // AI微调周计划
   const handleAdjustPlan = async () => {
+    console.log('==== handleAdjustPlan 被调用 ====');
+    console.log('adjustRequest:', adjustRequest);
+    console.log('weeklyPlan?.id:', weeklyPlan?.id);
+    
     if (!adjustRequest.trim()) {
       Alert.alert('提示', '请输入您的调整需求');
       return;
@@ -399,6 +403,7 @@ export default function SportsTrainingScreen() {
       return;
     }
     
+    console.log('==== 开始调用 API ====');
     setAdjusting(true);
     try {
       const result = await aiAdjustWeeklyPlan(weeklyPlan.id, adjustRequest.trim());

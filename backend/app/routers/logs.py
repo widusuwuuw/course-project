@@ -793,6 +793,36 @@ def get_weekly_stats(
     
     end = start + timedelta(days=6)  # 本周日
     
+    # 获取当周的周计划（用于获取每天的计划热量）
+    weekly_plan = db.query(WeeklyPlan).filter(
+        and_(
+            WeeklyPlan.user_id == current_user.id,
+            WeeklyPlan.week_start_date >= start.date(),
+            WeeklyPlan.week_start_date <= end.date()
+        )
+    ).first()
+    
+    # 解析周计划中的每日计划
+    daily_plan_data = {}
+    if weekly_plan and weekly_plan.daily_plans:
+        try:
+            daily_plans = json.loads(weekly_plan.daily_plans)
+            # 建立日期到计划的映射
+            day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            for i, day_name in enumerate(day_names):
+                day_date = (start + timedelta(days=i)).date()
+                if day_name in daily_plans:
+                    day_plan = daily_plans[day_name]
+                    diet_info = day_plan.get('diet', {})
+                    exercise_info = day_plan.get('exercise', {}) or day_plan.get('exercises', [])
+                    daily_plan_data[day_date] = {
+                        'diet_calories_target': diet_info.get('calories_target', 2000),
+                        'exercise_calories_target': exercise_info.get('calories_target', 0) if isinstance(exercise_info, dict) else sum(e.get('calories', 0) for e in exercise_info if isinstance(e, dict)),
+                        'exercise_duration_target': exercise_info.get('duration', 0) if isinstance(exercise_info, dict) else sum(e.get('duration', 0) for e in exercise_info if isinstance(e, dict)),
+                    }
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"[get_weekly_stats] 解析周计划失败: {e}")
+    
     # 获取一周的饮食记录
     diet_logs = db.query(DietLog).filter(
         and_(
@@ -832,10 +862,17 @@ def get_weekly_stats(
         day = start + timedelta(days=i)
         day_date = day.date()
         
+        # 从周计划获取当天的计划热量
+        plan_for_day = daily_plan_data.get(day_date, {})
+        diet_target_from_plan = plan_for_day.get('diet_calories_target', 2000)
+        exercise_target_from_plan = plan_for_day.get('exercise_calories_target', 0)
+        exercise_duration_from_plan = plan_for_day.get('exercise_duration_target', 0)
+        
         # 该天的饮食
         day_diet_logs = [l for l in diet_logs if l.log_date.date() == day_date]
         diet_actual_cal = sum(l.total_calories or 0 for l in day_diet_logs)
-        diet_planned_cal = sum(l.planned_calories or 2000 for l in day_diet_logs) if day_diet_logs else 2000
+        # 优先使用周计划中的目标热量
+        diet_planned_cal = diet_target_from_plan
         meals_recorded = len(day_diet_logs)
         meals_planned = 3  # 默认一天三餐
         
@@ -857,9 +894,10 @@ def get_weekly_stats(
         day_exercise_log = next((l for l in exercise_logs if l.log_date.date() == day_date), None)
         if day_exercise_log:
             exercise_actual_dur = day_exercise_log.total_duration or 0
-            exercise_planned_dur = day_exercise_log.planned_duration or 30
+            # 优先使用周计划中的目标
+            exercise_planned_dur = exercise_duration_from_plan if exercise_duration_from_plan > 0 else (day_exercise_log.planned_duration or 30)
             exercise_actual_cal = day_exercise_log.total_calories or 0
-            exercise_planned_cal = day_exercise_log.planned_calories or 200
+            exercise_planned_cal = exercise_target_from_plan if exercise_target_from_plan > 0 else (day_exercise_log.planned_calories or 200)
             courses_completed = day_exercise_log.course_count or 0
             
             # 计算运动依从率
@@ -872,9 +910,10 @@ def get_weekly_stats(
             total_exercise_adherence += exercise_adherence
         else:
             exercise_actual_dur = 0
-            exercise_planned_dur = 30
+            # 使用周计划中的目标，如果没有则用默认值
+            exercise_planned_dur = exercise_duration_from_plan if exercise_duration_from_plan > 0 else 0
             exercise_actual_cal = 0
-            exercise_planned_cal = 200
+            exercise_planned_cal = exercise_target_from_plan if exercise_target_from_plan > 0 else 0
             courses_completed = 0
             exercise_adherence = 0
         
