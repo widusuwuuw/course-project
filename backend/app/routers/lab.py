@@ -18,7 +18,7 @@ oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/login", auto_error=Fals
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/lab", tags=["laboratory"])
+router = APIRouter(prefix="/v1/lab", tags=["laboratory"])
 
 # 初始化规则引擎
 try:

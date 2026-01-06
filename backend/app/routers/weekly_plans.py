@@ -14,7 +14,7 @@ from ..auth import get_current_user
 from ..models import User, MonthlyPlan, WeeklyPlan, UserPreferences, UserHealthProfile
 from ..services.weekly_plan_generator import generate_weekly_plan
 
-router = APIRouter(prefix="/api/v1/weekly-plans", tags=["周计划"])
+router = APIRouter(prefix="/v1/weekly-plans", tags=["周计划"])
 
 
 # ============ Pydantic 模型 ============
