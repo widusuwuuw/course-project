@@ -77,7 +77,7 @@ export async function loginRequest(email: string, password: string) {
   try {
     // OAuth2PasswordRequestForm: x-www-form-urlencoded
     const body = new URLSearchParams({ username: email, password });
-    const res = await fetch(`${API_BASE_URL}/api/login`, {
+    const res = await fetch(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
@@ -107,7 +107,7 @@ export async function loginRequest(email: string, password: string) {
 
 export async function checkEmailExists(email: string) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/check-email`, {
+    const res = await fetch(`${API_BASE_URL}/check-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -128,7 +128,7 @@ export async function registerRequest(email: string, password: string, gender?: 
     if (gender) {
       body.gender = gender;
     }
-    const res = await fetch(`${API_BASE_URL}/api/register`, {
+    const res = await fetch(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

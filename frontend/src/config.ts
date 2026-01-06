@@ -6,7 +6,7 @@ const isProduction = typeof window !== 'undefined' &&
   window.location.hostname !== 'localhost' && 
   window.location.hostname !== '127.0.0.1';
 
-export const API_BASE_URL = isProduction ? '' : 'http://localhost:8000';
+export const API_BASE_URL = isProduction ? '/api' : 'http://localhost:8000';
 
 // 如在真机演示，请改成你电脑的局域网IP，例如：
 // export const API_BASE_URL = 'http://192.168.1.100:8000';

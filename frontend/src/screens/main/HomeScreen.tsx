@@ -97,7 +97,7 @@ export default function HomeScreen() {
       
       // 尝试从今日计划获取目标值
       try {
-        const todayPlan = await apiGet('/api/v1/weekly-plans/today');
+        const todayPlan = await apiGet('/v1/weekly-plans/today');
         if (todayPlan) {
           // 获取饮食计划的总热量目标 - 累加各餐热量（与饮食计划页面保持一致）
           if (todayPlan.diet) {
@@ -160,7 +160,7 @@ export default function HomeScreen() {
       let profileFilled = 0;
       let profileTotal = 46;
       try {
-        const completenessData = await apiGet('/api/lab/health-profile/completeness');
+        const completenessData = await apiGet('/lab/health-profile/completeness');
         if (completenessData) {
           profileCompleteness = completenessData.percentage || 0;
           profileFilled = completenessData.filled || 0;
