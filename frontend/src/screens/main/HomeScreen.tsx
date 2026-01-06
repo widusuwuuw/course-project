@@ -160,7 +160,7 @@ export default function HomeScreen() {
       let profileFilled = 0;
       let profileTotal = 46;
       try {
-        const completenessData = await apiGet('/lab/health-profile/completeness');
+        const completenessData = await apiGet('/v1/lab/health-profile/completeness');
         if (completenessData) {
           profileCompleteness = completenessData.percentage || 0;
           profileFilled = completenessData.filled || 0;
