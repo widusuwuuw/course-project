@@ -67,13 +67,6 @@ export default function ProfileScreen() {
           color: '#D4EDD4',
           description: '设置饮食运动偏好',
         },
-        {
-          id: 'generate-weekly-plan',
-          title: '生成周计划',
-          icon: 'calendar-outline',
-          color: '#A78BFA',
-          description: '基于月计划生成周计划',
-        },
       ],
     },
     {
