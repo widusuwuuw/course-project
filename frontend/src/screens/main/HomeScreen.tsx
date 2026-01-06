@@ -99,31 +99,25 @@ export default function HomeScreen() {
       try {
         const todayPlan = await apiGet('/api/v1/weekly-plans/today');
         if (todayPlan) {
-          // 获取饮食计划的总热量目标
+          // 获取饮食计划的总热量目标 - 累加各餐热量（与饮食计划页面保持一致）
           if (todayPlan.diet) {
-            // 方法1: 直接使用 calories_target 字段（如果存在）
-            if (todayPlan.diet.calories_target) {
-              dietTarget = todayPlan.diet.calories_target;
-            } else {
-              // 方法2: 累加每餐的 calories 字段
-              const meals = ['breakfast', 'lunch', 'dinner', 'snacks'];
-              let totalDietCalories = 0;
-              for (const meal of meals) {
-                const mealData = todayPlan.diet[meal];
-                if (mealData) {
-                  // 优先使用 calories 字段
-                  if (mealData.calories) {
-                    totalDietCalories += mealData.calories;
-                  } else if (mealData.nutrition?.calories) {
-                    totalDietCalories += mealData.nutrition.calories;
-                  } else if (Array.isArray(mealData)) {
-                    totalDietCalories += mealData.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
-                  }
+            const meals = ['breakfast', 'lunch', 'dinner', 'snacks'];
+            let totalDietCalories = 0;
+            for (const meal of meals) {
+              const mealData = todayPlan.diet[meal];
+              if (mealData) {
+                // 优先使用 calories 字段
+                if (mealData.calories) {
+                  totalDietCalories += mealData.calories;
+                } else if (mealData.nutrition?.calories) {
+                  totalDietCalories += mealData.nutrition.calories;
+                } else if (Array.isArray(mealData)) {
+                  totalDietCalories += mealData.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
                 }
               }
-              if (totalDietCalories > 0) {
-                dietTarget = totalDietCalories;
-              }
+            }
+            if (totalDietCalories > 0) {
+              dietTarget = totalDietCalories;
             }
           }
           // 获取运动计划的消耗热量目标 (字段是 calories_target)
