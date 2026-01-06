@@ -123,8 +123,8 @@ export default function HomeScreen() {
           // 获取运动计划的消耗热量目标 (字段是 calories_target)
           if (todayPlan.exercise && todayPlan.exercise.calories_target) {
             exerciseTarget = todayPlan.exercise.calories_target;
-          } else if (todayPlan.is_rest_day) {
-            // 休息日运动目标为0
+          } else if (todayPlan.is_rest_day || !todayPlan.exercise) {
+            // 休息日或无运动计划时，运动目标为0
             exerciseTarget = 0;
           }
         }
