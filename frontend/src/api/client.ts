@@ -86,7 +86,7 @@ export async function loginRequest(email: string, password: string) {
     const data = await res.json();
 
     if (!res.ok) {
-      // 处理不同类型的错误响应
+      // 处理不同类型的错误响�?
       if (typeof data.detail === 'string') {
         throw new Error(data.detail);
       } else {
@@ -98,7 +98,7 @@ export async function loginRequest(email: string, password: string) {
   } catch (error) {
     // 网络错误处理
     if (error instanceof TypeError) {
-      throw new Error('网络连接失败，请检查后端服务是否正常运行');
+      throw new Error('网络连接失败，请检查后端服务是否正常运�?);
     }
     // 重新抛出其他错误
     throw error;
@@ -116,7 +116,7 @@ export async function checkEmailExists(email: string) {
     const data = await res.json();
     return data.exists;
   } catch (error) {
-    // 如果检查接口不存在，返回false（不阻止注册）
+    // 如果检查接口不存在，返回false（不阻止注册�?
     console.log('Email check service unavailable:', error);
     return false;
   }
@@ -137,7 +137,7 @@ export async function registerRequest(email: string, password: string, gender?: 
     const data = await res.json();
 
     if (!res.ok) {
-      // 处理不同类型的错误响应
+      // 处理不同类型的错误响�?
       if (typeof data.detail === 'string') {
         throw new Error(data.detail);
       } else {
@@ -149,7 +149,7 @@ export async function registerRequest(email: string, password: string, gender?: 
   } catch (error) {
     // 网络错误处理
     if (error instanceof TypeError) {
-      throw new Error('网络连接失败，请检查后端服务是否正常运行');
+      throw new Error('网络连接失败，请检查后端服务是否正常运�?);
     }
     // 重新抛出其他错误
     throw error;
@@ -168,11 +168,11 @@ export async function analyzeLabResults(metrics: Array<{name: string, value: num
     gender,
     category,
   };
-  return apiPost('/api/v1/lab/analyze', body);
+  return apiPost('/v1/lab/analyze', body);
 }
 
 export async function getAvailableLabMetrics() {
-  return apiGet('/api/v1/lab/metrics');
+  return apiGet('/v1/lab/metrics');
 }
 
 export async function getCurrentUser() {
@@ -201,34 +201,34 @@ export async function generateAIBodyReport(daysRange: number = 30) {
   const body = {
     days_range: daysRange,
   };
-  return apiPost('/api/v1/lab/ai-body-report', body);
+  return apiPost('/v1/lab/ai-body-report', body);
 }
 
 // 获取已保存的AI健康报告
 export async function getSavedAIReport() {
-  return apiGet('/api/v1/lab/saved-ai-report');
+  return apiGet('/v1/lab/saved-ai-report');
 }
 
 // 获取用户健康档案（已录入的所有健康指标）
 export async function getHealthProfile() {
-  return apiGet('/api/v1/lab/health-profile');
+  return apiGet('/v1/lab/health-profile');
 }
 
 // ============ 偏好设置 API ============
 
 export async function getUserPreferences() {
-  return apiGet('/api/v1/preferences');
+  return apiGet('/v1/preferences');
 }
 
 export async function saveUserPreferences(preferences: any) {
-  return apiPost('/api/v1/preferences', preferences);
+  return apiPost('/v1/preferences', preferences);
 }
 
 export async function getPreferenceOptions(type: 'exercises' | 'foods' | 'allergens' | 'equipment') {
   return apiGet(`/api/v1/preferences/options/${type}`);
 }
 
-// ============ 周计划 API ============
+// ============ 周计�?API ============
 
 export async function generateWeeklyPlan(monthlyPlanId: number, weekNumber: number, weekStartDate?: string) {
   const body: any = {
@@ -238,15 +238,15 @@ export async function generateWeeklyPlan(monthlyPlanId: number, weekNumber: numb
   if (weekStartDate) {
     body.week_start_date = weekStartDate;
   }
-  return apiPost('/api/v1/weekly-plans/generate', body);
+  return apiPost('/v1/weekly-plans/generate', body);
 }
 
 export async function getCurrentWeeklyPlan() {
-  return apiGet('/api/v1/weekly-plans/current');
+  return apiGet('/v1/weekly-plans/current');
 }
 
 export async function getTodayPlan() {
-  return apiGet('/api/v1/weekly-plans/today');
+  return apiGet('/v1/weekly-plans/today');
 }
 
 export async function getWeeklyPlanById(planId: number) {
@@ -277,7 +277,7 @@ export async function adjustWeeklyPlan(planId: number, day: string, adjustmentTy
   return apiPatch(`/api/v1/weekly-plans/${planId}/adjust`, body);
 }
 
-// AI智能微调周计划
+// AI智能微调周计�?
 export async function aiAdjustWeeklyPlan(planId: number, userRequest: string) {
   return apiPost(`/api/v1/weekly-plans/${planId}/ai-adjust`, {
     user_request: userRequest
@@ -333,10 +333,10 @@ export interface DailyNutritionSummary {
 
 // 创建食物记录
 export async function createFoodRecord(record: FoodRecord) {
-  return apiPost('/api/v1/nutrition/records', record);
+  return apiPost('/v1/nutrition/records', record);
 }
 
-// 获取某天的营养摘要
+// 获取某天的营养摘�?
 export async function getDailyNutrition(date: string): Promise<DailyNutritionSummary> {
   return apiGet(`/api/v1/nutrition/records/daily/${date}`);
 }
@@ -367,17 +367,17 @@ export async function deleteFoodRecord(recordId: number) {
 
 // 获取营养目标
 export async function getNutritionGoals(): Promise<NutritionGoal> {
-  return apiGet('/api/v1/nutrition/goals');
+  return apiGet('/v1/nutrition/goals');
 }
 
 // 更新营养目标
 export async function updateNutritionGoals(goals: Partial<NutritionGoal>) {
-  return apiPut('/api/v1/nutrition/goals', goals);
+  return apiPut('/v1/nutrition/goals', goals);
 }
 
 // ============ 饮食记录 API ============
 
-// 记录一餐饮食
+// 记录一餐饮�?
 export async function logMeal(data: {
   log_date: string;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
@@ -397,7 +397,7 @@ export async function logMeal(data: {
   return apiPost('/diet-logs/log', data);
 }
 
-// 快速标记计划餐食完成
+// 快速标记计划餐食完�?
 export async function markPlanMealCompleted(data: {
   log_date: string;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
@@ -407,7 +407,7 @@ export async function markPlanMealCompleted(data: {
   return apiPost('/diet-logs/mark-plan-meal', data);
 }
 
-// 添加自定义食物
+// 添加自定义食�?
 export async function addCustomFood(data: {
   log_date: string;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
