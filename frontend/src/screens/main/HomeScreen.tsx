@@ -101,23 +101,37 @@ export default function HomeScreen() {
         if (todayPlan) {
           // 获取饮食计划的总热量目标
           if (todayPlan.diet) {
-            const meals = ['breakfast', 'lunch', 'dinner', 'snacks'];
-            let totalDietCalories = 0;
-            for (const meal of meals) {
-              const mealData = todayPlan.diet[meal];
-              if (mealData && mealData.total_calories) {
-                totalDietCalories += mealData.total_calories;
-              } else if (Array.isArray(mealData)) {
-                totalDietCalories += mealData.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+            // 方法1: 直接使用 calories_target 字段（如果存在）
+            if (todayPlan.diet.calories_target) {
+              dietTarget = todayPlan.diet.calories_target;
+            } else {
+              // 方法2: 累加每餐的 calories 字段
+              const meals = ['breakfast', 'lunch', 'dinner', 'snacks'];
+              let totalDietCalories = 0;
+              for (const meal of meals) {
+                const mealData = todayPlan.diet[meal];
+                if (mealData) {
+                  // 优先使用 calories 字段
+                  if (mealData.calories) {
+                    totalDietCalories += mealData.calories;
+                  } else if (mealData.nutrition?.calories) {
+                    totalDietCalories += mealData.nutrition.calories;
+                  } else if (Array.isArray(mealData)) {
+                    totalDietCalories += mealData.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+                  }
+                }
+              }
+              if (totalDietCalories > 0) {
+                dietTarget = totalDietCalories;
               }
             }
-            if (totalDietCalories > 0) {
-              dietTarget = totalDietCalories;
-            }
           }
-          // 获取运动计划的消耗热量目标
-          if (todayPlan.exercise && todayPlan.exercise.calories_burn) {
-            exerciseTarget = todayPlan.exercise.calories_burn;
+          // 获取运动计划的消耗热量目标 (字段是 calories_target)
+          if (todayPlan.exercise && todayPlan.exercise.calories_target) {
+            exerciseTarget = todayPlan.exercise.calories_target;
+          } else if (todayPlan.is_rest_day) {
+            // 休息日运动目标为0
+            exerciseTarget = 0;
           }
         }
       } catch (e) {
