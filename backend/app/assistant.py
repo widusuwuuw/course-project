@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 import os
-from .services.llm_client import generate_answer, LLMUnavailable, is_enabled as llm_enabled
+from .services.deepseek_client import generate_answer, DeepSeekUnavailable as LLMUnavailable, is_enabled as llm_enabled
 
 DISCLAIMER = (
     "本助手仅提供一般性的健康科普与生活方式建议，不能替代医生的诊断或处方。"
