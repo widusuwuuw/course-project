@@ -1,8 +1,12 @@
-// 本地开发用：
-export const API_BASE_URL = 'http://localhost:8000';
+// API 基础路径配置
+// 生产环境：使用相对路径，由nginx代理
+// 开发环境：使用本地后端地址
 
-// 阿里云服务器：
-// export const API_BASE_URL = 'http://8.148.21.215:8000';
+const isProduction = typeof window !== 'undefined' && 
+  window.location.hostname !== 'localhost' && 
+  window.location.hostname !== '127.0.0.1';
+
+export const API_BASE_URL = isProduction ? '/api' : 'http://localhost:8000';
 
 // 如在真机演示，请改成你电脑的局域网IP，例如：
 // export const API_BASE_URL = 'http://192.168.1.100:8000';
