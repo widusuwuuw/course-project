@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,65 +9,177 @@ import {
   StatusBar,
   SafeAreaView,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LineChart } from 'react-native-chart-kit';
+import { apiGet } from '../../api/client';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<StackNavigationProp<any>>();
+  const [refreshing, setRefreshing] = useState(false);
 
-  // 健康数据
+  // 今日统计数据
+  const [todayStats, setTodayStats] = useState({
+    dietCalories: 0,
+    dietTarget: 2000,
+    exerciseCalories: 0,
+    exerciseTarget: 300,
+    mealsRecorded: 0,
+    coursesCompleted: 0,
+  });
+
+  // 健康数据 - 基于真实数据动态更新
   const [healthStats, setHealthStats] = useState([
     {
-      icon: 'walk-outline',
-      label: '步数',
-      value: '8,234',
-      target: '10,000',
-      color: '#B8E5E5',
-      progress: 82
+      icon: 'restaurant-outline',
+      label: '今日饮食',
+      value: '0',
+      target: '2000 kcal',
+      color: '#10B981',
+      progress: 0,
+      route: 'Nutrition'
     },
     {
-      icon: 'flame-outline',
-      label: '卡路里',
-      value: '1,456',
-      target: '2,000',
-      color: '#FFD88C',
-      progress: 73
+      icon: 'fitness-outline',
+      label: '今日运动',
+      value: '0',
+      target: '300 kcal',
+      color: '#F59E0B',
+      progress: 0,
+      route: 'SportsTraining'
     },
     {
-      icon: 'moon-outline',
-      label: '睡眠',
-      value: '7.5h',
-      target: '8h',
-      color: '#D4EDD4',
-      progress: 94
+      icon: 'calendar-outline',
+      label: '本周计划',
+      value: '0/7',
+      target: '天',
+      color: '#8B5CF6',
+      progress: 0,
+      route: 'StatsComparison'
     },
     {
-      icon: 'heart-outline',
-      label: '心率',
-      value: '72',
-      target: 'bpm',
-      color: '#FFB5C5',
-      progress: 90
+      icon: 'document-text-outline',
+      label: '健康档案',
+      value: '查看',
+      target: '详情',
+      color: '#06B6D4',
+      progress: 100,
+      route: 'HealthProfile'
     },
   ]);
 
-  // 体重数据
+  // 体重数据 - 演示数据
   const [weightData, setWeightData] = useState({
-    labels: ['11/22', '11/23', '11/24', '11/25', '11/26', '11/27', '11/28'],
+    labels: ['12/31', '1/1', '1/2', '1/3', '1/4', '1/5', '1/6'],
     datasets: [{
       data: [68.5, 68.2, 68.0, 67.8, 67.5, 67.3, 67.0],
       color: (opacity = 1) => `rgba(74, 186, 184, ${opacity})`,
       strokeWidth: 3,
     }],
   });
+
+  // 加载今日统计数据
+  const loadTodayStats = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // 获取今日饮食和运动统计
+      const dailyStats = await apiGet(`/logs/stats/daily?date=${today}`);
+      
+      const dietCalories = dailyStats?.diet?.actual?.calories || 0;
+      const exerciseCalories = dailyStats?.exercise?.actual?.calories || 0;
+      const mealsRecorded = Object.keys(dailyStats?.diet?.meals || {}).length;
+      const coursesCompleted = dailyStats?.exercise?.actual?.courses_count || 0;
+      
+      // 尝试获取周统计
+      let weeklyProgress = 0;
+      let daysCompleted = 0;
+      try {
+        const weeklyStats = await apiGet('/logs/stats/weekly');
+        if (weeklyStats?.daily_stats) {
+          daysCompleted = weeklyStats.daily_stats.filter((d: any) => 
+            d.diet.meals_recorded > 0 || d.exercise.courses_completed > 0
+          ).length;
+          weeklyProgress = Math.round((daysCompleted / 7) * 100);
+        }
+      } catch (e) {
+        console.log('周统计获取失败，使用默认值');
+      }
+
+      setTodayStats({
+        dietCalories,
+        dietTarget: 2000,
+        exerciseCalories,
+        exerciseTarget: 300,
+        mealsRecorded,
+        coursesCompleted,
+      });
+
+      // 更新健康卡片数据
+      setHealthStats([
+        {
+          icon: 'restaurant-outline',
+          label: '今日饮食',
+          value: dietCalories > 0 ? `${dietCalories}` : '未记录',
+          target: '2000 kcal',
+          color: '#10B981',
+          progress: Math.min(Math.round((dietCalories / 2000) * 100), 100),
+          route: 'Nutrition'
+        },
+        {
+          icon: 'fitness-outline',
+          label: '今日运动',
+          value: exerciseCalories > 0 ? `${exerciseCalories}` : '未记录',
+          target: '300 kcal',
+          color: '#F59E0B',
+          progress: Math.min(Math.round((exerciseCalories / 300) * 100), 100),
+          route: 'SportsTraining'
+        },
+        {
+          icon: 'calendar-outline',
+          label: '本周记录',
+          value: `${daysCompleted}/7`,
+          target: '天',
+          color: '#8B5CF6',
+          progress: weeklyProgress,
+          route: 'StatsComparison'
+        },
+        {
+          icon: 'document-text-outline',
+          label: '健康档案',
+          value: '查看',
+          target: '详情',
+          color: '#06B6D4',
+          progress: 100,
+          route: 'HealthProfile'
+        },
+      ]);
+
+    } catch (error) {
+      console.log('加载今日统计失败:', error);
+    }
+  }, []);
+
+  // 页面聚焦时刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      loadTodayStats();
+    }, [loadTodayStats])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadTodayStats();
+    setRefreshing(false);
+  }, [loadTodayStats]);
 
   // 快捷操作 - 使用专业化的Ionicons图标
   const quickActions = [
@@ -148,6 +260,9 @@ export default function HomeScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4ABAB8']} />
+        }
       >
         {/* 渐变头部区域 */}
         <LinearGradient
@@ -158,7 +273,7 @@ export default function HomeScreen() {
         >
           <View style={styles.headerContent}>
             <View style={styles.greetingSection}>
-              <Text style={styles.greeting}>你好，小明 👋</Text>
+              <Text style={styles.greeting}>你好，健康达人 👋</Text>
               <Text style={styles.subgreeting}>今天也要保持健康哦</Text>
             </View>
 
@@ -175,11 +290,10 @@ export default function HomeScreen() {
                 style={styles.statCard}
                 activeOpacity={0.8}
                 onPress={() => {
-                  Alert.alert(
-                    `${stat.label}详情`,
-                    `今日${stat.label}: ${stat.value}${stat.target.startsWith('bpm') ? '' : '/' + stat.target}\n完成度: ${stat.progress}%`,
-                    [{ text: '查看详情', style: 'default' }, { text: '取消', style: 'cancel' }]
-                  );
+                  // 跳转到对应页面
+                  if (stat.route) {
+                    navigation.navigate(stat.route);
+                  }
                 }}
               >
                 <View style={styles.statHeader}>
