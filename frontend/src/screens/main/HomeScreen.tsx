@@ -91,6 +91,39 @@ export default function HomeScreen() {
     try {
       const today = new Date().toISOString().split('T')[0];
       
+      // 默认目标值
+      let dietTarget = 2000;
+      let exerciseTarget = 300;
+      
+      // 尝试从今日计划获取目标值
+      try {
+        const todayPlan = await apiGet('/api/v1/weekly-plans/today');
+        if (todayPlan) {
+          // 获取饮食计划的总热量目标
+          if (todayPlan.diet) {
+            const meals = ['breakfast', 'lunch', 'dinner', 'snacks'];
+            let totalDietCalories = 0;
+            for (const meal of meals) {
+              const mealData = todayPlan.diet[meal];
+              if (mealData && mealData.total_calories) {
+                totalDietCalories += mealData.total_calories;
+              } else if (Array.isArray(mealData)) {
+                totalDietCalories += mealData.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+              }
+            }
+            if (totalDietCalories > 0) {
+              dietTarget = totalDietCalories;
+            }
+          }
+          // 获取运动计划的消耗热量目标
+          if (todayPlan.exercise && todayPlan.exercise.calories_burn) {
+            exerciseTarget = todayPlan.exercise.calories_burn;
+          }
+        }
+      } catch (e) {
+        console.log('获取今日计划失败，使用默认目标值');
+      }
+      
       // 获取今日饮食和运动统计
       const dailyStats = await apiGet(`/logs/stats/daily?date=${today}`);
       
@@ -116,9 +149,9 @@ export default function HomeScreen() {
 
       setTodayStats({
         dietCalories,
-        dietTarget: 2000,
+        dietTarget,
         exerciseCalories,
-        exerciseTarget: 300,
+        exerciseTarget,
         mealsRecorded,
         coursesCompleted,
       });
@@ -129,18 +162,18 @@ export default function HomeScreen() {
           icon: 'restaurant-outline',
           label: '今日饮食',
           value: dietCalories > 0 ? `${dietCalories}` : '未记录',
-          target: '2000 kcal',
+          target: `${dietTarget} kcal`,
           color: '#10B981',
-          progress: Math.min(Math.round((dietCalories / 2000) * 100), 100),
+          progress: Math.min(Math.round((dietCalories / dietTarget) * 100), 100),
           route: 'Nutrition'
         },
         {
           icon: 'fitness-outline',
           label: '今日运动',
           value: exerciseCalories > 0 ? `${exerciseCalories}` : '未记录',
-          target: '300 kcal',
+          target: `${exerciseTarget} kcal`,
           color: '#F59E0B',
-          progress: Math.min(Math.round((exerciseCalories / 300) * 100), 100),
+          progress: Math.min(Math.round((exerciseCalories / exerciseTarget) * 100), 100),
           route: 'SportsTraining'
         },
         {
