@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../config';
 
 const { width } = Dimensions.get('window');
 
@@ -141,7 +142,7 @@ export default function AIAssistantScreen() {
       };
 
       // 构建API请求 - 调用正确的后端路由 /assistant/query
-      const response = await fetch('http://127.0.0.1:8000/assistant/query', {
+      const response = await fetch(`${API_BASE_URL}/assistant/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
