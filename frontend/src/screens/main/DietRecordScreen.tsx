@@ -54,16 +54,23 @@ interface SelectedFood extends FoodItem {
 export default function DietRecordScreen() {
   const navigation = useNavigation();
   
-  // 状态
-  const [currentStep, setCurrentStep] = useState<'meal' | 'category' | 'foods' | 'confirm'>('meal');
+  // 获取今天的日期字符串 (YYYY-MM-DD 格式，避免时区问题)
+  const getTodayStr = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+  
+  // 状态 - 使用日期字符串而不是Date对象，避免时区问题
+  const [currentStep, setCurrentStep] = useState<'meal' | 'category' | 'foods'>('meal');
   const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>([]);
   const [selectedFoods, setSelectedFoods] = useState<SelectedFood[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [existingRecords, setExistingRecords] = useState<{[key: string]: any}>({});  // 已有记录缓存
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(getTodayStr());  // 使用字符串格式
+  const [existingRecords, setExistingRecords] = useState<{[key: string]: any}>({});
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
 
   // 加载食物数据库
   useEffect(() => {
@@ -71,20 +78,20 @@ export default function DietRecordScreen() {
   }, []);
 
   // 加载指定日期的已有记录
-  const loadExistingRecords = useCallback(async (date: Date) => {
+  const loadExistingRecords = useCallback(async (dateStr: string) => {
     try {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
-      
+      console.log('[loadExistingRecords] 加载日期:', dateStr);
       const response = await apiGet(`/logs/diet?start_date=${dateStr}&end_date=${dateStr}`);
+      
+      console.log('[loadExistingRecords] 从后端获取的数据:', response);
       
       // 将记录按餐次组织
       const recordsMap: {[key: string]: any} = {};
       response.logs?.forEach((log: any) => {
         recordsMap[log.meal_type] = log;
       });
+      
+      console.log('[loadExistingRecords] 重组后的recordsMap:', recordsMap);
       setExistingRecords(recordsMap);
     } catch (error) {
       console.error('加载已有记录失败:', error);
@@ -94,14 +101,14 @@ export default function DietRecordScreen() {
   // 每次页面获得焦点时重新加载记录（确保看到最新数据）
   useFocusEffect(
     useCallback(() => {
-      loadExistingRecords(selectedDate);
-    }, [selectedDate, loadExistingRecords])
+      loadExistingRecords(selectedDateStr);
+    }, [selectedDateStr, loadExistingRecords])
   );
 
   // 日期变化时重新加载
   useEffect(() => {
-    loadExistingRecords(selectedDate);
-  }, [selectedDate, loadExistingRecords]);
+    loadExistingRecords(selectedDateStr);
+  }, [selectedDateStr, loadExistingRecords]);
 
   const loadFoodDatabase = async () => {
     setLoading(true);
@@ -145,7 +152,10 @@ export default function DietRecordScreen() {
     
     // 检查该餐次是否有已有记录
     const existingRecord = existingRecords[mealKey];
-    if (existingRecord && existingRecord.foods?.length > 0) {
+    const hasExisting = existingRecord && existingRecord.foods?.length > 0;
+    setIsEditingExisting(hasExisting);  // 记录是否在编辑已有记录
+    
+    if (hasExisting) {
       // 加载已有记录的食物
       const loadedFoods: SelectedFood[] = existingRecord.foods.map((f: any) => {
         // 解析克数：优先用 grams 字段，否则从 portion 解析
@@ -184,13 +194,13 @@ export default function DietRecordScreen() {
     setCurrentStep('foods');
   };
 
-  // 添加/移除食物
+  // 添加/移除食物（只更新状态，不自动保存）
   const toggleFood = (food: FoodItem) => {
     const existing = selectedFoods.find(f => f.id === food.id);
     if (existing) {
       setSelectedFoods(selectedFoods.filter(f => f.id !== food.id));
     } else {
-      setSelectedFoods([...selectedFoods, { ...food, grams: 100 }]);  // 默认100克
+      setSelectedFoods([...selectedFoods, { ...food, grams: 100 }]);
     }
   };
 
@@ -219,10 +229,7 @@ export default function DietRecordScreen() {
 
   // 返回上一步
   const goBack = () => {
-    if (currentStep === 'confirm') {
-      // 从确认页(4)返回食物列表页(3)，保留选择
-      setCurrentStep('foods');
-    } else if (currentStep === 'foods') {
+    if (currentStep === 'foods') {
       // 从食物列表(3)返回分类页(2)，保留选择
       setSelectedCategory(null);
       setCurrentStep('category');
@@ -237,57 +244,84 @@ export default function DietRecordScreen() {
     }
   };
 
-  // 继续选择或去确认
-  const handleContinue = () => {
-    if (currentStep === 'foods') {
-      if (selectedFoods.length > 0) {
-        setCurrentStep('confirm');
-      } else {
-        // 返回分类继续选
-        setSelectedCategory(null);
-        setCurrentStep('category');
-      }
-    }
-  };
-
-  // 保存记录
+  // 保存记录（直接从页面3调用）
   const saveRecord = async () => {
-    if (selectedFoods.length === 0 || !selectedMeal) {
-      Alert.alert('提示', '请至少选择一种食物');
+    if (!selectedMeal) {
+      Alert.alert('提示', '请选择餐次');
       return;
     }
-
+    
+    // 如果没有食物且是编辑模式，确认是否要删除
+    if (selectedFoods.length === 0 && isEditingExisting) {
+      Alert.alert(
+        '确认删除',
+        '您已清空所有食物，确定要删除这条饮食记录吗？',
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '确认删除', style: 'destructive', onPress: () => doSaveRecord() }
+        ]
+      );
+      return;
+    }
+    
+    // 直接保存
+    doSaveRecord();
+  };
+  
+  // 实际执行保存/删除操作
+  const doSaveRecord = async () => {
     setSaving(true);
     try {
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
+      // 直接使用字符串格式的日期，避免时区问题
+      const dateStr = selectedDateStr;
+
+      console.log('[doSaveRecord] 保存日期:', dateStr);
 
       const foods = selectedFoods.map(f => ({
         food_id: f.id,
         name: f.name,
-        portion: `${f.grams}g`,  // 实际克数
-        quantity: 1,  // 兼容旧的数据结构
-        grams: f.grams,  // 添加克数字段
+        portion: `${f.grams}g`,
+        quantity: 1,
+        grams: f.grams,
         calories: Math.round(f.calories * f.grams / 100),
         protein: Math.round(f.protein * f.grams / 100 * 10) / 10,
         carbs: Math.round(f.carbs * f.grams / 100 * 10) / 10,
         fat: Math.round(f.fat * f.grams / 100 * 10) / 10,
       }));
 
-      // 后端API: log_date和meal_type是query参数，foods是body
+      const isDeleting = foods.length === 0;
+      const mealName = MEAL_TYPES.find(m => m.key === selectedMeal)?.name || '';
+      
+      // 后端API
       await apiPost(`/logs/diet?log_date=${dateStr}&meal_type=${selectedMeal}`, foods);
 
-      // 保存成功后更新缓存
-      await loadExistingRecords(selectedDate);  // 重新加载该日期的记录
-
-      const mealName = MEAL_TYPES.find(m => m.key === selectedMeal)?.name || '';
-      Alert.alert(
-        '✅ 保存成功',
-        `${getDateDisplay()} ${mealName}已保存\n共 ${selectedFoods.length} 种食物\n总热量: ${Math.round(totalCalories)} kcal`,
-        [{ text: '好的', onPress: () => navigation.goBack() }]
-      );
+      // 删除后：清空所有状态，返回页面1，重新从后端加载
+      if (isDeleting) {
+        // 先清空本地状态
+        setSelectedFoods([]);
+        setSelectedCategory(null);
+        setSelectedMeal(null);
+        setIsEditingExisting(false);
+        setCurrentStep('meal');
+        
+        // 强制重新从后端加载最新数据
+        const freshResponse = await apiGet(`/logs/diet?start_date=${dateStr}&end_date=${dateStr}`);
+        const freshRecordsMap: {[key: string]: any} = {};
+        freshResponse.logs?.forEach((log: any) => {
+          freshRecordsMap[log.meal_type] = log;
+        });
+        setExistingRecords(freshRecordsMap);
+        
+        Alert.alert('✅ 已删除', `${getDateDisplay()} ${mealName}记录已删除`);
+      } else {
+        // 保存后重新加载
+        await loadExistingRecords(selectedDateStr);
+        setIsEditingExisting(true);
+        Alert.alert(
+          '✅ 保存成功',
+          `${getDateDisplay()} ${mealName}已保存\n共 ${foods.length} 种食物\n总热量: ${Math.round(totalCalories)} kcal`
+        );
+      }
     } catch (error: any) {
       console.error('保存失败:', error);
       Alert.alert('错误', '保存失败，请稍后重试');
@@ -296,30 +330,35 @@ export default function DietRecordScreen() {
     }
   };
 
-  // 生成最近7天的日期列表
+  // 生成最近7天的日期列表 - 使用字符串格式避免时区问题
   const recentDates = useMemo(() => {
     const dates = [];
-    const today = new Date();
+    const now = new Date();
+    const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    
     for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      // 计算日期
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      
       dates.push({
-        date,
-        label: i === 0 ? '今天' : i === 1 ? '昨天' : dayNames[date.getDay()],
-        dateStr: `${date.getMonth() + 1}/${date.getDate()}`,
+        dateStr,  // 用于API和比较
+        displayDate: `${d.getMonth() + 1}/${d.getDate()}`,  // 用于显示
+        label: i === 0 ? '今天' : i === 1 ? '昨天' : dayNames[d.getDay()],
       });
     }
     return dates;
   }, []);
 
   // 切换日期（直接切换，丢弃未保存的选择）
-  const handleSelectDate = (date: Date) => {
-    if (selectedDate.toDateString() !== date.toDateString()) {
+  const handleSelectDate = (dateStr: string) => {
+    if (selectedDateStr !== dateStr) {
+      console.log('[handleSelectDate] 切换日期:', selectedDateStr, '->', dateStr);
       setSelectedFoods([]);
       setSelectedMeal(null);
       setCurrentStep('meal');
-      setSelectedDate(date);
+      setExistingRecords({});
+      setSelectedDateStr(dateStr);
     }
   };
 
@@ -337,18 +376,18 @@ export default function DietRecordScreen() {
         contentContainerStyle={styles.dateSelectorContent}
       >
         {recentDates.map((item, index) => {
-          const isSelected = selectedDate.toDateString() === item.date.toDateString();
+          const isSelected = selectedDateStr === item.dateStr;
           return (
             <TouchableOpacity
               key={index}
               style={[styles.dateItem, isSelected && styles.dateItemSelected]}
-              onPress={() => handleSelectDate(item.date)}
+              onPress={() => handleSelectDate(item.dateStr)}
             >
               <Text style={[styles.dateLabel, isSelected && styles.dateLabelSelected]}>
                 {item.label}
               </Text>
               <Text style={[styles.dateStr, isSelected && styles.dateStrSelected]}>
-                {item.dateStr}
+                {item.displayDate}
               </Text>
             </TouchableOpacity>
           );
@@ -359,9 +398,11 @@ export default function DietRecordScreen() {
       <Text style={styles.sectionTitle}>选择这是哪一餐</Text>
       <View style={styles.mealGrid}>
         {MEAL_TYPES.map(meal => {
-          const hasRecord = existingRecords[meal.key]?.foods?.length > 0;
+          // 只显示后端已保存的数据
+          const savedRecord = existingRecords[meal.key];
+          const hasRecord = savedRecord?.foods?.length > 0;
           const recordCalories = hasRecord 
-            ? existingRecords[meal.key].foods.reduce((sum: number, f: any) => sum + (f.calories || 0), 0)
+            ? savedRecord.foods.reduce((sum: number, f: any) => sum + (f.calories || 0), 0)
             : 0;
           
           return (
@@ -386,24 +427,24 @@ export default function DietRecordScreen() {
 
   // 获取格式化的日期显示
   const getDateDisplay = () => {
-    const today = new Date();
-    if (selectedDate.toDateString() === today.toDateString()) {
-      return '今天';
+    // 找到当前选中日期的显示信息
+    const dateInfo = recentDates.find(d => d.dateStr === selectedDateStr);
+    if (dateInfo) {
+      if (dateInfo.label === '今天' || dateInfo.label === '昨天') {
+        return dateInfo.label;
+      }
+      return dateInfo.displayDate;
     }
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    if (selectedDate.toDateString() === yesterday.toDateString()) {
-      return '昨天';
-    }
-    return `${selectedDate.getMonth() + 1}月${selectedDate.getDate()}日`;
+    // 如果不在最近7天内，直接解析日期字符串
+    const parts = selectedDateStr.split('-');
+    return `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
   };
 
   // 渲染分类选择
   const renderCategorySelection = () => {
-    // 获取该餐次已保存的记录（从后端加载的，不是当前选择的）
+    // 只显示后端已保存的数据
     const savedRecord = selectedMeal ? existingRecords[selectedMeal] : null;
     const savedFoodsCount = savedRecord?.foods?.length || 0;
-    // 从foods数组累加计算热量
     const savedCalories = savedRecord?.foods?.reduce((sum: number, f: any) => sum + (f.calories || 0), 0) || 0;
     
     return (
@@ -413,7 +454,7 @@ export default function DietRecordScreen() {
           {getDateDisplay()} · {MEAL_TYPES.find(m => m.key === selectedMeal)?.name} · 点击分类查看食物
         </Text>
         
-        {/* 已保存记录提示（只显示后端已保存的，不是当前选择的） */}
+        {/* 已保存记录提示 */}
         {savedFoodsCount > 0 && (
           <View style={styles.savedBanner}>
             <View style={styles.selectedBannerLeft}>
@@ -444,28 +485,43 @@ export default function DietRecordScreen() {
     );
   };
 
-  // 渲染食物列表
+  // 渲染食物列表（整合克数设置和保存功能）
   const renderFoodsList = () => {
     const currentCategory = FOOD_CATEGORIES.find(c => c.key === selectedCategory);
     
     return (
       <View style={styles.stepContainer}>
+        {/* 头部：分类名称 + 营养总览 */}
         <View style={styles.foodsHeader}>
           <View>
             <Text style={styles.stepTitle}>{currentCategory?.name}</Text>
-            <Text style={styles.stepSubtitle}>点击添加到已选列表</Text>
+            <Text style={styles.stepSubtitle}>
+              {getDateDisplay()} · {MEAL_TYPES.find(m => m.key === selectedMeal)?.name}
+            </Text>
           </View>
-          {selectedFoods.length > 0 && (
-            <TouchableOpacity
-              style={styles.confirmBtnSmall}
-              onPress={handleContinue}
-            >
-              <Text style={styles.confirmBtnSmallText}>
-                完成选择 ({selectedFoods.length})
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
+        
+        {/* 营养总览（当有选中食物时显示） */}
+        {selectedFoods.length > 0 && (
+          <View style={styles.nutritionSummaryCompact}>
+            <View style={styles.nutritionItemCompact}>
+              <Text style={styles.nutritionValueCompact}>{Math.round(totalCalories)}</Text>
+              <Text style={styles.nutritionLabelCompact}>热量</Text>
+            </View>
+            <View style={styles.nutritionItemCompact}>
+              <Text style={styles.nutritionValueCompact}>{Math.round(totalProtein)}g</Text>
+              <Text style={styles.nutritionLabelCompact}>蛋白质</Text>
+            </View>
+            <View style={styles.nutritionItemCompact}>
+              <Text style={styles.nutritionValueCompact}>{Math.round(totalCarbs)}g</Text>
+              <Text style={styles.nutritionLabelCompact}>碳水</Text>
+            </View>
+            <View style={styles.nutritionItemCompact}>
+              <Text style={styles.nutritionValueCompact}>{Math.round(totalFat)}g</Text>
+              <Text style={styles.nutritionLabelCompact}>脂肪</Text>
+            </View>
+          </View>
+        )}
         
         {loading ? (
           <ActivityIndicator size="large" color="#4ABAB8" style={{ marginTop: 40 }} />
@@ -476,25 +532,65 @@ export default function DietRecordScreen() {
               const selectedFood = selectedFoods.find(f => f.id === food.id);
               
               return (
-                <TouchableOpacity
-                  key={food.id}
-                  style={[styles.foodItem, isSelected && styles.foodItemSelected]}
-                  onPress={() => toggleFood(food)}
-                >
-                  <View style={styles.foodItemLeft}>
+                <View key={food.id} style={[styles.foodItem, isSelected && styles.foodItemSelected]}>
+                  {/* 点击区域：勾选/取消 */}
+                  <TouchableOpacity
+                    style={styles.foodItemTouchable}
+                    onPress={() => toggleFood(food)}
+                  >
                     <View style={[styles.foodCheckbox, isSelected && styles.foodCheckboxChecked]}>
                       {isSelected && <Ionicons name="checkmark" size={16} color="#FFF" />}
                     </View>
                     <View style={styles.foodInfo}>
                       <Text style={styles.foodName}>{food.name}</Text>
-                      <Text style={styles.foodPortion}>{food.default_portion}</Text>
+                      {!isSelected && (
+                        <Text style={styles.foodPortion}>每100g: {food.calories} kcal</Text>
+                      )}
                     </View>
-                  </View>
-                  <View style={styles.foodItemRight}>
-                    <Text style={styles.foodCalories}>{food.calories}</Text>
-                    <Text style={styles.foodCaloriesUnit}>kcal</Text>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                  
+                  {/* 已选中时显示克数输入和计算后的热量 */}
+                  {isSelected && selectedFood && (
+                    <View style={styles.foodGramsSection}>
+                      <View style={styles.gramsControlInline}>
+                        <TouchableOpacity
+                          style={styles.gramsBtnSmall}
+                          onPress={() => adjustFoodGrams(food.id, -10)}
+                        >
+                          <Ionicons name="remove" size={14} color="#6B7280" />
+                        </TouchableOpacity>
+                        <TextInput
+                          style={styles.gramsInputInline}
+                          value={String(selectedFood.grams)}
+                          onChangeText={(text) => {
+                            const num = parseInt(text) || 0;
+                            updateFoodGrams(food.id, num);
+                          }}
+                          keyboardType="number-pad"
+                          selectTextOnFocus
+                        />
+                        <Text style={styles.gramsUnitInline}>g</Text>
+                        <TouchableOpacity
+                          style={styles.gramsBtnSmall}
+                          onPress={() => adjustFoodGrams(food.id, 10)}
+                        >
+                          <Ionicons name="add" size={14} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={styles.calculatedCalories}>
+                        {Math.round(food.calories * selectedFood.grams / 100)} kcal
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* 未选中时显示每100g热量 */}
+                  {!isSelected && (
+                    <View style={styles.foodItemRight}>
+                      <Text style={styles.foodCalories}>{food.calories}</Text>
+                      <Text style={styles.foodCaloriesUnit}>kcal</Text>
+                    </View>
+                  )}
+                </View>
               );
             })}
             
@@ -505,136 +601,45 @@ export default function DietRecordScreen() {
               </View>
             )}
             
-            <View style={{ height: 100 }} />
+            <View style={{ height: 120 }} />
           </ScrollView>
         )}
         
-        {/* 底部继续按钮 */}
+        {/* 底部操作栏 */}
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.backToCategoryBtn} onPress={goBack}>
             <Ionicons name="grid-outline" size={20} color="#4ABAB8" />
             <Text style={styles.backToCategoryText}>其他分类</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.continueBtn, selectedFoods.length === 0 && styles.continueBtnDisabled]}
-            onPress={handleContinue}
-            disabled={selectedFoods.length === 0}
+            style={[
+              styles.saveBtn, 
+              saving && styles.saveBtnDisabled,
+              selectedFoods.length === 0 && !isEditingExisting && styles.saveBtnDisabledGray
+            ]}
+            onPress={saveRecord}
+            disabled={saving || (selectedFoods.length === 0 && !isEditingExisting)}
           >
-            <Text style={styles.continueBtnText}>
-              {selectedFoods.length > 0 ? `确认选择 (${selectedFoods.length})` : '请选择食物'}
-            </Text>
+            {saving ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : selectedFoods.length === 0 && isEditingExisting ? (
+              <>
+                <Ionicons name="trash" size={20} color="#FFF" />
+                <Text style={styles.saveBtnText}>删除记录</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                <Text style={styles.saveBtnText}>
+                  {selectedFoods.length > 0 ? `确认保存 (${selectedFoods.length})` : '请选择食物'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>
     );
   };
-
-  // 渲染确认页面
-  const renderConfirmation = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>确认你的{MEAL_TYPES.find(m => m.key === selectedMeal)?.name}</Text>
-      <Text style={styles.stepSubtitle}>{getDateDisplay()} · 调整份量后点击保存</Text>
-      
-      {/* 营养总览 */}
-      <View style={styles.nutritionSummary}>
-        <View style={styles.nutritionItem}>
-          <Text style={styles.nutritionValue}>{Math.round(totalCalories)}</Text>
-          <Text style={styles.nutritionLabel}>热量 kcal</Text>
-        </View>
-        <View style={styles.nutritionDivider} />
-        <View style={styles.nutritionItem}>
-          <Text style={styles.nutritionValue}>{Math.round(totalProtein)}g</Text>
-          <Text style={styles.nutritionLabel}>蛋白质</Text>
-        </View>
-        <View style={styles.nutritionDivider} />
-        <View style={styles.nutritionItem}>
-          <Text style={styles.nutritionValue}>{Math.round(totalCarbs)}g</Text>
-          <Text style={styles.nutritionLabel}>碳水</Text>
-        </View>
-        <View style={styles.nutritionDivider} />
-        <View style={styles.nutritionItem}>
-          <Text style={styles.nutritionValue}>{Math.round(totalFat)}g</Text>
-          <Text style={styles.nutritionLabel}>脂肪</Text>
-        </View>
-      </View>
-      
-      {/* 已选食物列表 */}
-      <ScrollView style={styles.confirmList} showsVerticalScrollIndicator={false}>
-        {selectedFoods.map(food => (
-          <View key={food.id} style={styles.confirmItem}>
-            <View style={styles.confirmItemLeft}>
-              <Text style={styles.confirmItemName}>{food.name}</Text>
-              <Text style={styles.confirmItemCalories}>
-                {Math.round(food.calories * food.grams / 100)} kcal · 每100g {food.calories}kcal
-              </Text>
-            </View>
-            <View style={styles.gramsControl}>
-              <TouchableOpacity
-                style={styles.gramsBtn}
-                onPress={() => adjustFoodGrams(food.id, -50)}
-              >
-                <Ionicons name="remove" size={16} color="#6B7280" />
-              </TouchableOpacity>
-              <View style={styles.gramsInputWrapper}>
-                <TextInput
-                  style={styles.gramsInput}
-                  value={String(food.grams)}
-                  onChangeText={(text) => {
-                    const num = parseInt(text) || 0;
-                    updateFoodGrams(food.id, num);
-                  }}
-                  keyboardType="number-pad"
-                  selectTextOnFocus
-                />
-                <Text style={styles.gramsUnit}>g</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.gramsBtn}
-                onPress={() => adjustFoodGrams(food.id, 50)}
-              >
-                <Ionicons name="add" size={16} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              style={styles.removeBtn}
-              onPress={() => toggleFood(food)}
-            >
-              <Ionicons name="trash-outline" size={18} color="#EF4444" />
-            </TouchableOpacity>
-          </View>
-        ))}
-        
-        {/* 添加更多按钮 */}
-        <TouchableOpacity
-          style={styles.addMoreBtn}
-          onPress={() => setCurrentStep('category')}
-        >
-          <Ionicons name="add-circle-outline" size={22} color="#4ABAB8" />
-          <Text style={styles.addMoreText}>添加更多食物</Text>
-        </TouchableOpacity>
-        
-        <View style={{ height: 100 }} />
-      </ScrollView>
-      
-      {/* 保存按钮 */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-          onPress={saveRecord}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-              <Text style={styles.saveBtnText}>保存记录</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   // 获取当前步骤标题
   const getStepIndicator = () => {
@@ -642,7 +647,6 @@ export default function DietRecordScreen() {
       { key: 'meal', label: '选餐次' },
       { key: 'category', label: '选分类' },
       { key: 'foods', label: '选食物' },
-      { key: 'confirm', label: '确认' },
     ];
     const currentIndex = steps.findIndex(s => s.key === currentStep);
     
@@ -698,7 +702,6 @@ export default function DietRecordScreen() {
       {currentStep === 'meal' && renderMealSelection()}
       {currentStep === 'category' && renderCategorySelection()}
       {currentStep === 'foods' && renderFoodsList()}
-      {currentStep === 'confirm' && renderConfirmation()}
     </SafeAreaView>
   );
 }
@@ -1062,6 +1065,91 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
 
+  // 食物列表项的点击区域
+  foodItemTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  // 内联克数控制（页面3）
+  foodGramsSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  gramsControlInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+
+  gramsBtnSmall: {
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  gramsInputInline: {
+    width: 45,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    paddingVertical: 4,
+  },
+
+  gramsUnitInline: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginRight: 2,
+  },
+
+  calculatedCalories: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F97316',
+    minWidth: 60,
+    textAlign: 'right',
+  },
+
+  // 紧凑版营养总览
+  nutritionSummaryCompact: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    justifyContent: 'space-around',
+  },
+
+  nutritionItemCompact: {
+    alignItems: 'center',
+  },
+
+  nutritionValueCompact: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+
+  nutritionLabelCompact: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+
+  // 保存按钮禁用灰色
+  saveBtnDisabledGray: {
+    backgroundColor: '#D1D5DB',
+  },
+
   // 底部操作栏
   bottomBar: {
     flexDirection: 'row',
@@ -1144,6 +1232,30 @@ const styles = StyleSheet.create({
 
   confirmList: {
     flex: 1,
+  },
+  
+  emptyConfirmList: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  
+  emptyConfirmText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  
+  emptyConfirmSubtext: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  
+  deleteBtnStyle: {
+    backgroundColor: '#EF4444',
   },
 
   confirmItem: {

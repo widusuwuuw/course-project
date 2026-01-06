@@ -180,7 +180,7 @@ def get_food_categories():
 def create_diet_log(
     log_date: str,  # 格式: "2024-01-15"
     meal_type: str,  # breakfast/lunch/dinner/snacks
-    foods: List[dict],  # 食物列表
+    foods: List[dict] = [],  # 食物列表，默认为空列表
     notes: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -201,6 +201,9 @@ def create_diet_log(
         }
     ]
     """
+    # 调试日志
+    print(f"[饮食记录API] 接收到请求: log_date={log_date}, meal_type={meal_type}, foods数量={len(foods) if foods else 0}, foods内容={foods}")
+    
     # 解析日期
     try:
         date_obj = datetime.strptime(log_date, "%Y-%m-%d")
@@ -239,6 +242,24 @@ def create_diet_log(
             DietLog.meal_type == meal_type
         )
     ).first()
+    
+    # 如果foods为空且存在记录，则删除该记录
+    if not foods or len(foods) == 0:
+        if existing_log:
+            print(f"[删除饮食记录] 用户 {current_user.id}, 日期 {log_date}, 餐次 {meal_type}, 记录ID {existing_log.id}")
+            db.delete(existing_log)
+            db.commit()
+            print(f"[删除饮食记录] 删除成功")
+            return {
+                "message": "饮食记录已删除",
+                "deleted": True
+            }
+        else:
+            print(f"[删除饮食记录] 无记录可删除 - 用户 {current_user.id}, 日期 {log_date}, 餐次 {meal_type}")
+            return {
+                "message": "无记录可删除",
+                "deleted": False
+            }
     
     if existing_log:
         # 更新现有记录
@@ -293,21 +314,25 @@ def get_diet_logs(
     """获取饮食记录"""
     query = db.query(DietLog).filter(DietLog.user_id == current_user.id)
     
-    # 日期筛选
+    # 日期筛选 - 使用日期字符串比较避免时区问题
     if date:
         try:
-            date_obj = datetime.strptime(date, "%Y-%m-%d")
-            query = query.filter(func.date(DietLog.log_date) == date_obj.date())
+            # 验证日期格式
+            datetime.strptime(date, "%Y-%m-%d")
+            # 使用字符串比较
+            query = query.filter(func.strftime('%Y-%m-%d', DietLog.log_date) == date)
         except ValueError:
             raise HTTPException(status_code=400, detail="日期格式错误")
     elif start_date and end_date:
         try:
-            start = datetime.strptime(start_date, "%Y-%m-%d")
-            end = datetime.strptime(end_date, "%Y-%m-%d")
+            # 验证日期格式
+            datetime.strptime(start_date, "%Y-%m-%d")
+            datetime.strptime(end_date, "%Y-%m-%d")
+            # 使用字符串比较
             query = query.filter(
                 and_(
-                    DietLog.log_date >= start,
-                    DietLog.log_date <= end + timedelta(days=1)
+                    func.strftime('%Y-%m-%d', DietLog.log_date) >= start_date,
+                    func.strftime('%Y-%m-%d', DietLog.log_date) <= end_date
                 )
             )
         except ValueError:

@@ -131,16 +131,25 @@ export default function AIAssistantScreen() {
       // 获取保存的token
       const token = await AsyncStorage.getItem('userToken');
 
-      // 构建API请求
-      const response = await fetch('http://127.0.0.1:8000/health-assistant/chat', {
+      // 映射前端分类到后端分类
+      const categoryMap: Record<string, string> = {
+        'general': 'general',
+        'exercise': 'lifestyle',
+        'nutrition': 'diet',
+        'sleep': 'sleep',
+        'symptom': 'symptom',
+      };
+
+      // 构建API请求 - 调用正确的后端路由 /assistant/query
+      const response = await fetch('http://127.0.0.1:8000/assistant/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          message: userMessage,
-          category: selectedCategory || 'general',
+          question: userMessage,
+          question_type: categoryMap[selectedCategory || 'general'] || 'general',
         }),
       });
 
@@ -152,7 +161,7 @@ export default function AIAssistantScreen() {
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.reply,
+        text: data.answer,  // 后端返回的是 answer 字段，不是 reply
         sender: 'assistant',
         timestamp: new Date(),
       };
@@ -255,7 +264,22 @@ export default function AIAssistantScreen() {
             <View style={styles.headerContent}>
               <TouchableOpacity 
                 style={styles.headerBackButton} 
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  // 如果已选择分类或有对话历史，先返回到初始状态
+                  if (selectedCategory || messages.length > 1) {
+                    setSelectedCategory(null);
+                    setMessages([{
+                      id: '1',
+                      text: '您好！我是您的AI健康助手 👋\n\n我可以为您提供以下服务：\n• 健康生活建议\n• 运动健身指导\n• 营养饮食建议\n• 睡眠质量改善\n• 基础症状咨询\n\n请选择一个话题分类，或直接向我提问吧！',
+                      sender: 'assistant',
+                      timestamp: new Date(),
+                    }]);
+                    setInputText('');
+                  } else {
+                    // 否则返回上一页
+                    navigation.goBack();
+                  }
+                }}
               >
                 <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
               </TouchableOpacity>

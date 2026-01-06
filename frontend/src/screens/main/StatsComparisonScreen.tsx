@@ -77,8 +77,12 @@ export default function StatsComparisonScreen() {
   const loadWeeklyStats = useCallback(async () => {
     try {
       const response = await apiGet('/logs/stats/weekly');
-      if (response.data) {
-        setWeeklyStats(response.data);
+      console.log('[StatsComparisonScreen] 获取周统计数据:', response);
+      // apiGet 直接返回响应体，不是 {data: ...} 结构
+      if (response && response.daily_stats) {
+        setWeeklyStats(response);
+      } else {
+        console.log('[StatsComparisonScreen] 响应格式不正确:', response);
       }
     } catch (error) {
       console.error('Failed to load weekly stats:', error);
@@ -106,14 +110,21 @@ export default function StatsComparisonScreen() {
     
     try {
       const response = await apiPost('/logs/stats/ai-analysis', { analysis_type: type });
-      if (response.data && response.data.ai_analysis) {
-        setAiAnalysisResult(response.data.ai_analysis);
+      // apiPost 直接返回响应体
+      if (response && response.ai_analysis) {
+        setAiAnalysisResult(response.ai_analysis);
       } else {
         setAiAnalysisResult('分析失败，请稍后重试');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI analysis failed:', error);
-      setAiAnalysisResult('分析失败，请检查网络连接后重试');
+      // 检查是否是余额不足错误
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('Insufficient Balance') || errorMsg.includes('402')) {
+        setAiAnalysisResult('⚠️ AI服务暂时不可用\n\nAPI账户余额不足，请联系管理员充值后再试。\n\n您仍可以查看上方的统计图表和数据分析。');
+      } else {
+        setAiAnalysisResult('分析失败，请检查网络连接后重试');
+      }
     } finally {
       setAiAnalyzing(false);
     }
