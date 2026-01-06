@@ -172,7 +172,7 @@ export default function HomeScreen() {
           value: dietCalories > 0 ? `${dietCalories}` : '未记录',
           target: `${dietTarget} kcal`,
           color: '#10B981',
-          progress: Math.min(Math.round((dietCalories / dietTarget) * 100), 100),
+          progress: dietTarget > 0 ? Math.min(Math.round((dietCalories / dietTarget) * 100), 100) : 0,
           route: 'Nutrition'
         },
         {
@@ -181,7 +181,7 @@ export default function HomeScreen() {
           value: exerciseCalories > 0 ? `${exerciseCalories}` : '未记录',
           target: `${exerciseTarget} kcal`,
           color: '#F59E0B',
-          progress: Math.min(Math.round((exerciseCalories / exerciseTarget) * 100), 100),
+          progress: exerciseTarget > 0 ? Math.min(Math.round((exerciseCalories / exerciseTarget) * 100), 100) : (exerciseCalories > 0 ? 100 : 0),
           route: 'SportsTraining'
         },
         {
